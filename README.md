@@ -17,10 +17,163 @@ The backend never trusts frontend totals: it validates race state, `config_versi
 
 When code changes, sync the source header, parent `.folder.md`, and this README if module boundaries change. / 修改代码时，同步源文件头、父级 `.folder.md`；若模块边界变化，同步本 README。
 
-## Run / 运行
+## Local Full-Stack Test / 本地完整联调测试
 
-- Backend dependencies: `cd backend && composer install` (Docker image includes required PHP extensions). / 后端依赖：`cd backend && composer install`（Docker 镜像包含所需 PHP 扩展）。
-- Frontend dependencies: `cd frontend/member-h5 && npm install`. / 前端依赖：`cd frontend/member-h5 && npm install`。
-- Frontend dev: `npm run dev -- --port 5173`. / 前端开发：`npm run dev -- --port 5173`。
-- Verification: `cd backend && php artisan test`; `cd frontend/member-h5 && npm test && npm run build`. / 验证：`cd backend && php artisan test`；`cd frontend/member-h5 && npm test && npm run build`。
-- Stack: build frontend, copy `.env.example` to `.env`, set `APP_KEY`, then `docker compose up --build`. / 全栈：先构建前端，复制 `.env.example` 为 `.env`，设置 `APP_KEY`，再运行 `docker compose up --build`。
+Use Docker for full-stack testing because it matches the intended single-server topology: Nginx serves the built H5 app, Laravel handles `/api`, `/admin`, and `/sanctum`, MySQL stores business data, and Redis handles cache/session/queue. / 完整联调建议使用 Docker，因为它贴近目标单机部署拓扑：Nginx 提供构建后的 H5，Laravel 处理 `/api`、`/admin`、`/sanctum`，MySQL 保存业务数据，Redis 处理缓存、会话与队列。
+
+### 1. Prepare Environment / 准备环境
+
+Run from the repository root. / 在仓库根目录执行。
+
+```bash
+cd /Users/alcuin/Coding/在线赛事报名系统
+cp backend/.env.example backend/.env
+```
+
+Install backend dependencies in the PHP container. / 在 PHP 容器内安装后端依赖。
+
+```bash
+docker compose run --rm app composer install
+```
+
+Generate the Laravel application key. / 生成 Laravel 应用密钥。
+
+```bash
+docker compose run --rm app php artisan key:generate
+```
+
+Build the member H5 app. / 构建会员端 H5。
+
+```bash
+cd frontend/member-h5
+npm install
+npm run build
+cd ../..
+```
+
+### 2. Create Database and Demo Data / 创建数据库与演示数据
+
+Start MySQL and Redis first if they are not already running. / 如果 MySQL 和 Redis 尚未运行，先启动它们。
+
+```bash
+docker compose up -d mysql redis
+```
+
+Run migrations and seed demo records. / 执行迁移并写入演示数据。
+
+```bash
+docker compose run --rm app php artisan migrate --seed
+```
+
+The seeder creates one admin, one member, one open race, several single/multi projects, and 20 pigeon rings. / 种子会创建一个管理员、一个会员、一场开放赛事、多个单羽/多羽项目和 20 个足环。
+
+### 3. Start Full Stack / 启动完整服务
+
+```bash
+docker compose up --build
+```
+
+Open these URLs. / 打开以下地址。
+
+```text
+Member H5 / 会员端:
+http://localhost:8080/login
+
+Admin panel / 后台:
+http://localhost:8080/admin
+```
+
+Demo accounts. / 演示账号。
+
+```text
+Member / 会员:
+Phone / 手机号: 13800000000
+Password / 密码: password
+
+Admin / 后台:
+Email / 邮箱: admin@example.com
+Password / 密码: password
+```
+
+### 4. What to Test / 建议测试流程
+
+Member side. / 会员端。
+
+1. Log in with the demo member account. / 使用演示会员账号登录。
+2. Enter `2026 春季大奖赛`. / 进入 `2026 春季大奖赛`。
+3. In `单羽组`, click matrix cells and confirm the amount bar changes locally. / 在 `单羽组` 点击矩阵单元格，确认底部金额栏本地变化。
+4. Search by full ring number or tail digits, then clear search and confirm selected cells remain selected. / 用完整足环号或尾号搜索，再清空搜索，确认已选状态不丢失。
+5. In `多羽组`, select a project, choose the required number of rings, and confirm a group. / 在 `多羽组` 选择项目、按要求选择足环并确认成组。
+6. Open `已选明细`, verify grouped details and total amount. / 打开 `已选明细`，核对分组明细和总金额。
+7. Submit and verify the success result page. / 提交并确认成功结果页。
+
+Admin side. / 后台。
+
+1. Log in with the demo admin account. / 使用演示管理员账号登录。
+2. Check member, pigeon, race, project, and registration resources. / 查看会员、足环、赛事、项目和报名资源。
+3. Confirm a pending registration. / 确认一条待确认报名。
+4. Edit a race project and verify `config_version` policy before member submission in later tests. / 后续测试可修改赛事项目并验证会员提交前的 `config_version` 策略。
+
+### 5. Reset Local Data / 重置本地数据
+
+Stop services but keep data. / 停止服务但保留数据。
+
+```bash
+docker compose down
+```
+
+Delete MySQL volume and start from a clean database. / 删除 MySQL 数据卷并从空数据库重来。
+
+```bash
+docker compose down -v
+docker compose up -d mysql redis
+docker compose run --rm app php artisan migrate --seed
+docker compose up --build
+```
+
+### 6. Frontend-Only Development / 仅前端开发
+
+For fast UI testing without backend, run Vite directly. The registration screen has a development-only demo bootstrap fallback when the backend API is unavailable. / 如果只想快速测试 UI，可直接运行 Vite；当后端 API 不可用时，报名页会使用仅开发环境启用的演示初始化数据。
+
+```bash
+cd /Users/alcuin/Coding/在线赛事报名系统/frontend/member-h5
+npm install
+npm run dev -- --port 5173
+```
+
+Open the registration page directly. / 直接打开报名页。
+
+```text
+http://localhost:5173/races/1/register
+```
+
+Open the login page. Login requires the backend API unless you only inspect the screen. / 打开登录页；登录动作需要后端 API，除非只检查页面。
+
+```text
+http://localhost:5173/login
+```
+
+### 7. Verification Commands / 验证命令
+
+Backend tests. / 后端测试。
+
+```bash
+cd /Users/alcuin/Coding/在线赛事报名系统/backend
+php artisan test
+composer validate --no-check-publish --strict
+```
+
+Frontend tests and production build. / 前端测试与生产构建。
+
+```bash
+cd /Users/alcuin/Coding/在线赛事报名系统/frontend/member-h5
+npm test
+npm run build
+```
+
+List member API routes. / 查看会员 API 路由。
+
+```bash
+cd /Users/alcuin/Coding/在线赛事报名系统/backend
+php artisan route:list --path=api/member
+```
