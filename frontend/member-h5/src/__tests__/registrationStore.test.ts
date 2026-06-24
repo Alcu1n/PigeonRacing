@@ -1,0 +1,97 @@
+// [IN]: Pinia registration store and fake bootstrap data / Pinia 报名 Store 与模拟初始化数据
+// [OUT]: Local registration behavior assertions / 本地报名行为断言
+// [POS]: Frontend registration store tests / 前端报名状态测试
+// Protocol: When updating me, sync this header + parent folder's .folder.md
+// 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+import { useRegistrationStore } from '../stores/registration'
+import type { BootstrapPayload } from '../types/domain'
+
+describe('registration store', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    const memory = new Map<string, string>()
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => memory.get(key) ?? null,
+      setItem: (key: string, value: string) => memory.set(key, value),
+      removeItem: (key: string) => memory.delete(key),
+      clear: () => memory.clear(),
+    })
+  })
+
+  it('keeps single matrix selection after search changes', () => {
+    const store = useRegistrationStore()
+    store.load(bootstrap())
+    store.toggleSingle(101, 1)
+    store.searchQuery = '999'
+    store.searchQuery = ''
+
+    expect(store.singleMatrix[101][1]).toBe(true)
+    expect(store.submitEntries).toEqual([{ project_id: 1, pigeon_ids: [101] }])
+  })
+
+  it('creates multi group only when enough pigeons are selected', () => {
+    const store = useRegistrationStore()
+    store.load(bootstrap())
+    store.setMultiProject(2)
+    store.togglePendingMultiPigeon(101)
+    store.confirmMultiGroup()
+    expect(store.multiGroups).toHaveLength(0)
+
+    store.togglePendingMultiPigeon(102)
+    store.confirmMultiGroup()
+    expect(store.multiGroups).toHaveLength(1)
+    expect(store.multiEntries).toEqual([{ project_id: 2, pigeon_ids: [101, 102] }])
+  })
+
+  it('calculates total amount from selected projects', () => {
+    const store = useRegistrationStore()
+    store.load(bootstrap())
+    store.toggleSingle(101, 1)
+    store.setMultiProject(2)
+    store.togglePendingMultiPigeon(101)
+    store.togglePendingMultiPigeon(102)
+    store.confirmMultiGroup()
+
+    expect(store.singleAmountCent).toBe(5000)
+    expect(store.multiAmountCent).toBe(20000)
+    expect(store.totalAmountCent).toBe(25000)
+  })
+
+  it('drops stale local draft when config version changes', () => {
+    const store = useRegistrationStore()
+    store.load(bootstrap())
+    store.toggleSingle(101, 1)
+
+    const next = bootstrap()
+    next.race.config_version = 2
+    store.load(next)
+
+    expect(store.submitEntries).toEqual([])
+  })
+})
+
+function bootstrap(): BootstrapPayload {
+  return {
+    race: {
+      id: 1,
+      name: '2026 春季大奖赛',
+      registration_end_at: '2026-05-01 18:00:00',
+      status: 'open',
+      config_version: 1,
+      allow_member_edit: true,
+    },
+    member: { id: 1, loft_number: 'A001', participant_name: '张三鸽舍' },
+    projects: [
+      { id: 1, race_id: 1, name: '单羽 50 元', group_size: 1, price_cent: 5000, sort_order: 1, is_enabled: true, allow_repeat_pigeon_in_project: false },
+      { id: 2, race_id: 1, name: '双羽组 200 元', group_size: 2, price_cent: 20000, sort_order: 2, is_enabled: true, allow_repeat_pigeon_in_project: false },
+    ],
+    pigeons: [
+      { id: 101, ring_number: 'CHN-2026-03-000101' },
+      { id: 102, ring_number: 'CHN-2026-03-000102' },
+      { id: 999, ring_number: 'CHN-2026-03-000999' },
+    ],
+    existing_registration: null,
+  }
+}

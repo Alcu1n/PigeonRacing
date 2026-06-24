@@ -1,0 +1,14 @@
+# [IN]: Generated local files / 本地生成文件
+# [OUT]: Version-control ignore rules / 版本控制忽略规则
+# [POS]: Root repository hygiene config / 根仓库卫生配置
+# Protocol: When updating me, sync this header + parent folder's .folder.md
+# 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
+.DS_Store
+backend/vendor/
+backend/.env
+backend/.phpunit.result.cache
+backend/bootstrap/cache/*.php
+backend/storage/*.key
+frontend/member-h5/node_modules/
+frontend/member-h5/dist/
+*.log
