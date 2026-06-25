@@ -79,8 +79,18 @@ The seeder creates one admin, one member, one open race, several single/multi pr
 
 ### 3. Start Full Stack / 启动完整服务
 
+Build images first, then start containers. This avoids Docker Compose's `up --build` Bake path, which may fail on some Docker Desktop versions with a `x-docker-expose-session-sharedkey` gRPC header error. / 先构建镜像，再启动容器。这样可以避开部分 Docker Desktop 版本中 `docker compose up --build` 触发的 Bake 路径错误，例如 `x-docker-expose-session-sharedkey` gRPC header 报错。
+
 ```bash
-docker compose up --build
+docker compose build app queue scheduler
+docker compose up -d
+```
+
+If Docker still enters the Bake build path, disable Compose Bake for this command. / 如果 Docker 仍进入 Bake 构建路径，请对此命令禁用 Compose Bake。
+
+```bash
+COMPOSE_BAKE=false docker compose build app queue scheduler
+docker compose up -d
 ```
 
 Open these URLs. / 打开以下地址。
@@ -138,7 +148,8 @@ Delete MySQL volume and start from a clean database. / 删除 MySQL 数据卷并
 docker compose down -v
 docker compose up -d mysql redis
 docker compose run --rm app php artisan migrate --seed
-docker compose up --build
+docker compose build app queue scheduler
+docker compose up -d
 ```
 
 ### 6. Frontend-Only Development / 仅前端开发
