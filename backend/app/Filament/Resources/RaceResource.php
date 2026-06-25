@@ -7,6 +7,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\RaceResource\Pages;
 use App\Models\Race;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -50,5 +51,14 @@ class RaceResource extends Resource
             TextColumn::make('config_version')->label('版本'),
             TextColumn::make('registrations_count')->counts('registrations')->label('报名人数'),
         ])->recordActions([EditAction::make(), DeleteAction::make()]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListRaces::route('/'),
+            'create' => Pages\CreateRace::route('/create'),
+            'edit' => Pages\EditRace::route('/{record}/edit'),
+        ];
     }
 }

@@ -7,6 +7,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\RaceProjectResource\Pages;
 use App\Models\RaceProject;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -50,5 +51,14 @@ class RaceProjectResource extends Resource
             TextColumn::make('price_cent')->label('金额（分）'),
             IconColumn::make('is_enabled')->label('启用')->boolean(),
         ])->recordActions([EditAction::make(), DeleteAction::make()]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListRaceProjects::route('/'),
+            'create' => Pages\CreateRaceProject::route('/create'),
+            'edit' => Pages\EditRaceProject::route('/{record}/edit'),
+        ];
     }
 }

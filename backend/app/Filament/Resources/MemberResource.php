@@ -7,6 +7,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\MemberResource\Pages;
 use App\Models\Member;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -45,5 +46,14 @@ class MemberResource extends Resource
             TextColumn::make('status')->label('状态'),
             TextColumn::make('last_login_at')->label('最近登录')->dateTime(),
         ])->recordActions([EditAction::make(), DeleteAction::make()]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListMembers::route('/'),
+            'create' => Pages\CreateMember::route('/create'),
+            'edit' => Pages\EditMember::route('/{record}/edit'),
+        ];
     }
 }

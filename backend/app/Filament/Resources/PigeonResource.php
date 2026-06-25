@@ -7,6 +7,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Resources\PigeonResource\Pages;
 use App\Models\Pigeon;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -44,5 +45,14 @@ class PigeonResource extends Resource
             TextColumn::make('status')->label('状态'),
             TextColumn::make('created_at')->label('导入时间')->dateTime(),
         ])->recordActions([EditAction::make(), DeleteAction::make()]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListPigeons::route('/'),
+            'create' => Pages\CreatePigeon::route('/create'),
+            'edit' => Pages\EditPigeon::route('/{record}/edit'),
+        ];
     }
 }

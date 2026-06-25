@@ -4,6 +4,7 @@
 # Protocol: When updating me, sync this header + parent folder's .folder.md
 # 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 .DS_Store
+.playwright-mcp/
 backend/vendor/
 backend/.env
 backend/.phpunit.result.cache

@@ -8,6 +8,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\RegistrationStatus;
+use App\Filament\Resources\RegistrationResource\Pages;
 use App\Models\Registration;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
@@ -49,5 +50,13 @@ class RegistrationResource extends Resource
                     'confirmed_by' => auth()->id(),
                 ])->save()),
         ]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListRegistrations::route('/'),
+            'view' => Pages\ViewRegistration::route('/{record}'),
+        ];
     }
 }
