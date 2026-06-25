@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member API HTTP requests / 会员 API HTTP 请求
-// [OUT]: Authenticated member API responses / 已鉴权会员 API 响应
+// [OUT]: Session-backed member API responses / 会话支撑的会员 API 响应
 // [POS]: Backend API route map / 后端 API 路由地图
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\Member\RaceController;
 use App\Http\Controllers\Api\Member\RegistrationController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('member')->group(function (): void {
+Route::middleware('web')->prefix('member')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login'])->middleware('guest:member');
 
     Route::middleware('auth:sanctum')->group(function (): void {

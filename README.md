@@ -52,6 +52,12 @@ Generate the Laravel application key. / 生成 Laravel 应用密钥。
 docker compose run --rm app php artisan key:generate
 ```
 
+Publish Filament admin assets. / 发布 Filament 后台资源。
+
+```bash
+docker compose run --rm app php artisan filament:assets
+```
+
 Build the member H5 app. / 构建会员端 H5。
 
 ```bash
