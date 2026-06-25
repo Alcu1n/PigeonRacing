@@ -29,7 +29,16 @@ class RaceCacheService
 
     public function forgetMemberPigeons(Member $member): void
     {
-        Cache::forget($this->memberPigeonsKey($member->id));
+        $this->forgetMemberPigeonsById($member->id);
+    }
+
+    public function forgetMemberPigeonsById(int $memberId): void
+    {
+        Cache::forget($this->memberPigeonsKey($memberId));
+
+        Race::query()
+            ->pluck('id')
+            ->each(fn (int $raceId) => Cache::forget($this->bootstrapKey($raceId, $memberId)));
     }
 
     public function forgetBootstrap(Race $race, Member $member): void

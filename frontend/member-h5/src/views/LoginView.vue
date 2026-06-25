@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from 'axios'
 import { showToast } from 'vant'
 import { useAuthStore } from '../stores/auth'
 
@@ -20,8 +21,13 @@ async function submit(): Promise<void> {
   try {
     await auth.login(phone.value, password.value)
     await router.push('/races')
-  } catch {
-    showToast('手机号或密码错误')
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 422) {
+      showToast('手机号或密码错误')
+      return
+    }
+
+    showToast('登录会话已失效，请刷新后重试')
   } finally {
     loading.value = false
   }

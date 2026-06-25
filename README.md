@@ -109,6 +109,13 @@ Admin panel / 后台:
 http://localhost:8080/admin
 ```
 
+For phone testing on the same Wi-Fi, use the computer's LAN IP with port `8080`; do not omit the port. The backend accepts the current request host for Sanctum cookie auth, and `SESSION_DOMAIN` should stay empty so cookies match both `localhost` and LAN IP hosts. / 手机同 Wi-Fi 测试时，使用电脑局域网 IP 并带上 `8080` 端口；不要省略端口。后端会把当前请求 Host 作为 Sanctum Cookie 鉴权来源，`SESSION_DOMAIN` 应保持为空，这样 Cookie 才能同时匹配 `localhost` 与局域网 IP Host。
+
+```text
+Phone member H5 / 手机会员端:
+http://192.168.1.82:8080/login
+```
+
 Demo accounts. / 演示账号。
 
 ```text
