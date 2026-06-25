@@ -21,6 +21,8 @@ When code changes, sync the source header, parent `.folder.md`, and this README 
 
 Use Docker for full-stack testing because it matches the intended single-server topology: Nginx serves the built H5 app, Laravel handles `/api`, `/admin`, and `/sanctum`, MySQL stores business data, and Redis handles cache/session/queue. / 完整联调建议使用 Docker，因为它贴近目标单机部署拓扑：Nginx 提供构建后的 H5，Laravel 处理 `/api`、`/admin`、`/sanctum`，MySQL 保存业务数据，Redis 处理缓存、会话与队列。
 
+The Compose project name is fixed as `pigeon-racing` in `docker-compose.yml`, so Docker will not derive an invalid empty project name from the Chinese repository folder. / `docker-compose.yml` 已固定 Compose 项目名为 `pigeon-racing`，因此 Docker 不会再从中文仓库目录推导出非法空项目名。
+
 ### 1. Prepare Environment / 准备环境
 
 Run from the repository root. / 在仓库根目录执行。
