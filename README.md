@@ -35,6 +35,14 @@ cp backend/.env.example backend/.env
 Install backend dependencies in the PHP container. / 在 PHP 容器内安装后端依赖。
 
 ```bash
+docker compose build app
+docker compose run --rm app composer install
+```
+
+If Composer reports a missing PHP extension after Dockerfile changes, rebuild the app image before running Composer again. / 如果修改 Dockerfile 后 Composer 仍提示缺少 PHP 扩展，请先重建 app 镜像再运行 Composer。
+
+```bash
+docker compose build --no-cache app
 docker compose run --rm app composer install
 ```
 

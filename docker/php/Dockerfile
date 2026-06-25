@@ -5,8 +5,19 @@
 # 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 FROM php:8.4-fpm-alpine
 
-RUN apk add --no-cache bash git icu-dev libzip-dev oniguruma-dev unzip zip \
-    && docker-php-ext-install intl mbstring pdo_mysql zip opcache
+RUN apk add --no-cache \
+        bash \
+        freetype-dev \
+        git \
+        icu-dev \
+        libjpeg-turbo-dev \
+        libpng-dev \
+        libzip-dev \
+        oniguruma-dev \
+        unzip \
+        zip \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install gd intl mbstring pdo_mysql zip opcache
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
