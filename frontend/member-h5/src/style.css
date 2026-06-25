@@ -1,5 +1,5 @@
 /* [IN]: Member H5 markup and design tokens / 会员 H5 标记与设计令牌 */
-/* [OUT]: Mobile-first registration UI styles / 移动端优先报名 UI 样式 */
+/* [OUT]: Mobile-first authenticated UI styles with compact registration matrix / 带紧凑报名矩阵的移动端已登录 UI 样式 */
 /* [POS]: Frontend global stylesheet / 前端全局样式 */
 /* Protocol: When updating me, sync this header + parent folder's .folder.md */
 /* 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md */
@@ -48,7 +48,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   box-shadow: 0 18px 50px rgba(13, 43, 30, .09);
 }
 
-.login-panel h1, .page-header h1, .registration-header h1, .result-panel h1 {
+.login-panel h1, .page-header h1, .result-panel h1 {
   margin: 0 0 8px;
   font-size: 26px;
   line-height: 1.2;
@@ -59,6 +59,26 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   margin: 0;
   color: var(--muted);
   line-height: 1.55;
+}
+
+.page-topbar, .registration-title-row, .result-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.logout-action {
+  flex: 0 0 auto;
+  min-width: 54px;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 10px;
+  background: #e9f2ee;
+  color: var(--green-dark);
+  border: 1px solid #c9dbd2;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .login-panel label, .search-box {
@@ -111,27 +131,40 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .status-dot { display: inline-block; margin-top: 8px; color: var(--green); font-weight: 700; }
 
 .registration-header {
-  padding: 18px;
+  padding: 12px;
   background: linear-gradient(135deg, #ffffff 0%, #eef8f2 100%);
   border: 1px solid var(--border);
   border-radius: 8px;
 }
 
+.registration-header h1 {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+
+.registration-header p {
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .member-line {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0 8px;
+  gap: 6px;
+  margin: 8px 0 6px;
 }
 
 .member-line span {
-  min-height: 28px;
+  min-height: 24px;
   display: inline-flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 8px;
   border-radius: 8px;
   background: #fff;
   color: var(--green-dark);
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -178,7 +211,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .stat-chip span { color: var(--amber); font-weight: 700; }
 
 .matrix-wrap {
+  position: relative;
   overflow: auto;
+  isolation: isolate;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface);
@@ -189,7 +224,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   width: max-content;
   min-width: 100%;
   display: grid;
-  grid-template-columns: 148px repeat(var(--project-count), 86px);
+  grid-template-columns: 112px repeat(var(--project-count), 86px);
 }
 
 .header-row {
@@ -205,7 +240,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .body-row.zebra { background: #f8fbf9; }
 
 .ring-cell, .project-head, .matrix-toggle {
-  min-height: 54px;
+  min-height: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -217,21 +252,35 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   position: sticky;
   left: 0;
   z-index: 3;
+  box-shadow: 8px 0 14px rgba(13, 43, 30, .08);
 }
 
 .header-row .sticky-cell { background: var(--green-dark); z-index: 5; }
+.body-row .sticky-cell { background: var(--surface); }
+.body-row.zebra .sticky-cell { background: #f8fbf9; }
+
+.header-row .ring-cell, .project-head {
+  padding: 4px 6px;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: normal;
+  word-break: break-all;
+}
+
 .ring-button {
   flex-direction: column;
   align-items: flex-start;
-  padding: 7px 10px;
+  padding: 6px 8px;
   background: inherit;
   color: var(--text);
-  font-size: 12px;
+  font-size: 11px;
+  line-height: 1.2;
   text-align: left;
 }
 
 .ring-button strong {
-  font-size: 18px;
+  font-size: 16px;
   letter-spacing: 0;
   color: var(--green-dark);
 }
@@ -248,6 +297,11 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   color: var(--green-dark);
   box-shadow: inset 0 0 0 2px var(--green);
   font-weight: 900;
+}
+
+.matrix-toggle.selected span {
+  font-size: 18px;
+  line-height: 1;
 }
 
 .multi-current, .detail-block, .group-card {
@@ -320,6 +374,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   background: rgba(255, 255, 255, .96);
   border-top: 1px solid var(--border);
   box-shadow: 0 -12px 30px rgba(13, 43, 30, .08);
+  z-index: 12;
 }
 
 .amount-copy {

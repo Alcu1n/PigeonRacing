@@ -1,5 +1,5 @@
 <!-- [IN]: Race id route param and backend bootstrap API / 赛事 ID 路由参数与后端初始化 API -->
-<!-- [OUT]: Local single, multi, detail, and submit workflow / 本地单羽、多羽、明细与提交流程 -->
+<!-- [OUT]: Compact race header plus local single, multi, detail, and submit workflow / 紧凑赛事头部与本地单羽、多羽、明细和提交流程 -->
 <!-- [POS]: Frontend core registration screen / 前端核心报名页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -15,6 +15,7 @@ import AmountBar from '../components/AmountBar.vue'
 import SingleMatrix from '../components/SingleMatrix.vue'
 import MultiGroupBuilder from '../components/MultiGroupBuilder.vue'
 import SelectedDetail from '../components/SelectedDetail.vue'
+import MemberLogoutButton from '../components/MemberLogoutButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -65,7 +66,10 @@ async function confirmSubmit(): Promise<void> {
     <p v-if="loading" class="empty-note">加载报名数据中...</p>
     <template v-else-if="store.race && store.member">
       <header class="registration-header">
-        <h1>{{ store.race.name }}</h1>
+        <div class="registration-title-row">
+          <h1>{{ store.race.name }}</h1>
+          <MemberLogoutButton />
+        </div>
         <div class="member-line">
           <span>棚号 {{ store.member.loft_number }}</span>
           <span>{{ store.member.participant_name }}</span>

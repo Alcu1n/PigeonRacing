@@ -1,5 +1,5 @@
 <!-- [IN]: Registration store single projects and pigeons / 报名 Store 的单羽项目与足环 -->
-<!-- [OUT]: Fixed-left-column tappable single-pigeon matrix / 固定左列可点击单羽矩阵 -->
+<!-- [OUT]: Compact fixed-left-column tappable single-pigeon matrix / 紧凑固定左列可点击单羽矩阵 -->
 <!-- [POS]: Frontend single registration matrix component / 前端单羽报名矩阵组件 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -29,7 +29,7 @@ function copyRing(ringNumber: string): void {
       <div class="matrix-grid header-row" :style="{ '--project-count': singleProjects.length }">
         <div class="ring-cell sticky-cell">足环号码</div>
         <div v-for="project in singleProjects" :key="project.id" class="project-head">
-          {{ project.name.replace('单羽', '') }}
+          {{ project.name }}
         </div>
       </div>
       <div
@@ -50,7 +50,7 @@ function copyRing(ringNumber: string): void {
           :class="{ selected: singleMatrix[pigeon.id]?.[project.id] }"
           @click="store.toggleSingle(pigeon.id, project.id)"
         >
-          <span v-if="singleMatrix[pigeon.id]?.[project.id]">✓ {{ project.price_cent / 100 }}</span>
+          <span v-if="singleMatrix[pigeon.id]?.[project.id]">✅</span>
           <span v-else>○</span>
         </button>
       </div>

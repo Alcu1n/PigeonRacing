@@ -1,5 +1,5 @@
 // [IN]: Member credentials and backend auth API / 会员凭据与后端鉴权 API
-// [OUT]: Current member session state / 当前会员会话状态
+// [OUT]: Current member session state and local logout reset / 当前会员会话状态与本地退出重置
 // [POS]: Frontend member auth store / 前端会员鉴权状态
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -18,8 +18,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout(): Promise<void> {
-    await api.post('/api/member/logout')
-    member.value = null
+    try {
+      await api.post('/api/member/logout')
+    } finally {
+      member.value = null
+    }
   }
 
   return { member, login, logout }
