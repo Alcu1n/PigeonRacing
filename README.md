@@ -613,7 +613,7 @@ Registration export. / 报名导出。
 
 1. Open `后台 -> 报名记录 -> 导出 Excel`. / 打开 `后台 -> 报名记录 -> 导出 Excel`。
 2. Select a race and download the matrix workbook. / 选择赛事并下载矩阵表格。
-3. Columns are `序号、会员棚号、会员参赛名、足环号码` plus each project; single-pigeon cells use `✓`, multi-pigeon cells use `第N组`. / 列为 `序号、会员棚号、会员参赛名、足环号码` 加各比赛项目；单羽单元格用 `✓`，多羽单元格用 `第N组`。
+3. Columns are `序号、会员棚号、会员参赛名、足环号码` plus each project; single-pigeon rows use `✓`, multi-pigeon groups export as one unique row with comma-separated ring numbers in the group project cell. / 列为 `序号、会员棚号、会员参赛名、足环号码` 加各比赛项目；单羽行用 `✓`，多羽组合按唯一组合导出为一行，并在对应项目单元格内用逗号分隔显示足环号。
 
 ### 6. Reset Local Data / 重置本地数据
 

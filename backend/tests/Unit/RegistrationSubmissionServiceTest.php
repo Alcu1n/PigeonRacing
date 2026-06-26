@@ -1,6 +1,6 @@
 <?php
 // [IN]: Registration submission service and in-memory fixtures / 报名提交服务与内存夹具
-// [OUT]: Rule validation assertions / 规则校验断言
+// [OUT]: Rule validation and duplicate-group assertions / 规则校验与重复组合断言
 // [POS]: Backend registration rule unit tests / 后端报名规则单元测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -56,8 +56,8 @@ class RegistrationSubmissionServiceTest extends TestCase
 
         $service = new RegistrationSubmissionService($this->createMock(RaceCacheService::class));
         $service->validateEntries([
-            ['project_id' => 1, 'pigeon_ids' => [101]],
-            ['project_id' => 1, 'pigeon_ids' => [101]],
+            ['project_id' => 2, 'pigeon_ids' => [101, 102]],
+            ['project_id' => 2, 'pigeon_ids' => [101, 999]],
         ], $this->projects(), $this->pigeons());
     }
 
@@ -73,6 +73,21 @@ class RegistrationSubmissionServiceTest extends TestCase
         ], $projects, $this->pigeons());
 
         $this->assertSame(40000, $result['total_amount_cent']);
+    }
+
+    public function test_it_rejects_identical_multi_group_even_when_repeat_pigeon_is_allowed(): void
+    {
+        $this->expectException(RegistrationRuleException::class);
+        $this->expectExceptionMessage('相同足环组合');
+
+        $projects = $this->projects();
+        $projects->get(2)->allow_repeat_pigeon_in_project = true;
+
+        $service = new RegistrationSubmissionService($this->createMock(RaceCacheService::class));
+        $service->validateEntries([
+            ['project_id' => 2, 'pigeon_ids' => [101, 102]],
+            ['project_id' => 2, 'pigeon_ids' => [102, 101]],
+        ], $projects, $this->pigeons());
     }
 
     public function test_it_rejects_repeat_pigeon_when_max_usage_is_reached(): void

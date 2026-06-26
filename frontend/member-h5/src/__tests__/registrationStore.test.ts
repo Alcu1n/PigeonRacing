@@ -1,5 +1,5 @@
 // [IN]: Pinia registration store and fake bootstrap data / Pinia 报名 Store 与模拟初始化数据
-// [OUT]: Local registration behavior assertions / 本地报名行为断言
+// [OUT]: Local registration behavior and unique group assertions / 本地报名行为与唯一组合断言
 // [POS]: Frontend registration store tests / 前端报名状态测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -81,6 +81,24 @@ describe('registration store', () => {
       { project_id: 2, pigeon_ids: [101, 102] },
       { project_id: 2, pigeon_ids: [101, 999] },
     ])
+  })
+
+  it('blocks identical multi group when repeat usage is enabled', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.projects[1].allow_repeat_pigeon_in_project = true
+    store.load(payload)
+    store.setMultiProject(2)
+
+    store.togglePendingMultiPigeon(101)
+    store.togglePendingMultiPigeon(102)
+    store.confirmMultiGroup()
+    store.togglePendingMultiPigeon(102)
+    store.togglePendingMultiPigeon(101)
+
+    expect(store.canConfirmMultiGroup).toBe(false)
+    store.confirmMultiGroup()
+    expect(store.multiEntries).toEqual([{ project_id: 2, pigeon_ids: [101, 102] }])
   })
 
   it('blocks the same pigeon in another multi group when repeat usage is disabled', () => {

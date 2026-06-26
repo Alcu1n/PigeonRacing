@@ -1,5 +1,5 @@
 // [IN]: Bootstrap payload and local member registration actions / 初始化数据与会员本地报名动作
-// [OUT]: Matrix state, row select-all, repeat-aware multi groups, summaries, drafts, and submit payload / 矩阵状态、行全选、支持重复规则的多羽组合、汇总、草稿与提交数据
+// [OUT]: Matrix state, row select-all, repeat-aware unique multi groups, summaries, drafts, and submit payload / 矩阵状态、行全选、支持重复规则且唯一的多羽组合、汇总、草稿与提交数据
 // [POS]: Frontend registration state machine / 前端报名状态机
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -78,6 +78,7 @@ export const useRegistrationStore = defineStore('registration', () => {
   const canConfirmMultiGroup = computed(() => {
     const project = selectedMultiProject.value
     if (!project || pendingMultiPigeonIds.value.length !== project.group_size) return false
+    if (hasSameMultiGroup(project.id, pendingMultiPigeonIds.value)) return false
     return pendingMultiPigeonIds.value.every((pigeonId) => canUsePigeonInSelectedProject(pigeonId, true))
   })
 
@@ -148,6 +149,7 @@ export const useRegistrationStore = defineStore('registration', () => {
   function confirmMultiGroup(): void {
     const project = selectedMultiProject.value
     if (!project || !canConfirmMultiGroup.value) return
+    if (hasSameMultiGroup(project.id, pendingMultiPigeonIds.value)) return
     if (!project.allow_repeat_pigeon_in_project && hasProjectPigeonOverlap(project.id, pendingMultiPigeonIds.value)) return
 
     multiGroups.value.push({
@@ -187,6 +189,15 @@ export const useRegistrationStore = defineStore('registration', () => {
   function hasProjectPigeonOverlap(projectId: number, pigeonIds: number[]): boolean {
     const used = new Set(multiGroups.value.filter((group) => group.project_id === projectId).flatMap((group) => group.pigeon_ids))
     return pigeonIds.some((pigeonId) => used.has(pigeonId))
+  }
+
+  function hasSameMultiGroup(projectId: number, pigeonIds: number[]): boolean {
+    const signature = groupSignature(pigeonIds)
+    return multiGroups.value.some((group) => group.project_id === projectId && groupSignature(group.pigeon_ids) === signature)
+  }
+
+  function groupSignature(pigeonIds: number[]): string {
+    return [...pigeonIds].sort((left, right) => left - right).join(':')
   }
 
   function canUsePigeonInSelectedProject(pigeonId: number, alreadyPending: boolean = pendingMultiPigeonIds.value.includes(pigeonId)): boolean {

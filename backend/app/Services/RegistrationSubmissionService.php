@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member, race, config version, idempotency key, and normalized entries / 会员、赛事、配置版本、幂等键与标准化报名项目
-// [OUT]: Validated registration with snapshot entries / 已校验报名及快照明细
+// [OUT]: Validated registration with unique group snapshot entries / 已校验且组合唯一的报名快照明细
 // [POS]: Backend trusted registration transaction service / 后端可信报名事务服务
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -93,6 +93,7 @@ class RegistrationSubmissionService
         $normalized = [];
         $entryCountByProject = [];
         $pigeonUsageByProject = [];
+        $groupSignaturesByProject = [];
         $totalAmount = 0;
 
         foreach ($entries as $index => $entry) {
@@ -105,6 +106,12 @@ class RegistrationSubmissionService
             if (count($pigeonIds) !== $project->group_size) {
                 throw new RegistrationRuleException('group_size_mismatch', "项目 {$project->name} 必须选择 {$project->group_size} 羽。");
             }
+
+            $groupSignature = $this->groupSignature($pigeonIds);
+            if (isset($groupSignaturesByProject[$project->id][$groupSignature])) {
+                throw new RegistrationRuleException('duplicate_group', "项目 {$project->name} 已存在相同足环组合。");
+            }
+            $groupSignaturesByProject[$project->id][$groupSignature] = true;
 
             $entryPigeons = [];
             foreach ($pigeonIds as $pigeonId) {
@@ -167,6 +174,13 @@ class RegistrationSubmissionService
             ->unique()
             ->values()
             ->all();
+    }
+
+    private function groupSignature(array $pigeonIds): string
+    {
+        sort($pigeonIds, SORT_NUMERIC);
+
+        return implode(':', $pigeonIds);
     }
 
     private function makeRegistrationNo(Race $race): string
