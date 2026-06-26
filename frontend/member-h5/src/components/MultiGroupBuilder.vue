@@ -1,5 +1,5 @@
 <!-- [IN]: Registration store multi projects and pigeons / 报名 Store 的多羽项目与足环 -->
-<!-- [OUT]: Multi-pigeon group builder and group cards / 多羽组合构建器与组合卡片 -->
+<!-- [OUT]: Sticky repeat-aware multi-pigeon group builder and group cards / 固定且支持重复规则的多羽组合构建器与组合卡片 -->
 <!-- [POS]: Frontend multi registration component / 前端多羽报名组件 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -29,7 +29,7 @@ const { multiProjects, selectedMultiProject, pendingMultiPigeonIds, filteredPige
     <div v-if="selectedMultiProject" class="multi-current">
       <strong>当前选择：{{ selectedMultiProject.name }}</strong>
       <span>请选择 {{ selectedMultiProject.group_size }} 只赛鸽组成一组，已选 {{ pendingMultiPigeonIds.length }}/{{ selectedMultiProject.group_size }}</span>
-      <button class="secondary-action" :disabled="pendingMultiPigeonIds.length !== selectedMultiProject.group_size" @click="store.confirmMultiGroup">确认组成一组</button>
+      <button class="secondary-action" :disabled="!store.canConfirmMultiGroup" @click="store.confirmMultiGroup">确认组成一组</button>
     </div>
 
     <div class="pigeon-pick-list">
@@ -39,10 +39,11 @@ const { multiProjects, selectedMultiProject, pendingMultiPigeonIds, filteredPige
         type="button"
         class="pick-row"
         :class="{ selected: pendingMultiPigeonIds.includes(pigeon.id) }"
+        :disabled="!store.canUsePigeonInSelectedProject(pigeon.id)"
         @click="store.togglePendingMultiPigeon(pigeon.id)"
       >
         <span>{{ pigeon.ring_number }}</span>
-        <strong>{{ pendingMultiPigeonIds.includes(pigeon.id) ? '已选' : '未选' }}</strong>
+        <strong>{{ pendingMultiPigeonIds.includes(pigeon.id) ? '已选' : store.canUsePigeonInSelectedProject(pigeon.id) ? '未选' : '不可选' }}</strong>
       </button>
     </div>
 

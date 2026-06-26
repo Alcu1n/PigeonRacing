@@ -1,6 +1,6 @@
 <?php
 // [IN]: Race, project, member, and pigeon read models / 赛事、项目、会员与足环读取模型
-// [OUT]: Cached bootstrap payloads and invalidation hooks / 已缓存初始化数据与失效钩子
+// [OUT]: Versioned cached bootstrap payloads and race/member invalidation hooks / 带版本的已缓存初始化数据与赛事/会员失效钩子
 // [POS]: Backend read-cache coordinator / 后端读取缓存协调器
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -16,7 +16,7 @@ class RaceCacheService
     public function bootstrap(Race $race, Member $member): array
     {
         return Cache::remember(
-            $this->bootstrapKey($race->id, $member->id),
+            $this->bootstrapKey($race->id, $member->id, $race->config_version),
             now()->addMinutes(5),
             fn (): array => $this->buildBootstrap($race->fresh(['projects']), $member->fresh())
         );
@@ -24,7 +24,25 @@ class RaceCacheService
 
     public function forgetRace(Race $race): void
     {
-        Cache::forget($this->raceConfigKey($race->id));
+        $this->forgetRaceById($race->id);
+    }
+
+    public function forgetRaceById(int $raceId): void
+    {
+        Cache::forget($this->raceConfigKey($raceId));
+        $configVersion = Race::query()->whereKey($raceId)->value('config_version');
+        if ($configVersion !== null) {
+            Cache::forget($this->raceConfigKey($raceId, (int) $configVersion));
+        }
+
+        Member::query()
+            ->pluck('id')
+            ->each(function (int $memberId) use ($raceId, $configVersion): void {
+                Cache::forget($this->bootstrapKey($raceId, $memberId));
+                if ($configVersion !== null) {
+                    Cache::forget($this->bootstrapKey($raceId, $memberId, (int) $configVersion));
+                }
+            });
     }
 
     public function forgetMemberPigeons(Member $member): void
@@ -37,19 +55,23 @@ class RaceCacheService
         Cache::forget($this->memberPigeonsKey($memberId));
 
         Race::query()
-            ->pluck('id')
-            ->each(fn (int $raceId) => Cache::forget($this->bootstrapKey($raceId, $memberId)));
+            ->get(['id', 'config_version'])
+            ->each(function (Race $race) use ($memberId): void {
+                Cache::forget($this->bootstrapKey($race->id, $memberId));
+                Cache::forget($this->bootstrapKey($race->id, $memberId, $race->config_version));
+            });
     }
 
     public function forgetBootstrap(Race $race, Member $member): void
     {
         Cache::forget($this->bootstrapKey($race->id, $member->id));
+        Cache::forget($this->bootstrapKey($race->id, $member->id, $race->config_version));
     }
 
     private function buildBootstrap(Race $race, Member $member): array
     {
         $projects = Cache::remember(
-            $this->raceConfigKey($race->id),
+            $this->raceConfigKey($race->id, $race->config_version),
             now()->addMinutes(15),
             fn () => $race->projects()
                 ->where('is_enabled', true)
@@ -119,8 +141,12 @@ class RaceCacheService
         ];
     }
 
-    private function raceConfigKey(int $raceId): string
+    private function raceConfigKey(int $raceId, ?int $configVersion = null): string
     {
+        if ($configVersion !== null) {
+            return "race:{$raceId}:version:{$configVersion}:config";
+        }
+
         return "race:{$raceId}:config";
     }
 
@@ -129,8 +155,12 @@ class RaceCacheService
         return "member:{$memberId}:pigeons";
     }
 
-    private function bootstrapKey(int $raceId, int $memberId): string
+    private function bootstrapKey(int $raceId, int $memberId, ?int $configVersion = null): string
     {
+        if ($configVersion !== null) {
+            return "race:{$raceId}:version:{$configVersion}:member:{$memberId}:bootstrap";
+        }
+
         return "race:{$raceId}:member:{$memberId}:bootstrap";
     }
 }

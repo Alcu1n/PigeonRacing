@@ -1,4 +1,4 @@
-<!-- [IN]: Member phone and password input / 会员手机号与密码输入 -->
+<!-- [IN]: Blank member phone and password input / 空白会员手机号与密码输入 -->
 <!-- [OUT]: Authenticated session and race-list navigation / 已鉴权会话与赛事列表导航 -->
 <!-- [POS]: Frontend member login screen / 前端会员登录页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
@@ -12,8 +12,8 @@ import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
 const router = useRouter()
-const phone = ref('13800000000')
-const password = ref('password')
+const phone = ref('')
+const password = ref('')
 const loading = ref(false)
 
 async function submit(): Promise<void> {
@@ -41,11 +41,11 @@ async function submit(): Promise<void> {
       <p>会员手机端入口</p>
       <label>
         <span>手机号</span>
-        <input v-model="phone" inputmode="tel" autocomplete="username" />
+        <input v-model="phone" inputmode="tel" autocomplete="username" placeholder="请输入会员手机号" />
       </label>
       <label>
         <span>密码</span>
-        <input v-model="password" type="password" autocomplete="current-password" />
+        <input v-model="password" type="password" autocomplete="current-password" placeholder="请输入登录密码" />
       </label>
       <button class="primary-action wide" :disabled="loading" @click="submit">{{ loading ? '登录中...' : '登录' }}</button>
     </section>

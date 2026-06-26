@@ -1,5 +1,5 @@
 <?php
-// [IN]: Registration entry to pigeon snapshot rows / 报名注与足环快照关联行
+// [IN]: Registration entry to pigeon snapshot rows / 报名项目与足环快照关联行
 // [OUT]: Ordered ring-number snapshot membership / 有序足环号码快照成员
 // [POS]: Backend registration pigeon snapshot model / 后端报名足环快照模型
 // Protocol: When updating me, sync this header + parent folder's .folder.md

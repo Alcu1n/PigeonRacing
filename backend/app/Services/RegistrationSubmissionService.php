@@ -1,5 +1,5 @@
 <?php
-// [IN]: Member, race, config version, idempotency key, and normalized entries / 会员、赛事、配置版本、幂等键与标准化报名注
+// [IN]: Member, race, config version, idempotency key, and normalized entries / 会员、赛事、配置版本、幂等键与标准化报名项目
 // [OUT]: Validated registration with snapshot entries / 已校验报名及快照明细
 // [POS]: Backend trusted registration transaction service / 后端可信报名事务服务
 // Protocol: When updating me, sync this header + parent folder's .folder.md
@@ -145,7 +145,7 @@ class RegistrationSubmissionService
     private function assertProjectLimits(RaceProject $project, int $entryCount, array $pigeonUsage): void
     {
         if ($project->max_entries_per_member !== null && $entryCount > $project->max_entries_per_member) {
-            throw new RegistrationRuleException('project_entry_limit_exceeded', "项目 {$project->name} 已超过每会员最大报名注数。");
+            throw new RegistrationRuleException('project_entry_limit_exceeded', "项目 {$project->name} 已超过每会员报名上限。");
         }
 
         foreach ($pigeonUsage as $usage) {

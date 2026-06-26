@@ -31,6 +31,24 @@ describe('registration store', () => {
     expect(store.submitEntries).toEqual([{ project_id: 1, pigeon_ids: [101] }])
   })
 
+  it('toggles every single project for one pigeon from the row select-all control', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.projects.splice(1, 0, { id: 3, race_id: 1, name: '单羽 100 元', group_size: 1, price_cent: 10000, sort_order: 2, is_enabled: true, allow_repeat_pigeon_in_project: false })
+    store.load(payload)
+
+    store.toggleSingleRowAll(101)
+
+    expect(store.isSingleRowAllSelected(101)).toBe(true)
+    expect(store.submitEntries).toEqual([
+      { project_id: 1, pigeon_ids: [101] },
+      { project_id: 3, pigeon_ids: [101] },
+    ])
+
+    store.toggleSingleRowAll(101)
+    expect(store.submitEntries).toEqual([])
+  })
+
   it('creates multi group only when enough pigeons are selected', () => {
     const store = useRegistrationStore()
     store.load(bootstrap())
@@ -43,6 +61,56 @@ describe('registration store', () => {
     store.confirmMultiGroup()
     expect(store.multiGroups).toHaveLength(1)
     expect(store.multiEntries).toEqual([{ project_id: 2, pigeon_ids: [101, 102] }])
+  })
+
+  it('allows the same pigeon in another multi group when the project permits repeat usage', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.projects[1].allow_repeat_pigeon_in_project = true
+    store.load(payload)
+    store.setMultiProject(2)
+
+    store.togglePendingMultiPigeon(101)
+    store.togglePendingMultiPigeon(102)
+    store.confirmMultiGroup()
+    store.togglePendingMultiPigeon(101)
+    store.togglePendingMultiPigeon(999)
+    store.confirmMultiGroup()
+
+    expect(store.multiEntries).toEqual([
+      { project_id: 2, pigeon_ids: [101, 102] },
+      { project_id: 2, pigeon_ids: [101, 999] },
+    ])
+  })
+
+  it('blocks the same pigeon in another multi group when repeat usage is disabled', () => {
+    const store = useRegistrationStore()
+    store.load(bootstrap())
+    store.setMultiProject(2)
+
+    store.togglePendingMultiPigeon(101)
+    store.togglePendingMultiPigeon(102)
+    store.confirmMultiGroup()
+    store.togglePendingMultiPigeon(101)
+    store.togglePendingMultiPigeon(999)
+    store.confirmMultiGroup()
+
+    expect(store.multiEntries).toEqual([{ project_id: 2, pigeon_ids: [101, 102] }])
+  })
+
+  it('blocks repeat usage after max usage per pigeon is reached', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.projects[1].allow_repeat_pigeon_in_project = true
+    payload.projects[1].max_usage_per_pigeon = 1
+    store.load(payload)
+    store.setMultiProject(2)
+
+    store.togglePendingMultiPigeon(101)
+    store.togglePendingMultiPigeon(102)
+    store.confirmMultiGroup()
+
+    expect(store.canUsePigeonInSelectedProject(101)).toBe(false)
   })
 
   it('calculates total amount from selected projects', () => {

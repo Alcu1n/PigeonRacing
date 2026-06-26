@@ -1,5 +1,5 @@
 // [IN]: Bootstrap payload and local member registration actions / 初始化数据与会员本地报名动作
-// [OUT]: Matrix state, multi groups, summaries, drafts, and submit payload / 矩阵状态、多羽组合、汇总、草稿与提交数据
+// [OUT]: Matrix state, row select-all, repeat-aware multi groups, summaries, drafts, and submit payload / 矩阵状态、行全选、支持重复规则的多羽组合、汇总、草稿与提交数据
 // [POS]: Frontend registration state machine / 前端报名状态机
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -62,6 +62,25 @@ export const useRegistrationStore = defineStore('registration', () => {
     pigeon_ids: [...group.pigeon_ids],
   })))
 
+  const selectedMultiProjectUsage = computed<Record<number, number>>(() => {
+    const project = selectedMultiProject.value
+    if (!project) return {}
+
+    return multiGroups.value
+      .filter((group) => group.project_id === project.id)
+      .flatMap((group) => group.pigeon_ids)
+      .reduce<Record<number, number>>((usage, pigeonId) => {
+        usage[pigeonId] = (usage[pigeonId] ?? 0) + 1
+        return usage
+      }, {})
+  })
+
+  const canConfirmMultiGroup = computed(() => {
+    const project = selectedMultiProject.value
+    if (!project || pendingMultiPigeonIds.value.length !== project.group_size) return false
+    return pendingMultiPigeonIds.value.every((pigeonId) => canUsePigeonInSelectedProject(pigeonId, true))
+  })
+
   const submitEntries = computed<RegistrationEntryPayload[]>(() => [...singleEntries.value, ...multiEntries.value])
 
   const singleAmountCent = computed(() => singleEntries.value.reduce((sum, entry) => sum + priceFor(entry.project_id), 0))
@@ -91,6 +110,21 @@ export const useRegistrationStore = defineStore('registration', () => {
     saveDraft()
   }
 
+  function isSingleRowAllSelected(pigeonId: number): boolean {
+    return singleProjects.value.length > 0 && singleProjects.value.every((project) => singleMatrix.value[pigeonId]?.[project.id])
+  }
+
+  function toggleSingleRowAll(pigeonId: number): void {
+    const nextSelected = !isSingleRowAllSelected(pigeonId)
+    singleMatrix.value[pigeonId] = { ...(singleMatrix.value[pigeonId] ?? {}) }
+
+    for (const project of singleProjects.value) {
+      singleMatrix.value[pigeonId][project.id] = nextSelected
+    }
+
+    saveDraft()
+  }
+
   function setMultiProject(projectId: number): void {
     const project = requireProject(projectId)
     if (project.group_size <= 1) return
@@ -107,12 +141,13 @@ export const useRegistrationStore = defineStore('registration', () => {
       return
     }
     if (pendingMultiPigeonIds.value.length >= project.group_size) return
+    if (!canUsePigeonInSelectedProject(pigeonId, false)) return
     pendingMultiPigeonIds.value.push(pigeonId)
   }
 
   function confirmMultiGroup(): void {
     const project = selectedMultiProject.value
-    if (!project || pendingMultiPigeonIds.value.length !== project.group_size) return
+    if (!project || !canConfirmMultiGroup.value) return
     if (!project.allow_repeat_pigeon_in_project && hasProjectPigeonOverlap(project.id, pendingMultiPigeonIds.value)) return
 
     multiGroups.value.push({
@@ -152,6 +187,18 @@ export const useRegistrationStore = defineStore('registration', () => {
   function hasProjectPigeonOverlap(projectId: number, pigeonIds: number[]): boolean {
     const used = new Set(multiGroups.value.filter((group) => group.project_id === projectId).flatMap((group) => group.pigeon_ids))
     return pigeonIds.some((pigeonId) => used.has(pigeonId))
+  }
+
+  function canUsePigeonInSelectedProject(pigeonId: number, alreadyPending: boolean = pendingMultiPigeonIds.value.includes(pigeonId)): boolean {
+    const project = selectedMultiProject.value
+    if (!project) return false
+    if (alreadyPending) return true
+
+    const currentUsage = selectedMultiProjectUsage.value[pigeonId] ?? 0
+    if (!project.allow_repeat_pigeon_in_project && currentUsage > 0) return false
+    if (project.max_usage_per_pigeon !== null && project.max_usage_per_pigeon !== undefined && currentUsage >= project.max_usage_per_pigeon) return false
+
+    return true
   }
 
   function hydrateExisting(existing: ExistingRegistration | null): void {
@@ -223,6 +270,8 @@ export const useRegistrationStore = defineStore('registration', () => {
     filteredPigeons,
     singleEntries,
     multiEntries,
+    selectedMultiProjectUsage,
+    canConfirmMultiGroup,
     submitEntries,
     singleAmountCent,
     multiAmountCent,
@@ -231,9 +280,12 @@ export const useRegistrationStore = defineStore('registration', () => {
     singleProjectStats,
     load,
     toggleSingle,
+    isSingleRowAllSelected,
+    toggleSingleRowAll,
     setMultiProject,
     togglePendingMultiPigeon,
     confirmMultiGroup,
+    canUsePigeonInSelectedProject,
     deleteMultiGroup,
     priceFor,
     projectName,

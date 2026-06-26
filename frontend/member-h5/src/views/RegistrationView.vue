@@ -1,5 +1,5 @@
 <!-- [IN]: Race id route param and backend bootstrap API / 赛事 ID 路由参数与后端初始化 API -->
-<!-- [OUT]: Compact race header plus local single, multi, detail, and submit workflow / 紧凑赛事头部与本地单羽、多羽、明细和提交流程 -->
+<!-- [OUT]: Ultra-compact race header plus local single, multi, detail, and submit workflow / 超紧凑赛事头部与本地单羽、多羽、明细和提交流程 -->
 <!-- [POS]: Frontend core registration screen / 前端核心报名页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -71,11 +71,11 @@ async function confirmSubmit(): Promise<void> {
           <MemberLogoutButton />
         </div>
         <div class="member-line">
-          <span>棚号 {{ store.member.loft_number }}</span>
+          <span>{{ store.member.loft_number }}</span>
           <span>{{ store.member.participant_name }}</span>
-          <span>我的赛鸽 {{ store.pigeons.length }} 羽</span>
+          <span>{{ store.pigeons.length }} 羽</span>
         </div>
-        <p>报名截止：{{ store.race.registration_end_at }}</p>
+        <p class="deadline-line">报名截止：{{ store.race.registration_end_at }}</p>
       </header>
 
       <nav class="tabs">
@@ -84,10 +84,9 @@ async function confirmSubmit(): Promise<void> {
         <button :class="{ active: store.activeTab === 'detail' }" @click="store.activeTab = 'detail'">已选明细</button>
       </nav>
 
-      <label class="search-box">
-        <span>搜索足环号码</span>
-        <input v-model="store.searchQuery" placeholder="支持完整号码、后 3/4/6 位或连续号码" />
-      </label>
+      <div class="search-box">
+        <input v-model="store.searchQuery" aria-label="搜索足环号码" placeholder="搜索足环号 / 尾号" />
+      </div>
 
       <SingleMatrix v-if="store.activeTab === 'single'" />
       <MultiGroupBuilder v-else-if="store.activeTab === 'multi'" />

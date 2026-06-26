@@ -1,12 +1,13 @@
 <?php
-// [IN]: Race project configuration rows / 赛事项目配置行
-// [OUT]: Project rule and pricing data / 项目规则与价格数据
+// [IN]: Race project configuration rows and cache service / 赛事项目配置行与缓存服务
+// [OUT]: Project rule data with race config invalidation / 带赛事配置失效的项目规则数据
 // [POS]: Backend configurable registration project model / 后端可配置报名项目模型
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 
 namespace App\Models;
 
+use App\Services\RaceCacheService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -33,6 +34,12 @@ class RaceProject extends Model
         ];
     }
 
+    protected static function booted(): void
+    {
+        static::saved(fn (RaceProject $project) => $project->refreshRaceConfig());
+        static::deleted(fn (RaceProject $project) => $project->refreshRaceConfig());
+    }
+
     public function race(): BelongsTo
     {
         return $this->belongsTo(Race::class);
@@ -41,5 +48,16 @@ class RaceProject extends Model
     public function isSingle(): bool
     {
         return $this->group_size === 1;
+    }
+
+    private function refreshRaceConfig(): void
+    {
+        collect([$this->race_id, $this->getOriginal('race_id')])
+            ->filter()
+            ->unique()
+            ->each(function (int $raceId): void {
+                Race::query()->whereKey($raceId)->increment('config_version');
+                app(RaceCacheService::class)->forgetRaceById($raceId);
+            });
     }
 }

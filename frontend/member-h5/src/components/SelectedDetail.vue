@@ -1,4 +1,4 @@
-<!-- [IN]: Registration store selected entries / 报名 Store 已选报名注 -->
+<!-- [IN]: Registration store selected entries / 报名 Store 已选报名项目 -->
 <!-- [OUT]: Grouped single and multi detail preview / 分组单羽与多羽明细预览 -->
 <!-- [POS]: Frontend selected detail component / 前端已选明细组件 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->

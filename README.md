@@ -17,6 +17,457 @@ The backend never trusts frontend totals: it validates race state, `config_versi
 
 When code changes, sync the source header, parent `.folder.md`, and this README if module boundaries change. / 修改代码时，同步源文件头、父级 `.folder.md`；若模块边界变化，同步本 README。
 
+## Production Deployment / 生产部署
+
+Recommended production topology: keep the application running with Docker Compose on `127.0.0.1:8080`, then put the cloud host Nginx or BaoTa site in front for domain binding and HTTPS. This keeps PHP-FPM, queue, scheduler, MySQL, and Redis consistent with local testing. / 推荐生产拓扑：应用本身用 Docker Compose 运行在 `127.0.0.1:8080`，再用云服务器宿主机 Nginx 或宝塔站点做域名绑定与 HTTPS。这样 PHP-FPM、队列、调度器、MySQL、Redis 与本地测试保持一致。
+
+The examples below use `example.com`; replace it with your real domain. / 以下示例使用 `example.com`，请替换为你的真实域名。
+
+Official references for runtime installation: [Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/), [Docker Compose plugin](https://docs.docker.com/compose/install/linux/), [Certbot user guide](https://eff-certbot.readthedocs.io/en/stable/using.html), and [BaoTa Linux panel commands](https://www.bt.cn/new/btcode.html). / 运行环境安装官方参考：[Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)、[Docker Compose plugin](https://docs.docker.com/compose/install/linux/)、[Certbot user guide](https://eff-certbot.readthedocs.io/en/stable/using.html) 与 [宝塔 Linux 面板命令](https://www.bt.cn/new/btcode.html)。
+
+### A. DNS and Server Checklist / 域名与服务器检查
+
+1. Buy or prepare a domain, then add DNS records at the domain provider. / 购买或准备域名，然后在域名服务商处添加解析记录。
+
+```text
+Type / 类型: A
+Host / 主机记录: @
+Value / 记录值: your_server_public_ip
+
+Type / 类型: A
+Host / 主机记录: www
+Value / 记录值: your_server_public_ip
+```
+
+2. Wait for DNS to take effect, then verify from your computer. / 等待 DNS 生效后在本机验证。
+
+```bash
+ping example.com
+nslookup example.com
+```
+
+3. Open the cloud firewall/security group. / 放行云服务器安全组。
+
+```text
+Required / 必需: 22, 80, 443
+Optional / 可选: 8080 only for temporary direct testing; close it after reverse proxy is ready.
+可选: 8080 仅用于临时直连测试；反向代理完成后关闭。
+```
+
+4. On the server, use a fixed deployment path. / 在服务器上使用固定部署目录。
+
+```bash
+sudo mkdir -p /opt/pigeon-racing
+sudo chown -R "$USER":"$USER" /opt/pigeon-racing
+```
+
+### B. Docker Compose Deployment / Docker Compose 部署
+
+Install Docker Engine and the Compose plugin first. On Ubuntu, follow Docker's official repository method, then verify `docker compose version`. / 先安装 Docker Engine 和 Compose 插件。Ubuntu 建议使用 Docker 官方仓库安装方式，然后用 `docker compose version` 验证。
+
+```bash
+docker --version
+docker compose version
+```
+
+Clone or upload the project. / 克隆或上传项目。
+
+```bash
+cd /opt/pigeon-racing
+git clone https://github.com/Alcu1n/PigeonRacing.git .
+```
+
+Create production environment file. / 创建生产环境配置。
+
+```bash
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env`. / 编辑 `backend/.env`。
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://example.com
+FRONTEND_URL=https://example.com
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=pigeon_registration
+DB_USERNAME=pigeon
+DB_PASSWORD=replace_with_a_strong_password
+
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+SESSION_DOMAIN=
+SANCTUM_STATEFUL_DOMAINS=example.com,www.example.com
+
+REDIS_CLIENT=predis
+REDIS_HOST=redis
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+For same-domain deployment, keep `SESSION_DOMAIN` empty. If you must share login between `example.com` and `www.example.com`, set `SESSION_DOMAIN=.example.com` and make sure both domains point to the same site. / 同域部署时 `SESSION_DOMAIN` 保持为空即可。如果必须让 `example.com` 和 `www.example.com` 共用登录态，设置 `SESSION_DOMAIN=.example.com`，并确保两个域名都指向同一站点。
+
+Harden `docker-compose.yml` before production: replace default database passwords and bind app Nginx to localhost only. / 生产前加固 `docker-compose.yml`：替换默认数据库密码，并让应用 Nginx 只监听本机。
+
+```yaml
+services:
+  nginx:
+    ports:
+      - "127.0.0.1:8080:80"
+
+  mysql:
+    environment:
+      MYSQL_PASSWORD: replace_with_a_strong_password
+      MYSQL_ROOT_PASSWORD: replace_with_a_strong_root_password
+```
+
+Build dependencies and assets. / 构建依赖与前端资源。
+
+```bash
+docker compose build app queue scheduler
+docker compose run --rm app composer install --no-dev --optimize-autoloader
+
+cd frontend/member-h5
+npm ci
+npm run build
+cd ../..
+```
+
+Generate the Laravel key, publish Filament assets, and start services. / 生成 Laravel 密钥、发布 Filament 资源并启动服务。
+
+```bash
+docker compose run --rm app php artisan key:generate --force
+docker compose run --rm app php artisan filament:assets
+docker compose up -d
+```
+
+Run migrations. Do not run `migrate --seed` on production unless you intentionally want demo data. / 执行迁移。生产环境不要运行 `migrate --seed`，除非你明确需要演示数据。
+
+```bash
+docker compose exec -T app php artisan migrate --force
+docker compose exec -T app php artisan optimize:clear
+docker compose exec -T app php artisan config:cache
+docker compose exec -T app php artisan route:cache
+docker compose exec -T app php artisan view:cache
+```
+
+Create the first admin account without seeding demo data. / 不写入演示数据，直接创建第一个后台管理员。
+
+```bash
+docker compose exec -T app php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); App\Models\User::query()->updateOrCreate(["email"=>"admin@example.com"], ["name"=>"系统管理员", "password"=>Illuminate\Support\Facades\Hash::make("replace_with_a_strong_password")]); echo "admin ready\n";'
+```
+
+Check containers and logs. / 检查容器与日志。
+
+```bash
+docker compose ps
+docker compose logs --tail=100 app
+docker compose logs --tail=100 nginx
+docker compose logs --tail=100 queue
+```
+
+Temporary direct test before domain proxy. / 域名反向代理前临时直连测试。
+
+```text
+http://your_server_public_ip:8080/login
+http://your_server_public_ip:8080/admin
+```
+
+### C. Host Nginx Domain Binding and HTTPS / 宿主机 Nginx 绑定域名与 HTTPS
+
+Install Nginx and Certbot on the host, then proxy the domain to the Compose Nginx service at `127.0.0.1:8080`. Certbot's Nginx plugin can issue and renew Let's Encrypt certificates after HTTP access works. / 在宿主机安装 Nginx 与 Certbot，把域名反向代理到 Compose Nginx 的 `127.0.0.1:8080`。HTTP 可访问后，Certbot 的 Nginx 插件可签发并续期 Let's Encrypt 证书。
+
+Create `/etc/nginx/sites-available/pigeon-racing.conf`. / 创建 `/etc/nginx/sites-available/pigeon-racing.conf`。
+
+```nginx
+server {
+    listen 80;
+    server_name example.com www.example.com;
+
+    client_max_body_size 20m;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Enable and test Nginx. / 启用并测试 Nginx。
+
+```bash
+sudo ln -s /etc/nginx/sites-available/pigeon-racing.conf /etc/nginx/sites-enabled/pigeon-racing.conf
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+Open HTTP first. / 先打开 HTTP。
+
+```text
+http://example.com/login
+http://example.com/admin
+```
+
+Issue HTTPS certificate. / 签发 HTTPS 证书。
+
+```bash
+sudo certbot --nginx -d example.com -d www.example.com
+sudo certbot renew --dry-run
+```
+
+After HTTPS works, update `backend/.env` to `https://example.com`, then refresh Laravel caches. / HTTPS 正常后，把 `backend/.env` 改为 `https://example.com`，然后刷新 Laravel 缓存。
+
+```bash
+docker compose exec -T app php artisan optimize:clear
+docker compose exec -T app php artisan config:cache
+```
+
+### D. Update Deployment / 后续更新
+
+Use this sequence for normal releases. / 常规更新使用以下顺序。
+
+```bash
+cd /opt/pigeon-racing
+git pull
+docker compose build app queue scheduler
+docker compose run --rm app composer install --no-dev --optimize-autoloader
+
+cd frontend/member-h5
+npm ci
+npm run build
+cd ../..
+
+docker compose exec -T app php artisan migrate --force
+docker compose exec -T app php artisan filament:assets
+docker compose exec -T app php artisan optimize:clear
+docker compose exec -T app php artisan config:cache
+docker compose exec -T app php artisan route:cache
+docker compose exec -T app php artisan view:cache
+docker compose up -d
+```
+
+### E. Backup and Restore / 备份与恢复
+
+Back up MySQL and uploaded import reports. / 备份 MySQL 与导入错误报告等上传文件。
+
+```bash
+mkdir -p /opt/backups/pigeon-racing
+docker compose exec -T mysql mysqldump -uroot -proot-secret pigeon_registration > /opt/backups/pigeon-racing/pigeon_registration-$(date +%F).sql
+tar -czf /opt/backups/pigeon-racing/backend-storage-$(date +%F).tar.gz backend/storage
+```
+
+Restore carefully on an empty target. / 在空目标上谨慎恢复。
+
+```bash
+cat /opt/backups/pigeon-racing/pigeon_registration-YYYY-MM-DD.sql | docker compose exec -T mysql mysql -uroot -proot-secret pigeon_registration
+tar -xzf /opt/backups/pigeon-racing/backend-storage-YYYY-MM-DD.tar.gz -C /opt/pigeon-racing
+docker compose exec -T app php artisan optimize:clear
+```
+
+### F. BaoTa Panel Deployment / 宝塔面板部署
+
+There are two BaoTa paths. Prefer `F1`: BaoTa handles domain, SSL, and reverse proxy; Docker Compose still runs the app. `F2` is traditional BaoTa PHP deployment and needs more manual maintenance. / 宝塔有两条路径。优先使用 `F1`：宝塔负责域名、SSL、反向代理，Docker Compose 仍运行应用。`F2` 是传统宝塔 PHP 部署，手工维护更多。
+
+#### F1. Recommended: BaoTa Reverse Proxy + Docker Compose / 推荐：宝塔反向代理 + Docker Compose
+
+1. Install BaoTa on a clean Linux server using the official BaoTa install command for your OS, then log in to the panel. / 在干净 Linux 服务器上使用宝塔官方对应系统安装命令安装面板，然后登录面板。
+2. In BaoTa security and the cloud security group, open `80` and `443`; keep `8080` closed to the public after proxy is ready. / 在宝塔安全和云安全组放行 `80`、`443`；反向代理完成后不要公网开放 `8080`。
+3. In the BaoTa terminal or SSH, finish the Docker Compose deployment in section B and bind Compose Nginx to `127.0.0.1:8080`. / 在宝塔终端或 SSH 中完成本文 B 节 Docker Compose 部署，并把 Compose Nginx 绑定到 `127.0.0.1:8080`。
+4. In BaoTa: `Website` -> `Add site`. Domain: `example.com` and `www.example.com`. PHP version can be `Static` or any value because this site only proxies. / 宝塔中进入 `网站` -> `添加站点`。域名填 `example.com` 和 `www.example.com`。PHP 版本可选 `纯静态` 或任意值，因为该站点只做代理。
+5. Open the site settings -> `Reverse Proxy` -> `Add reverse proxy`. / 打开站点设置 -> `反向代理` -> `添加反向代理`。
+
+```text
+Name / 名称: pigeon-racing
+Target URL / 目标 URL: http://127.0.0.1:8080
+Send domain / 发送域名: $host
+```
+
+If BaoTa shows custom proxy config, use this block. / 如果宝塔显示自定义代理配置，可使用以下内容。
+
+```nginx
+location / {
+    proxy_pass http://127.0.0.1:8080;
+    proxy_http_version 1.1;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+6. In BaoTa site settings -> `SSL`, apply for a Let's Encrypt certificate, enable force HTTPS, then test `/login` and `/admin`. / 在宝塔站点设置 -> `SSL` 中申请 Let's Encrypt 证书，开启强制 HTTPS，然后测试 `/login` 与 `/admin`。
+7. Update `backend/.env` to HTTPS domain and refresh Laravel caches. / 更新 `backend/.env` 为 HTTPS 域名并刷新 Laravel 缓存。
+
+```bash
+cd /opt/pigeon-racing
+docker compose exec -T app php artisan optimize:clear
+docker compose exec -T app php artisan config:cache
+```
+
+#### F2. Traditional BaoTa PHP Deployment / 传统宝塔 PHP 部署
+
+Use this only if you do not want Docker. You must maintain PHP extensions, Composer, Node, MySQL, Redis, queue worker, and scheduler yourself. / 仅在不想使用 Docker 时使用此方式。你必须自行维护 PHP 扩展、Composer、Node、MySQL、Redis、队列 worker 和 scheduler。
+
+Install runtime in BaoTa. / 在宝塔安装运行环境。
+
+```text
+Nginx: 1.24+
+PHP: 8.3 or 8.4
+MySQL: 8.0+ or 8.4
+Redis: installed and running
+PHP extensions: fileinfo, intl, pdo_mysql, redis or predis support, sodium, zip, gd
+Composer: installed
+Node.js: 20+ or 22+
+```
+
+Upload project to `/www/wwwroot/pigeon-racing`. / 上传项目到 `/www/wwwroot/pigeon-racing`。
+
+```bash
+cd /www/wwwroot/pigeon-racing
+cp backend/.env.example backend/.env
+```
+
+Edit `backend/.env` for BaoTa services. / 按宝塔服务修改 `backend/.env`。
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://example.com
+FRONTEND_URL=https://example.com
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=pigeon_registration
+DB_USERNAME=pigeon
+DB_PASSWORD=replace_with_a_strong_password
+
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+SESSION_DOMAIN=
+SANCTUM_STATEFUL_DOMAINS=example.com,www.example.com
+
+REDIS_CLIENT=predis
+REDIS_HOST=127.0.0.1
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+Install dependencies and build. / 安装依赖并构建。
+
+```bash
+cd /www/wwwroot/pigeon-racing/backend
+composer install --no-dev --optimize-autoloader
+php artisan key:generate --force
+php artisan migrate --force
+php artisan filament:assets
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+cd /www/wwwroot/pigeon-racing/frontend/member-h5
+npm ci
+npm run build
+```
+
+Create admin account. / 创建后台管理员。
+
+```bash
+cd /www/wwwroot/pigeon-racing/backend
+php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); App\Models\User::query()->updateOrCreate(["email"=>"admin@example.com"], ["name"=>"系统管理员", "password"=>Illuminate\Support\Facades\Hash::make("replace_with_a_strong_password")]); echo "admin ready\n";'
+```
+
+In BaoTa, add a site for `example.com`. Set site root to the frontend build directory. / 在宝塔添加 `example.com` 站点，站点根目录设为前端构建目录。
+
+```text
+Site root / 网站目录:
+/www/wwwroot/pigeon-racing/frontend/member-h5/dist
+```
+
+Add this Nginx rewrite/config in BaoTa site config. Adjust the PHP socket to your BaoTa PHP version, for example `/tmp/php-cgi-84.sock`. / 在宝塔站点配置中加入以下 Nginx 配置。按你的宝塔 PHP 版本调整 PHP socket，例如 `/tmp/php-cgi-84.sock`。
+
+```nginx
+client_max_body_size 20m;
+index index.html;
+
+location /assets/ {
+    expires 30d;
+    add_header Cache-Control "public, immutable";
+    try_files $uri =404;
+}
+
+location ~ ^/(api|admin|sanctum|up|livewire|livewire-[^/]+|css/filament|js/filament|fonts/filament)(/|$) {
+    root /www/wwwroot/pigeon-racing/backend/public;
+    try_files $uri /index.php?$query_string;
+}
+
+location / {
+    try_files $uri $uri/ /index.html;
+    add_header Cache-Control "no-store";
+}
+
+location ~ \.php$ {
+    root /www/wwwroot/pigeon-racing/backend/public;
+    fastcgi_pass unix:/tmp/php-cgi-84.sock;
+    fastcgi_index index.php;
+    include fastcgi_params;
+    fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+    fastcgi_param DOCUMENT_ROOT $realpath_root;
+}
+```
+
+Set write permissions. / 设置写权限。
+
+```bash
+chown -R www:www /www/wwwroot/pigeon-racing/backend/storage /www/wwwroot/pigeon-racing/backend/bootstrap/cache
+chmod -R ug+rw /www/wwwroot/pigeon-racing/backend/storage /www/wwwroot/pigeon-racing/backend/bootstrap/cache
+```
+
+Configure queue worker in BaoTa Supervisor Manager or system supervisor. / 在宝塔 Supervisor 管理器或系统 supervisor 中配置队列。
+
+```ini
+[program:pigeon-racing-queue]
+directory=/www/wwwroot/pigeon-racing/backend
+command=php artisan queue:work --tries=3 --sleep=1
+autostart=true
+autorestart=true
+user=www
+redirect_stderr=true
+stdout_logfile=/www/wwwroot/pigeon-racing/backend/storage/logs/queue.log
+```
+
+Configure scheduler in BaoTa cron. Run every minute. / 在宝塔计划任务中配置调度器，每分钟执行。
+
+```bash
+cd /www/wwwroot/pigeon-racing/backend && php artisan schedule:run --no-interaction
+```
+
+Apply SSL in BaoTa site settings and force HTTPS. Then test: / 在宝塔站点设置中申请 SSL 并开启强制 HTTPS，然后测试：
+
+```text
+https://example.com/login
+https://example.com/admin
+```
+
+### G. Production Troubleshooting / 生产排错
+
+- `419` or login loops: check `APP_URL`, `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN`, HTTPS status, and browser cookies. / `419` 或登录循环：检查 `APP_URL`、`SANCTUM_STATEFUL_DOMAINS`、`SESSION_DOMAIN`、HTTPS 状态与浏览器 Cookie。
+- Member H5 loads but API fails: check Nginx routes for `/api`, `/sanctum`, and `/livewire`. / 会员端能打开但 API 失败：检查 Nginx 中 `/api`、`/sanctum`、`/livewire` 路由。
+- Admin CSS/JS missing: check routes for `/css/filament`, `/js/filament`, and run `php artisan filament:assets`. / 后台 CSS/JS 缺失：检查 `/css/filament`、`/js/filament` 路由，并执行 `php artisan filament:assets`。
+- Excel import fails on GD/ZIP: ensure PHP extensions `gd` and `zip` are installed in the active PHP runtime. / Excel 导入因 GD/ZIP 失败：确认当前 PHP 运行环境安装了 `gd` 与 `zip` 扩展。
+- Queue jobs do not run: check `queue` container or BaoTa Supervisor process. / 队列任务不执行：检查 `queue` 容器或宝塔 Supervisor 进程。
+
 ## Local Full-Stack Test / 本地完整联调测试
 
 Use Docker for full-stack testing because it matches the intended single-server topology: Nginx serves the built H5 app, Laravel handles `/api`, `/admin`, and `/sanctum`, MySQL stores business data, and Redis handles cache/session/queue. / 完整联调建议使用 Docker，因为它贴近目标单机部署拓扑：Nginx 提供构建后的 H5，Laravel 处理 `/api`、`/admin`、`/sanctum`，MySQL 保存业务数据，Redis 处理缓存、会话与队列。
@@ -147,7 +598,24 @@ Admin side. / 后台。
 3. Confirm a pending registration. / 确认一条待确认报名。
 4. Edit a race project and verify `config_version` policy before member submission in later tests. / 后续测试可修改赛事项目并验证会员提交前的 `config_version` 策略。
 
-### 5. Reset Local Data / 重置本地数据
+### 5. Admin Excel Import and Export / 后台 Excel 导入与导出
+
+Pigeon import. / 足环导入。
+
+1. Open `后台 -> 足环管理 -> 导入 Excel`. / 打开 `后台 -> 足环管理 -> 导入 Excel`。
+2. Use the fixed header `序号，会员棚号，会员参赛名，足环号码`; `.xlsx` and `.xls` are accepted, max 10MB. / 使用固定表头 `序号，会员棚号，会员参赛名，足环号码`；支持 `.xlsx` 与 `.xls`，最大 10MB。
+3. Click `预览导入` before writing data; the preview shows valid rows, failed rows, duplicate rings, new members, and participant-name updates. / 写入前点击 `预览导入`；预览会显示可导入行、失败行、重复足环、新建会员与参赛名更新数量。
+4. Click `确认导入`; missing loft numbers create member files with empty phone/password, so they cannot log in until an admin fills credentials. / 点击 `确认导入`；缺失棚号会创建手机号和密码为空的会员档案，管理员补齐凭据前不能登录。
+5. If failures exist, download the generated error report from the import result panel. / 如有失败行，在导入结果区域下载错误报告。
+6. Use `删除所有足环` only for guarded cleanup before reimport; if any registration detail references a pigeon, deletion is blocked to protect historical records. / 仅在重新导入前使用 `删除所有足环` 做受保护清理；如已有报名明细引用足环，系统会阻止删除以保护历史记录。
+
+Registration export. / 报名导出。
+
+1. Open `后台 -> 报名记录 -> 导出 Excel`. / 打开 `后台 -> 报名记录 -> 导出 Excel`。
+2. Select a race and download the matrix workbook. / 选择赛事并下载矩阵表格。
+3. Columns are `序号、会员棚号、会员参赛名、足环号码` plus each project; single-pigeon cells use `✓`, multi-pigeon cells use `第N组`. / 列为 `序号、会员棚号、会员参赛名、足环号码` 加各比赛项目；单羽单元格用 `✓`，多羽单元格用 `第N组`。
+
+### 6. Reset Local Data / 重置本地数据
 
 Stop services but keep data. / 停止服务但保留数据。
 
@@ -165,7 +633,7 @@ docker compose build app queue scheduler
 docker compose up -d
 ```
 
-### 6. Frontend-Only Development / 仅前端开发
+### 7. Frontend-Only Development / 仅前端开发
 
 For fast UI testing without backend, run Vite directly. The registration screen has a development-only demo bootstrap fallback when the backend API is unavailable. / 如果只想快速测试 UI，可直接运行 Vite；当后端 API 不可用时，报名页会使用仅开发环境启用的演示初始化数据。
 
@@ -187,7 +655,7 @@ Open the login page. Login requires the backend API unless you only inspect the 
 http://localhost:5173/login
 ```
 
-### 7. Verification Commands / 验证命令
+### 8. Verification Commands / 验证命令
 
 Backend tests. / 后端测试。
 

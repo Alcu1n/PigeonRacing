@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member registration submit HTTP payload / 会员报名提交 HTTP 数据
-// [OUT]: Validated config version, idempotency key, and entries / 已校验配置版本、幂等键与报名注
+// [OUT]: Validated config version, idempotency key, and entries / 已校验配置版本、幂等键与报名项目
 // [POS]: Backend registration submit request contract / 后端报名提交请求契约
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md

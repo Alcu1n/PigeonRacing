@@ -1,6 +1,6 @@
 <?php
-// [IN]: Member model records / 会员模型记录
-// [OUT]: Filament member CRUD screens / Filament 会员 CRUD 页面
+// [IN]: Member model records with optional login credentials / 可选登录凭据的会员模型记录
+// [OUT]: Filament member CRUD screens for imported and login-enabled members / 支持导入与可登录会员的 Filament 会员 CRUD 页面
 // [POS]: Backend admin member resource / 后端后台会员资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -27,9 +27,9 @@ class MemberResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('phone')->label('手机号')->required()->maxLength(32),
-            TextInput::make('password')->label('密码')->password()->required(fn (string $operation): bool => $operation === 'create')->dehydrated(fn ($state): bool => filled($state)),
-            TextInput::make('loft_number')->label('会员棚号')->required()->maxLength(64),
+            TextInput::make('phone')->label('手机号')->maxLength(32)->unique(ignoreRecord: true),
+            TextInput::make('password')->label('密码')->password()->dehydrated(fn ($state): bool => filled($state)),
+            TextInput::make('loft_number')->label('会员棚号')->required()->maxLength(64)->unique(ignoreRecord: true),
             TextInput::make('participant_name')->label('参赛名')->required()->maxLength(128),
             TextInput::make('status')->label('状态')->default('enabled')->required(),
             TextInput::make('remark')->label('备注'),

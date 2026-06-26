@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member and pigeon model records / 会员与足环模型记录
-// [OUT]: Filament pigeon management screens with member snapshot form / 带会员快照表单的 Filament 足环管理页面
+// [OUT]: Filament pigeon management screens with member snapshot and Excel import / 带会员快照与 Excel 导入的 Filament 足环管理页面
 // [POS]: Backend admin pigeon resource / 后端后台足环资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -82,6 +82,7 @@ class PigeonResource extends Resource
         return [
             'index' => Pages\ListPigeons::route('/'),
             'create' => Pages\CreatePigeon::route('/create'),
+            'import' => Pages\ImportPigeons::route('/import'),
             'edit' => Pages\EditPigeon::route('/{record}/edit'),
         ];
     }
