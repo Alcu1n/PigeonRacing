@@ -1,5 +1,5 @@
 /* [IN]: Member H5 markup and design tokens / 会员 H5 标记与设计令牌 */
-/* [OUT]: Mobile-first locked-zoom UI styles with ultra-compact registration matrix / 锁定缩放的超紧凑报名矩阵移动端 UI 样式 */
+/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login and readable compact matrix / 居中 Logo 登录页与可读紧凑矩阵移动端 UI 样式 */
 /* [POS]: Frontend global stylesheet / 前端全局样式 */
 /* Protocol: When updating me, sync this header + parent folder's .folder.md */
 /* 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md */
@@ -36,8 +36,14 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .login-screen {
   min-height: 100vh;
   display: grid;
-  place-items: center;
-  padding: 24px;
+  grid-template-rows: 1fr auto;
+  align-items: center;
+  justify-items: center;
+  gap: 18px;
+  padding: 32px 22px 20px;
+  background:
+    linear-gradient(180deg, rgba(11, 122, 75, .08), rgba(245, 247, 246, 0) 34%),
+    var(--bg);
 }
 
 .login-panel, .result-panel {
@@ -47,6 +53,28 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   border-radius: 8px;
   padding: 24px;
   box-shadow: 0 18px 50px rgba(13, 43, 30, .09);
+}
+
+.login-panel {
+  padding: 26px 22px 22px;
+  border-color: #cddfd5;
+  box-shadow: 0 22px 60px rgba(13, 43, 30, .12);
+}
+
+.login-brand {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  text-align: center;
+}
+
+.login-logo {
+  max-width: 168px;
+  max-height: 72px;
+  object-fit: contain;
+  margin-bottom: 4px;
 }
 
 .login-panel h1, .page-header h1, .result-panel h1 {
@@ -69,7 +97,14 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   gap: 10px;
 }
 
-.logout-action {
+.member-actions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.logout-action, .profile-action {
   flex: 0 0 auto;
   min-width: 54px;
   min-height: 32px;
@@ -82,12 +117,22 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   font-weight: 800;
 }
 
+.profile-action {
+  min-width: 70px;
+  background: #fff;
+}
+
 .login-panel label, .search-box {
   display: grid;
   gap: 8px;
   margin-top: 18px;
   color: var(--muted);
   font-size: 14px;
+}
+
+.login-panel label > span {
+  color: #31493d;
+  font-weight: 800;
 }
 
 .search-box {
@@ -104,6 +149,16 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   color: var(--text);
   background: #fff;
   outline-color: var(--green);
+}
+
+.login-panel input {
+  border-color: #cfded6;
+  background: #fbfdfc;
+}
+
+.login-panel input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(11, 122, 75, .12);
 }
 
 .search-box input {
@@ -128,6 +183,20 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .wide { width: 100%; margin-top: 18px; }
 
+.login-panel .wide {
+  min-height: 48px;
+  margin-top: 22px;
+  font-size: 16px;
+  box-shadow: 0 10px 24px rgba(11, 122, 75, .18);
+}
+
+.login-footer {
+  color: #6d7b73;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .race-card {
   display: flex;
   align-items: center;
@@ -142,6 +211,82 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .race-card h2 { margin: 0 0 6px; font-size: 18px; }
 .status-dot { display: inline-block; margin-top: 8px; color: var(--green); font-weight: 700; }
+
+.profile-page {
+  padding-bottom: 44px;
+}
+
+.profile-card {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.profile-card h2 {
+  margin: 0 0 12px;
+  font-size: 17px;
+}
+
+.profile-card dl {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 10px 12px;
+  margin: 0;
+}
+
+.profile-card dt {
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.profile-card dd {
+  margin: 0;
+  font-weight: 800;
+}
+
+.profile-card label {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  color: #31493d;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.profile-card input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 12px;
+  color: var(--text);
+  outline-color: var(--green);
+}
+
+.force-note {
+  margin: 0 0 10px;
+  color: var(--danger);
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.profile-pigeon-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.profile-pigeon-list li {
+  padding: 9px 10px;
+  border-radius: 7px;
+  background: #f2f7f4;
+  color: #1e3b30;
+  font-weight: 800;
+}
 
 .registration-header {
   padding: 6px 8px;
@@ -162,11 +307,16 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   line-height: 1.2;
 }
 
-.registration-header .logout-action {
+.registration-header .logout-action,
+.registration-header .profile-action {
   min-width: 46px;
   min-height: 28px;
   padding: 0 8px;
   font-size: 12px;
+}
+
+.registration-header .profile-action {
+  min-width: 64px;
 }
 
 .member-line {
@@ -257,7 +407,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   width: max-content;
   min-width: 100%;
   display: grid;
-  grid-template-columns: 34px 76px repeat(var(--project-count), 42px);
+  grid-template-columns: 34px 66px repeat(var(--project-count), 44px);
 }
 
 .header-row {
@@ -301,7 +451,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .header-row .ring-cell, .header-row .select-all-cell, .project-head {
   padding: 3px 2px;
   text-align: center;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.05;
   white-space: normal;
   word-break: break-all;
@@ -354,16 +504,16 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 }
 
 .ring-button strong {
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0;
   color: var(--green-dark);
 }
 
 .matrix-toggle {
-  min-width: 40px;
+  min-width: 42px;
   background: transparent;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 14px;
   padding: 0;
 }
 
@@ -375,7 +525,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 }
 
 .matrix-toggle.selected span {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1;
 }
 

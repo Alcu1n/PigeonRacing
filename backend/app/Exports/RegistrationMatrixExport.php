@@ -1,6 +1,6 @@
 <?php
 // [IN]: Race registrations with project and pigeon snapshots / 含项目与足环快照的赛事报名
-// [OUT]: Matrix export with single-pigeon rows and unique multi-group rows / 单羽足环行与唯一多羽组合行矩阵导出
+// [OUT]: Styled matrix export with race summary, single rows, and unique multi-group rows / 带赛事摘要、单羽行与唯一多羽组合行的样式化矩阵导出
 // [POS]: Backend registration Excel export / 后端报名 Excel 导出
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -8,12 +8,25 @@
 namespace App\Exports;
 
 use App\Models\Race;
+use App\Models\RegistrationEntry;
 use Illuminate\Support\Collection;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
+use Maatwebsite\Excel\Concerns\WithCustomStartCell;
+use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Events\AfterSheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class RegistrationMatrixExport implements FromCollection, WithHeadings
+class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithColumnWidths, WithCustomStartCell, WithEvents, WithHeadings
 {
+    private const TABLE_START_ROW = 5;
+
     private Race $race;
 
     private Collection $projects;
@@ -66,7 +79,7 @@ class RegistrationMatrixExport implements FromCollection, WithHeadings
 
                 if ($entry->group_size_snapshot > 1) {
                     $ringText = implode('，', $ringNumbers);
-                    $row = $this->rowTemplate($member?->loft_number ?? '', $member?->participant_name ?? '', $ringText);
+                    $row = $this->rowTemplate($member?->loft_number ?? '', $member?->participant_name ?? '', '');
                     $row['projects'][$entry->race_project_id] = $ringText;
                     $multiRows[] = $row;
 
@@ -98,6 +111,30 @@ class RegistrationMatrixExport implements FromCollection, WithHeadings
         });
     }
 
+    public function startCell(): string
+    {
+        return 'A'.self::TABLE_START_ROW;
+    }
+
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 8,
+            'B' => 14,
+            'C' => 16,
+            'D' => 26,
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event): void {
+                $this->styleSheet($event->sheet->getDelegate());
+            },
+        ];
+    }
+
     private function rowTemplate(string $loftNumber, string $participantName, string $ringNumber): array
     {
         return [
@@ -106,6 +143,75 @@ class RegistrationMatrixExport implements FromCollection, WithHeadings
             'ring_number' => $ringNumber,
             'projects' => array_fill_keys($this->projects->pluck('id')->all(), ''),
         ];
+    }
+
+    private function styleSheet(Worksheet $sheet): void
+    {
+        $lastColumn = Coordinate::stringFromColumnIndex(4 + $this->projects->count());
+        $lastRow = max(self::TABLE_START_ROW + $this->collection()->count(), self::TABLE_START_ROW);
+        $tableHeaderRange = "A".self::TABLE_START_ROW.":{$lastColumn}".self::TABLE_START_ROW;
+        $usedRange = "A1:{$lastColumn}{$lastRow}";
+
+        $sheet->mergeCells("A1:{$lastColumn}1");
+        $sheet->mergeCells("A2:{$lastColumn}2");
+        $sheet->mergeCells("A3:{$lastColumn}3");
+
+        $sheet->setCellValue('A1', '赛事名称：'.$this->race->name);
+        $sheet->setCellValue('A2', '报名截止时间：'.$this->race->registration_end_at?->toDateTimeString());
+        $sheet->setCellValue('A3', '项目数量统计：'.$this->projectSummaryText());
+
+        $sheet->getStyle('A1:A3')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12],
+            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'EAF7EF'],
+            ],
+        ]);
+
+        $sheet->getStyle($tableHeaderRange)->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'alignment' => [
+                'horizontal' => Alignment::HORIZONTAL_CENTER,
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+            'fill' => [
+                'fillType' => Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '116B43'],
+            ],
+        ]);
+
+        $sheet->getStyle($usedRange)->applyFromArray([
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => Border::BORDER_THIN,
+                    'color' => ['rgb' => '4B5563'],
+                ],
+            ],
+            'alignment' => [
+                'vertical' => Alignment::VERTICAL_CENTER,
+                'wrapText' => true,
+            ],
+        ]);
+
+        $sheet->getRowDimension(1)->setRowHeight(24);
+        $sheet->getRowDimension(2)->setRowHeight(22);
+        $sheet->getRowDimension(3)->setRowHeight(34);
+        $sheet->freezePane('A'.(self::TABLE_START_ROW + 1));
+    }
+
+    private function projectSummaryText(): string
+    {
+        $counts = RegistrationEntry::query()
+            ->whereHas('registration', fn ($query) => $query->where('race_id', $this->race->id))
+            ->selectRaw('race_project_id, count(*) as total')
+            ->groupBy('race_project_id')
+            ->pluck('total', 'race_project_id');
+
+        return $this->projects
+            ->map(fn ($project): string => $project->name.'：'.((int) ($counts[$project->id] ?? 0)))
+            ->implode('，');
     }
 
     public function fileName(): string

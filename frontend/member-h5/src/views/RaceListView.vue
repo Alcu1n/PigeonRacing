@@ -1,5 +1,5 @@
 <!-- [IN]: Authenticated member session / 已鉴权会员会话 -->
-<!-- [OUT]: Visible race cards, logout action, and registration entry navigation / 可见赛事卡片、退出动作与报名入口导航 -->
+<!-- [OUT]: Visible race cards, profile/logout actions, and registration entry navigation / 可见赛事卡片、个人信息/退出动作与报名入口导航 -->
 <!-- [POS]: Frontend race list screen / 前端赛事列表页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -8,7 +8,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import type { Race } from '../types/domain'
-import MemberLogoutButton from '../components/MemberLogoutButton.vue'
+import MemberTopActions from '../components/MemberTopActions.vue'
 
 const router = useRouter()
 const races = ref<Race[]>([])
@@ -28,7 +28,7 @@ onMounted(async () => {
         <h1>可报名赛事</h1>
         <p>选择赛事进入报名</p>
       </div>
-      <MemberLogoutButton />
+      <MemberTopActions />
     </header>
 
     <p v-if="loading" class="empty-note">加载赛事中...</p>

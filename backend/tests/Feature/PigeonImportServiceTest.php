@@ -42,6 +42,7 @@ class PigeonImportServiceTest extends TestCase
         $this->assertStringContainsString('password', $memberInsertSql);
         $this->assertNull($member->phone);
         $this->assertNull($member->password);
+        $this->assertTrue($member->must_change_password);
         $this->assertSame('新会员鸽舍', $member->participant_name);
         $this->assertDatabaseHas('pigeons', ['ring_number' => '2026-13-000001', 'member_id' => $member->id]);
         $this->assertSame(1, $batch->success_rows);

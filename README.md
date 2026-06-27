@@ -90,6 +90,7 @@ APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://example.com
 FRONTEND_URL=https://example.com
+PUBLIC_STORAGE_URL=/storage
 
 DB_CONNECTION=mysql
 DB_HOST=mysql
@@ -138,10 +139,11 @@ npm run build
 cd ../..
 ```
 
-Generate the Laravel key, publish Filament assets, and start services. / 生成 Laravel 密钥、发布 Filament 资源并启动服务。
+Generate the Laravel key, create the public storage link, publish Filament assets, and start services. / 生成 Laravel 密钥、创建公开存储链接、发布 Filament 资源并启动服务。
 
 ```bash
 docker compose run --rm app php artisan key:generate --force
+docker compose run --rm app php artisan storage:link
 docker compose run --rm app php artisan filament:assets
 docker compose up -d
 ```
@@ -343,6 +345,7 @@ APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://example.com
 FRONTEND_URL=https://example.com
+PUBLIC_STORAGE_URL=/storage
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -503,6 +506,13 @@ Generate the Laravel application key. / 生成 Laravel 应用密钥。
 docker compose run --rm app php artisan key:generate
 ```
 
+Create the public storage link for uploaded logos and reports. / 创建公开存储链接，用于访问上传的 Logo 和报告文件。
+Keep `PUBLIC_STORAGE_URL=/storage` for same-origin access through localhost, LAN IP, Cloudflare Tunnel, or the production domain. / 同源访问请保持 `PUBLIC_STORAGE_URL=/storage`，这样 localhost、局域网 IP、Cloudflare Tunnel 或正式域名都会使用当前访问域名。
+
+```bash
+docker compose run --rm app php artisan storage:link
+```
+
 Publish Filament admin assets. / 发布 Filament 后台资源。
 
 ```bash
@@ -560,11 +570,18 @@ Admin panel / 后台:
 http://localhost:8080/admin
 ```
 
-For phone testing on the same Wi-Fi, use the computer's LAN IP with port `8080`; do not omit the port. The backend accepts the current request host for Sanctum cookie auth, and `SESSION_DOMAIN` should stay empty so cookies match both `localhost` and LAN IP hosts. / 手机同 Wi-Fi 测试时，使用电脑局域网 IP 并带上 `8080` 端口；不要省略端口。后端会把当前请求 Host 作为 Sanctum Cookie 鉴权来源，`SESSION_DOMAIN` 应保持为空，这样 Cookie 才能同时匹配 `localhost` 与局域网 IP Host。
+For phone testing on the same Wi-Fi, use the computer's LAN IP with port `8080`; do not omit the port. The backend accepts the current request host for cookie auth, protected member APIs authenticate with the `member` guard, and `SESSION_DOMAIN` should stay empty so cookies match both `localhost` and LAN IP hosts. / 手机同 Wi-Fi 测试时，使用电脑局域网 IP 并带上 `8080` 端口；不要省略端口。后端会接受当前请求 Host 的 Cookie 鉴权，受保护会员 API 明确使用 `member` guard，`SESSION_DOMAIN` 应保持为空，这样 Cookie 才能同时匹配 `localhost` 与局域网 IP Host。
 
 ```text
 Phone member H5 / 手机会员端:
 http://192.168.1.82:8080/login
+```
+
+If login works on the phone but submit shows `提交失败`, clear Laravel's cached route/config after pulling code changes, then log in again on the phone. / 如果手机端能登录但提交显示 `提交失败`，拉取代码变更后先清理 Laravel 路由/配置缓存，再在手机端重新登录。
+
+```bash
+docker compose exec app php artisan optimize:clear
+docker compose restart app nginx
 ```
 
 Demo accounts. / 演示账号。
@@ -595,17 +612,27 @@ Admin side. / 后台。
 
 1. Log in with the demo admin account. / 使用演示管理员账号登录。
 2. Check member, pigeon, race, project, and registration resources. / 查看会员、足环、赛事、项目和报名资源。
-3. Confirm a pending registration. / 确认一条待确认报名。
-4. Edit a race project and verify `config_version` policy before member submission in later tests. / 后续测试可修改赛事项目并验证会员提交前的 `config_version` 策略。
+3. Open `会员管理 -> 导入 Excel` to preview and import member files. / 打开 `会员管理 -> 导入 Excel`，预览并导入会员档案。
+4. Open `系统设置 -> 品牌设置`, upload a PNG/JPG logo, verify the file row finishes loading, and verify it appears at the top of the member login page. / 打开 `系统设置 -> 品牌设置`，上传 PNG/JPG Logo，确认文件行加载完成，并确认它显示在会员登录页顶部。
+5. Confirm a pending registration. / 确认一条待确认报名。
+6. Edit a race project and verify `config_version` policy before member submission in later tests. / 后续测试可修改赛事项目并验证会员提交前的 `config_version` 策略。
 
 ### 5. Admin Excel Import and Export / 后台 Excel 导入与导出
+
+Member import. / 会员导入。
+
+1. Open `后台 -> 会员管理 -> 导入 Excel`. / 打开 `后台 -> 会员管理 -> 导入 Excel`。
+2. Use the fixed header `序号，棚号，参赛名，手机号，密码`; `.xlsx` and `.xls` are accepted, max 10MB. / 使用固定表头 `序号，棚号，参赛名，手机号，密码`；支持 `.xlsx` 与 `.xls`，最大 10MB。
+3. `棚号` and `参赛名` are required; `手机号` and `密码` may be blank. / `棚号` 与 `参赛名` 必填；`手机号` 与 `密码` 可留空。
+4. Existing loft numbers are updated by non-empty Excel values only; blank phone/password cells do not overwrite existing values. / 已存在棚号只用 Excel 中非空字段更新；空手机号或空密码不会覆盖现有值。
+5. Any non-empty imported or admin-set password marks the member as requiring a first-login password change. / 任何非空导入密码或后台设置密码都会标记会员首次登录必须修改密码。
 
 Pigeon import. / 足环导入。
 
 1. Open `后台 -> 足环管理 -> 导入 Excel`. / 打开 `后台 -> 足环管理 -> 导入 Excel`。
 2. Use the fixed header `序号，会员棚号，会员参赛名，足环号码`; `.xlsx` and `.xls` are accepted, max 10MB. / 使用固定表头 `序号，会员棚号，会员参赛名，足环号码`；支持 `.xlsx` 与 `.xls`，最大 10MB。
 3. Click `预览导入` before writing data; the preview shows valid rows, failed rows, duplicate rings, new members, and participant-name updates. / 写入前点击 `预览导入`；预览会显示可导入行、失败行、重复足环、新建会员与参赛名更新数量。
-4. Click `确认导入`; missing loft numbers create member files with empty phone/password, so they cannot log in until an admin fills credentials. / 点击 `确认导入`；缺失棚号会创建手机号和密码为空的会员档案，管理员补齐凭据前不能登录。
+4. Click `确认导入`; missing loft numbers create member files with empty phone/password and first-login password-change policy, so they cannot log in until an admin fills credentials. / 点击 `确认导入`；缺失棚号会创建手机号和密码为空且带首次改密策略的会员档案，管理员补齐凭据前不能登录。
 5. If failures exist, download the generated error report from the import result panel. / 如有失败行，在导入结果区域下载错误报告。
 6. Use `删除所有足环` only for guarded cleanup before reimport; if any registration detail references a pigeon, deletion is blocked to protect historical records. / 仅在重新导入前使用 `删除所有足环` 做受保护清理；如已有报名明细引用足环，系统会阻止删除以保护历史记录。
 
@@ -613,9 +640,18 @@ Registration export. / 报名导出。
 
 1. Open `后台 -> 报名记录 -> 导出 Excel`. / 打开 `后台 -> 报名记录 -> 导出 Excel`。
 2. Select a race and download the matrix workbook. / 选择赛事并下载矩阵表格。
-3. Columns are `序号、会员棚号、会员参赛名、足环号码` plus each project; single-pigeon rows use `✓`, multi-pigeon groups export as one unique row with comma-separated ring numbers in the group project cell. / 列为 `序号、会员棚号、会员参赛名、足环号码` 加各比赛项目；单羽行用 `✓`，多羽组合按唯一组合导出为一行，并在对应项目单元格内用逗号分隔显示足环号。
+3. The workbook starts with a summary header containing race name, registration deadline, and per-project counts, then the data table. / 表格顶部先显示赛事名称、报名截止时间和各项目数量统计，再显示数据表。
+4. Columns are `序号、会员棚号、会员参赛名、足环号码` plus each project; single-pigeon rows use `✓`, multi-pigeon groups export as one unique row with an empty `足环号码` cell and comma-separated ring numbers only in the group project cell. / 列为 `序号、会员棚号、会员参赛名、足环号码` 加各比赛项目；单羽行用 `✓`，多羽组合按唯一组合导出为一行，`足环号码` 单元格留空，只在对应项目单元格内用逗号分隔显示足环号。
+5. All used cells have solid borders for printing and manual review. / 所有已使用单元格添加实色边框，方便打印和人工核对。
 
-### 6. Reset Local Data / 重置本地数据
+### 6. Member Profile and First Login Password Change / 会员档案与首次登录改密
+
+1. After login, members can open `个人信息` from the top-right action area. / 登录后，会员可从右上角操作区打开 `个人信息`。
+2. The profile page shows loft number, participant name, phone, password update form, and owned pigeon rings. / 个人档案页显示棚号、参赛名、手机号、改密表单与名下足环。
+3. Members created by admin password entry, member Excel import with password, or pigeon import auto-creation require a first-login password change. / 通过后台设置密码、会员 Excel 导入密码或足环导入自动创建的会员需要首次登录改密。
+4. Members flagged for password change are redirected to `/profile?forcePassword=1` and cannot enter race list or registration pages until the password is updated. / 被标记改密的会员会跳转到 `/profile?forcePassword=1`，改密完成前不能进入赛事列表或报名页。
+
+### 7. Reset Local Data / 重置本地数据
 
 Stop services but keep data. / 停止服务但保留数据。
 
@@ -633,7 +669,7 @@ docker compose build app queue scheduler
 docker compose up -d
 ```
 
-### 7. Frontend-Only Development / 仅前端开发
+### 8. Frontend-Only Development / 仅前端开发
 
 For fast UI testing without backend, run Vite directly. The registration screen has a development-only demo bootstrap fallback when the backend API is unavailable. / 如果只想快速测试 UI，可直接运行 Vite；当后端 API 不可用时，报名页会使用仅开发环境启用的演示初始化数据。
 
@@ -655,7 +691,7 @@ Open the login page. Login requires the backend API unless you only inspect the 
 http://localhost:5173/login
 ```
 
-### 8. Verification Commands / 验证命令
+### 9. Verification Commands / 验证命令
 
 Backend tests. / 后端测试。
 

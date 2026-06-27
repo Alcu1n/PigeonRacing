@@ -54,6 +54,7 @@ class MemberResource extends Resource
             'index' => Pages\ListMembers::route('/'),
             'create' => Pages\CreateMember::route('/create'),
             'edit' => Pages\EditMember::route('/{record}/edit'),
+            'import' => Pages\ImportMembers::route('/import'),
         ];
     }
 }

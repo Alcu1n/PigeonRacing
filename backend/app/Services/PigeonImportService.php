@@ -140,8 +140,12 @@ class PigeonImportService
 
                 $data = $row['data'];
                 $member = Member::query()->firstOrNew(['loft_number' => $data['loft_number']]);
+                $isNewMember = ! $member->exists;
                 $member->phone ??= null;
                 $member->password ??= null;
+                if ($isNewMember) {
+                    $member->must_change_password = true;
+                }
                 $member->participant_name = $data['participant_name'];
                 $member->status ??= 'enabled';
                 $member->save();

@@ -9,6 +9,7 @@ backend/vendor/
 backend/.env
 backend/.phpunit.result.cache
 backend/bootstrap/cache/*.php
+backend/public/storage
 backend/storage/
 backend/storage/*.key
 frontend/member-h5/node_modules/

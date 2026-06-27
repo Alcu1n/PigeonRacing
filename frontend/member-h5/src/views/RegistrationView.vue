@@ -9,13 +9,14 @@ import { useRoute, useRouter } from 'vue-router'
 import { showDialog, showToast } from 'vant'
 import { api } from '../api/client'
 import { useRegistrationStore } from '../stores/registration'
+import { createIdempotencyKey } from '../utils/idempotency'
 import { yuan } from '../utils/money'
 import { demoBootstrap } from '../utils/demoBootstrap'
 import AmountBar from '../components/AmountBar.vue'
 import SingleMatrix from '../components/SingleMatrix.vue'
 import MultiGroupBuilder from '../components/MultiGroupBuilder.vue'
 import SelectedDetail from '../components/SelectedDetail.vue'
-import MemberLogoutButton from '../components/MemberLogoutButton.vue'
+import MemberTopActions from '../components/MemberTopActions.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -48,7 +49,7 @@ async function confirmSubmit(): Promise<void> {
   try {
     const response = await api.post(`/api/member/races/${store.race.id}/registrations`, {
       config_version: store.race.config_version,
-      idempotency_key: crypto.randomUUID(),
+      idempotency_key: createIdempotencyKey(),
       entries: store.submitEntries,
     })
     showToast('报名提交成功')
@@ -68,7 +69,7 @@ async function confirmSubmit(): Promise<void> {
       <header class="registration-header">
         <div class="registration-title-row">
           <h1>{{ store.race.name }}</h1>
-          <MemberLogoutButton />
+          <MemberTopActions />
         </div>
         <div class="member-line">
           <span>{{ store.member.loft_number }}</span>

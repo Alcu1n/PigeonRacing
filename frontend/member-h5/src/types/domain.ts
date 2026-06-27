@@ -8,6 +8,7 @@ export interface Member {
   phone?: string
   loft_number: string
   participant_name: string
+  must_change_password: boolean
 }
 
 export interface Race {
@@ -38,6 +39,11 @@ export interface RaceProject {
 export interface Pigeon {
   id: number
   ring_number: string
+}
+
+export interface MemberProfile {
+  member: Member
+  pigeons: Pigeon[]
 }
 
 export interface RegistrationEntryPayload {

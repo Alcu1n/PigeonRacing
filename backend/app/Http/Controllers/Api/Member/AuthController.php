@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member login and logout API requests / 会员登录与退出 API 请求
-// [OUT]: Session-authenticated member responses / 会话鉴权会员响应
+// [OUT]: Session-authenticated member responses with password policy / 带密码策略的会话鉴权会员响应
 // [POS]: Backend member authentication controller / 后端会员鉴权控制器
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -35,6 +35,7 @@ class AuthController extends Controller
                 'phone' => $member->phone,
                 'loft_number' => $member->loft_number,
                 'participant_name' => $member->participant_name,
+                'must_change_password' => $member->must_change_password,
             ],
         ]);
     }

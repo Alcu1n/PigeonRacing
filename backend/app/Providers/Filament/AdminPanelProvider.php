@@ -1,6 +1,6 @@
 <?php
 // [IN]: Filament panel builder / Filament 面板构建器
-// [OUT]: Admin panel registration / 后台管理面板注册
+// [OUT]: Admin panel resource and settings page registration / 后台资源与设置页面注册
 // [POS]: Backend Filament admin panel provider / 后端 Filament 后台面板提供者
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -33,6 +33,7 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->colors(['primary' => Color::Emerald])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([Dashboard::class])
             ->middleware([
                 EncryptCookies::class,

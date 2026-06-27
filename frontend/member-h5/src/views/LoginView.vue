@@ -1,25 +1,46 @@
-<!-- [IN]: Blank member phone and password input / 空白会员手机号与密码输入 -->
-<!-- [OUT]: Authenticated session and race-list navigation / 已鉴权会话与赛事列表导航 -->
+<!-- [IN]: Branding API plus blank member phone and password input / 品牌 API 与空白会员手机号、密码输入 -->
+<!-- [OUT]: Centered logo login screen with authenticated race-list navigation / 居中 Logo 登录页与已鉴权赛事列表导航 -->
 <!-- [POS]: Frontend member login screen / 前端会员登录页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import axios from 'axios'
-import { showToast } from 'vant'
+import { showDialog, showToast } from 'vant'
 import { useAuthStore } from '../stores/auth'
+import { api } from '../api/client'
 
 const auth = useAuthStore()
 const router = useRouter()
 const phone = ref('')
 const password = ref('')
 const loading = ref(false)
+const logoUrl = ref<string | null>(null)
+
+onMounted(async () => {
+  try {
+    const response = await api.get('/api/member/branding')
+    logoUrl.value = response.data.logo_url ?? null
+  } catch {
+    logoUrl.value = null
+  }
+})
 
 async function submit(): Promise<void> {
   loading.value = true
   try {
     await auth.login(phone.value, password.value)
+    if (auth.member?.must_change_password) {
+      await showDialog({
+        title: '请先修改密码',
+        message: '为了账号安全，首次登录需要先修改密码。',
+        confirmButtonText: '去修改密码',
+      })
+      await router.replace('/profile?forcePassword=1')
+      return
+    }
+
     await router.push('/races')
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 422) {
@@ -37,8 +58,11 @@ async function submit(): Promise<void> {
 <template>
   <main class="login-screen">
     <section class="login-panel">
-      <h1>赛鸽赛事报名</h1>
-      <p>会员手机端入口</p>
+      <div class="login-brand">
+        <img v-if="logoUrl" class="login-logo" :src="logoUrl" alt="飞乐赛鸽 Logo" @error="logoUrl = null" />
+        <h1>赛鸽赛事报名</h1>
+        <p>会员专属报名入口</p>
+      </div>
       <label>
         <span>手机号</span>
         <input v-model="phone" inputmode="tel" autocomplete="username" placeholder="请输入会员手机号" />
@@ -49,5 +73,6 @@ async function submit(): Promise<void> {
       </label>
       <button class="primary-action wide" :disabled="loading" @click="submit">{{ loading ? '登录中...' : '登录' }}</button>
     </section>
+    <footer class="login-footer">© 飞乐赛鸽 2026 联系电话 18650024626</footer>
   </main>
 </template>

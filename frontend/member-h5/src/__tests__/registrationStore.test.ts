@@ -168,7 +168,7 @@ function bootstrap(): BootstrapPayload {
       config_version: 1,
       allow_member_edit: true,
     },
-    member: { id: 1, loft_number: 'A001', participant_name: '张三鸽舍' },
+    member: { id: 1, loft_number: 'A001', participant_name: '张三鸽舍', must_change_password: false },
     projects: [
       { id: 1, race_id: 1, name: '单羽 50 元', group_size: 1, price_cent: 5000, sort_order: 1, is_enabled: true, allow_repeat_pigeon_in_project: false },
       { id: 2, race_id: 1, name: '双羽组 200 元', group_size: 2, price_cent: 20000, sort_order: 2, is_enabled: true, allow_repeat_pigeon_in_project: false },

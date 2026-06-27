@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member account rows and Sanctum sessions / 会员账号行与 Sanctum 会话
-// [OUT]: Member identity, pigeons, and registrations / 会员身份、足环与报名记录
+// [OUT]: Member identity, password policy, pigeons, and registrations / 会员身份、密码策略、足环与报名记录
 // [POS]: Backend member aggregate root / 后端会员聚合根
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -17,7 +17,7 @@ class Member extends Authenticatable
     use HasApiTokens;
     use HasFactory;
 
-    protected $fillable = ['phone', 'password', 'loft_number', 'participant_name', 'status', 'remark', 'last_login_at'];
+    protected $fillable = ['phone', 'password', 'must_change_password', 'loft_number', 'participant_name', 'status', 'remark', 'last_login_at'];
 
     protected $hidden = ['password', 'remember_token'];
 
@@ -25,6 +25,7 @@ class Member extends Authenticatable
     {
         return [
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
         ];
     }
