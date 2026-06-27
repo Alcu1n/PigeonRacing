@@ -1,5 +1,5 @@
 <!-- [IN]: Registration store multi projects and pigeons / 报名 Store 的多羽项目与足环 -->
-<!-- [OUT]: Sticky repeat-aware multi-pigeon group builder and group cards / 固定且支持重复规则的多羽组合构建器与组合卡片 -->
+<!-- [OUT]: Sticky repeat-aware multi-pigeon group builder, project group count, and group cards / 固定且支持重复规则的多羽组合构建器、项目成组数与组合卡片 -->
 <!-- [POS]: Frontend multi registration component / 前端多羽报名组件 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -27,7 +27,10 @@ const { multiProjects, selectedMultiProject, pendingMultiPigeonIds, filteredPige
     </div>
 
     <div v-if="selectedMultiProject" class="multi-current">
-      <strong>当前选择：{{ selectedMultiProject.name }}</strong>
+      <div class="multi-current-head">
+        <strong>当前选择：{{ selectedMultiProject.name }}</strong>
+        <span class="multi-group-count">已成组 <b>{{ store.selectedMultiProjectGroupCount }}</b> 组</span>
+      </div>
       <span>请选择 {{ selectedMultiProject.group_size }} 只赛鸽组成一组，已选 {{ pendingMultiPigeonIds.length }}/{{ selectedMultiProject.group_size }}</span>
       <button class="secondary-action" :disabled="!store.canConfirmMultiGroup" @click="store.confirmMultiGroup">确认组成一组</button>
     </div>

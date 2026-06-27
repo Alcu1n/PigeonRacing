@@ -61,6 +61,23 @@ describe('registration store', () => {
     store.confirmMultiGroup()
     expect(store.multiGroups).toHaveLength(1)
     expect(store.multiEntries).toEqual([{ project_id: 2, pigeon_ids: [101, 102] }])
+    expect(store.selectedMultiProjectGroupCount).toBe(1)
+  })
+
+  it('counts confirmed groups for the selected multi project only', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.projects.push({ id: 3, race_id: 1, name: '三羽组 300 元', group_size: 3, price_cent: 30000, sort_order: 3, is_enabled: true, allow_repeat_pigeon_in_project: false })
+    store.load(payload)
+
+    store.setMultiProject(2)
+    store.togglePendingMultiPigeon(101)
+    store.togglePendingMultiPigeon(102)
+    store.confirmMultiGroup()
+    expect(store.selectedMultiProjectGroupCount).toBe(1)
+
+    store.setMultiProject(3)
+    expect(store.selectedMultiProjectGroupCount).toBe(0)
   })
 
   it('allows the same pigeon in another multi group when the project permits repeat usage', () => {

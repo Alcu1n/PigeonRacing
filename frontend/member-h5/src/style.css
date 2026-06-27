@@ -546,6 +546,25 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   box-shadow: 0 10px 24px rgba(13, 43, 30, .1);
 }
 
+.multi-current-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.multi-group-count {
+  flex: 0 0 auto;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.multi-group-count b {
+  color: var(--danger);
+  font-size: 1.08em;
+  font-weight: 900;
+}
+
 .pigeon-pick-list {
   display: grid;
   gap: 8px;

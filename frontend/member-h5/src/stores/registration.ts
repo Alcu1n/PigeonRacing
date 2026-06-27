@@ -1,5 +1,5 @@
 // [IN]: Bootstrap payload and local member registration actions / 初始化数据与会员本地报名动作
-// [OUT]: Matrix state, row select-all, repeat-aware unique multi groups, summaries, drafts, and submit payload / 矩阵状态、行全选、支持重复规则且唯一的多羽组合、汇总、草稿与提交数据
+// [OUT]: Matrix state, row select-all, repeat-aware unique multi groups, per-project group counts, summaries, drafts, and submit payload / 矩阵状态、行全选、支持重复规则且唯一的多羽组合、按项目成组数、汇总、草稿与提交数据
 // [POS]: Frontend registration state machine / 前端报名状态机
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -73,6 +73,13 @@ export const useRegistrationStore = defineStore('registration', () => {
         usage[pigeonId] = (usage[pigeonId] ?? 0) + 1
         return usage
       }, {})
+  })
+
+  const selectedMultiProjectGroupCount = computed(() => {
+    const project = selectedMultiProject.value
+    if (!project) return 0
+
+    return multiGroups.value.filter((group) => group.project_id === project.id).length
   })
 
   const canConfirmMultiGroup = computed(() => {
@@ -282,6 +289,7 @@ export const useRegistrationStore = defineStore('registration', () => {
     singleEntries,
     multiEntries,
     selectedMultiProjectUsage,
+    selectedMultiProjectGroupCount,
     canConfirmMultiGroup,
     submitEntries,
     singleAmountCent,
