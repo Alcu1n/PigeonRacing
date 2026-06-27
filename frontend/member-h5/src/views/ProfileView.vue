@@ -18,7 +18,6 @@ const auth = useAuthStore()
 const pigeons = ref<Pigeon[]>([])
 const loading = ref(true)
 const submitting = ref(false)
-const currentPassword = ref('')
 const password = ref('')
 const passwordConfirmation = ref('')
 const forcePassword = computed(() => route.query.forcePassword === '1' || auth.member?.must_change_password)
@@ -34,9 +33,8 @@ async function updatePassword(): Promise<void> {
 
   submitting.value = true
   try {
-    const profile = await auth.updatePassword(currentPassword.value, password.value, passwordConfirmation.value)
+    const profile = await auth.updatePassword(password.value, passwordConfirmation.value)
     pigeons.value = profile.pigeons
-    currentPassword.value = ''
     password.value = ''
     passwordConfirmation.value = ''
     showToast('密码已修改')
@@ -80,10 +78,6 @@ async function updatePassword(): Promise<void> {
       <section class="profile-card">
         <h2>修改密码</h2>
         <p v-if="forcePassword" class="force-note">当前账号必须先修改密码，完成后才能进入赛事报名。</p>
-        <label>
-          <span>当前密码</span>
-          <input v-model="currentPassword" type="password" autocomplete="current-password" placeholder="请输入当前密码" />
-        </label>
         <label>
           <span>新密码</span>
           <input v-model="password" type="password" autocomplete="new-password" placeholder="至少 6 位" />

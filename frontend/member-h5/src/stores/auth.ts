@@ -1,5 +1,5 @@
 // [IN]: Member credentials and backend auth API / 会员凭据与后端鉴权 API
-// [OUT]: Current member session, profile restore, password update, and local logout reset / 当前会员会话、档案恢复、改密与本地退出重置
+// [OUT]: Current member session, profile restore, new-password update, and local logout reset / 当前会员会话、档案恢复、新密码改密与本地退出重置
 // [POS]: Frontend member auth store / 前端会员鉴权状态
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -23,9 +23,8 @@ export const useAuthStore = defineStore('auth', () => {
     return response.data
   }
 
-  async function updatePassword(currentPassword: string, password: string, passwordConfirmation: string): Promise<MemberProfile> {
+  async function updatePassword(password: string, passwordConfirmation: string): Promise<MemberProfile> {
     const response = await api.post('/api/member/password', {
-      current_password: currentPassword,
       password,
       password_confirmation: passwordConfirmation,
     })

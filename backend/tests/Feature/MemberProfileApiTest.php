@@ -46,7 +46,7 @@ class MemberProfileApiTest extends TestCase
             ->assertJsonPath('pigeons.0.ring_number', '2026-13-000001');
     }
 
-    public function test_password_change_requires_current_password_and_clears_required_flag(): void
+    public function test_password_change_uses_new_password_only_and_clears_required_flag(): void
     {
         $member = Member::query()->create([
             'phone' => '13800000001',
@@ -59,16 +59,14 @@ class MemberProfileApiTest extends TestCase
 
         $this->actingAs($member, 'member')
             ->postJson('/api/member/password', [
-                'current_password' => 'wrong',
-                'password' => 'newpass',
-                'password_confirmation' => 'newpass',
+                'password' => 'short',
+                'password_confirmation' => 'short',
             ])
             ->assertStatus(422)
-            ->assertJsonPath('message', '当前密码错误。');
+            ->assertJsonValidationErrors('password');
 
         $this->actingAs($member, 'member')
             ->postJson('/api/member/password', [
-                'current_password' => 'password',
                 'password' => 'newpass',
                 'password_confirmation' => 'newpass',
             ])

@@ -11,8 +11,6 @@ use App\Http\Requests\Member\UpdatePasswordRequest;
 use App\Models\Member;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 
 class ProfileController extends Controller
 {
@@ -29,10 +27,6 @@ class ProfileController extends Controller
         /** @var Member $member */
         $member = auth('member')->user();
         $payload = $request->validated();
-
-        if (! $member->password || ! Hash::check($payload['current_password'], $member->password)) {
-            throw ValidationException::withMessages(['current_password' => '当前密码错误。']);
-        }
 
         $member->forceFill([
             'password' => $payload['password'],

@@ -53,9 +53,13 @@ describe('auth store', () => {
 
     const auth = useAuthStore()
     auth.member = memberPayload(true)
-    await auth.updatePassword('password', 'newpass', 'newpass')
+    await auth.updatePassword('newpass', 'newpass')
 
     expect(auth.member?.must_change_password).toBe(false)
+    expect(api.post).toHaveBeenCalledWith('/api/member/password', {
+      password: 'newpass',
+      password_confirmation: 'newpass',
+    })
   })
 })
 
