@@ -1,5 +1,5 @@
 <!-- [IN]: Authenticated member profile, registration history API, and password form / 已鉴权会员档案、报名历史 API 与改密表单 -->
-<!-- [OUT]: Member profile, registration history, pigeon list, and password update workflow / 会员档案、报名历史、足环列表与改密流程 -->
+<!-- [OUT]: Member profile, localized registration history status, pigeon list, and password update workflow / 会员档案、本地化报名历史状态、足环列表与改密流程 -->
 <!-- [POS]: Frontend member profile screen / 前端会员个人档案页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -10,7 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import MemberTopActions from '../components/MemberTopActions.vue'
 import { useAuthStore } from '../stores/auth'
-import type { Pigeon, RegistrationHistoryItem } from '../types/domain'
+import { registrationStatusText, registrationStatusTone, type Pigeon, type RegistrationHistoryItem } from '../types/domain'
 import { api } from '../api/client'
 import { yuan } from '../utils/money'
 
@@ -122,7 +122,12 @@ async function updatePassword(): Promise<void> {
             @click="router.push(`/profile/registrations/${item.registration_id}`)"
           >
             <strong>{{ item.race_name }}</strong>
-            <span>{{ item.submitted_at }} · {{ item.status }}</span>
+            <span class="history-meta-row">
+              <span>{{ item.submitted_at }}</span>
+              <b :class="['registration-status-pill', registrationStatusTone(item.status)]">
+                {{ registrationStatusText(item.status) }}
+              </b>
+            </span>
             <small>{{ yuan(item.total_amount_cent) }} · 单羽 {{ item.single_count }} 项 · 多羽 {{ item.multi_group_count }} 组</small>
           </button>
         </div>

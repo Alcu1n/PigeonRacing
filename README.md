@@ -609,8 +609,20 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue schedu
 - 只要 GitHub 更新涉及 PHP 代码、Composer 依赖、前端资源或 Dockerfile，都可以直接执行完整流程。
 - 如果这次只是修复 HTTPS 后台样式问题，也按完整流程执行；关键步骤是拉取最新 `backend/bootstrap/app.php`，然后清理配置缓存并重启 `app` 与 `nginx`。
 - 如果这次涉及 Logo、Excel 报告等公开上传文件访问问题，也按完整流程执行；关键步骤是拉取最新 `backend/routes/web.php`、公开存储控制器与 `docker/nginx/default.conf`，然后清理路由缓存并重启 `app` 与 `nginx`。
+- 如果这次只是界面文案或状态显示更新，例如把报名状态从 `pending_confirmation` 改为“未确认/已确认”，仍然要同时执行后端构建、前端 `npm run build`、`filament:assets`、缓存清理和容器重启。后台 Filament 页面来自 Laravel，会员端页面来自 Vite 构建产物，漏掉任一边都会出现一边已更新、一边仍显示旧文案。
+- For UI/status-label-only releases, still run the full backend build, frontend build, Filament asset publish, cache clear, and container restart. The admin UI is served by Laravel while the member H5 is a built Vite app; skipping one side leaves stale labels in production.
 - `migrate --force` 是安全的增量迁移命令，不会清空已有数据。
 - 不要执行 `docker compose down -v`，它会删除数据库 volume。
+
+状态显示类更新发布后，按下面顺序做一次快速验收。/ After a status-display release, verify in this order:
+
+```text
+1. 打开 https://feilesg.com/admin，进入“报名记录”，确认状态列只显示“已确认”或“未确认”，不再显示 pending_confirmation。
+2. 在后台点击某条报名记录进入详情，确认“确认状态”使用同样中文文案和颜色。
+3. 打开 https://feilesg.com/login，以会员账号登录，进入个人信息里的报名记录，确认状态标签为“已确认/未确认”。
+4. 打开会员端报名提交成功页或历史报名明细页，确认状态不再显示英文枚举。
+5. 若仍看到旧文案，优先强制刷新浏览器；仍未更新时重新执行 optimize:clear、config:cache、route:cache、view:cache，并确认 frontend/member-h5 已重新 npm run build。
+```
 
 检查服务：
 

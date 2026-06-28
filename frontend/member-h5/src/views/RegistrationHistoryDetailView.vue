@@ -1,5 +1,5 @@
 <!-- [IN]: Registration history route param and backend detail API / 报名历史路由参数与后端详情 API -->
-<!-- [OUT]: Read-only mobile-friendly registration history detail / 移动端友好的只读报名历史详情 -->
+<!-- [OUT]: Read-only mobile-friendly registration history detail with localized status / 带本地化状态的移动端友好只读报名历史详情 -->
 <!-- [POS]: Frontend member registration history detail screen / 前端会员报名历史详情页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -8,7 +8,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MemberTopActions from '../components/MemberTopActions.vue'
 import { api } from '../api/client'
-import type { ExistingRegistration } from '../types/domain'
+import { registrationStatusText, registrationStatusTone, type ExistingRegistration } from '../types/domain'
 import { buildRegistrationHistoryMatrix } from '../utils/registrationHistory'
 import { yuan } from '../utils/money'
 
@@ -58,7 +58,11 @@ onMounted(async () => {
           <dt>总金额</dt>
           <dd>{{ yuan(registration.total_amount_cent) }}</dd>
           <dt>状态</dt>
-          <dd>{{ registration.status }}</dd>
+          <dd>
+            <span :class="['registration-status-pill', registrationStatusTone(registration.status)]">
+              {{ registrationStatusText(registration.status) }}
+            </span>
+          </dd>
         </dl>
       </section>
 

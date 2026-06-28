@@ -1,6 +1,6 @@
 <?php
 // [IN]: Registration model records, snapshot matrix service, and confirmation action / 报名模型记录、快照矩阵服务与确认动作
-// [OUT]: Filament registration review table and dense detail matrix / Filament 报名审核表格与高密度详情矩阵
+// [OUT]: Filament registration review table with localized status badges and dense detail matrix / 带本地化状态徽标的 Filament 报名审核表格与高密度详情矩阵
 // [POS]: Backend admin registration resource / 后端后台报名资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -44,8 +44,8 @@ class RegistrationResource extends Resource
                     TextEntry::make('status')
                         ->label('确认状态')
                         ->badge()
-                        ->formatStateUsing(fn (RegistrationStatus $state): string => $state === RegistrationStatus::Confirmed ? '已确认' : '待确认')
-                        ->color(fn (RegistrationStatus $state): string => $state === RegistrationStatus::Confirmed ? 'success' : 'warning'),
+                        ->formatStateUsing(fn (RegistrationStatus $state): string => Registration::statusLabel($state))
+                        ->color(fn (RegistrationStatus $state): string => Registration::statusColor($state)),
                     TextEntry::make('member.loft_number')->label('会员棚号')->placeholder('-'),
                     TextEntry::make('member.participant_name')->label('会员参赛名')->placeholder('-'),
                     TextEntry::make('total_amount_cent')
@@ -68,8 +68,8 @@ class RegistrationResource extends Resource
             TextColumn::make('status')
                 ->label('确认报名')
                 ->badge()
-                ->formatStateUsing(fn (RegistrationStatus $state): string => $state === RegistrationStatus::Confirmed ? '已确认' : '确认报名')
-                ->color(fn (RegistrationStatus $state): string => $state === RegistrationStatus::Confirmed ? 'success' : 'warning')
+                ->formatStateUsing(fn (RegistrationStatus $state): string => Registration::statusLabel($state))
+                ->color(fn (RegistrationStatus $state): string => Registration::statusColor($state))
                 ->action(
                     Action::make('confirmFromColumn')
                         ->label('确认报名')
@@ -86,7 +86,9 @@ class RegistrationResource extends Resource
             TextColumn::make('race.name')->label('赛事'),
             TextColumn::make('status_text')
                 ->label('状态')
-                ->state(fn (Registration $record): string => $record->status->value),
+                ->badge()
+                ->state(fn (Registration $record): string => Registration::statusLabel($record->status))
+                ->color(fn (Registration $record): string => Registration::statusColor($record->status)),
             TextColumn::make('submitted_at')->label('提交时间')->dateTime(),
         ])->recordActions([
             ViewAction::make(),

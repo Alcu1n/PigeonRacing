@@ -1,5 +1,5 @@
 // [IN]: Backend API JSON contracts / 后端 API JSON 契约
-// [OUT]: Frontend domain TypeScript types including registration history / 包含报名历史的前端领域 TypeScript 类型
+// [OUT]: Frontend domain TypeScript types and localized registration status helpers / 前端领域 TypeScript 类型与本地化报名状态辅助函数
 // [POS]: Frontend shared domain contract / 前端共享领域契约
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -89,4 +89,12 @@ export interface BootstrapPayload {
   projects: RaceProject[]
   pigeons: Pigeon[]
   existing_registration: ExistingRegistration | null
+}
+
+export function registrationStatusText(status?: string | null): string {
+  return status === 'confirmed' ? '已确认' : '未确认'
+}
+
+export function registrationStatusTone(status?: string | null): 'confirmed' | 'pending' {
+  return status === 'confirmed' ? 'confirmed' : 'pending'
 }

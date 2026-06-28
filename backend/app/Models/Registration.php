@@ -1,6 +1,6 @@
 <?php
 // [IN]: Submitted member registration rows / 已提交会员报名行
-// [OUT]: Registration total, status, and snapshot entries / 报名总额、状态与快照明细
+// [OUT]: Registration total, localized status labels, colors, and snapshot entries / 报名总额、本地化状态标签、颜色与快照明细
 // [POS]: Backend registration aggregate root / 后端报名聚合根
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -49,5 +49,20 @@ class Registration extends Model
     public function entries(): HasMany
     {
         return $this->hasMany(RegistrationEntry::class);
+    }
+
+    public static function statusLabel(RegistrationStatus|string|null $status): string
+    {
+        return self::normalizeStatus($status) === RegistrationStatus::Confirmed ? '已确认' : '未确认';
+    }
+
+    public static function statusColor(RegistrationStatus|string|null $status): string
+    {
+        return self::normalizeStatus($status) === RegistrationStatus::Confirmed ? 'success' : 'warning';
+    }
+
+    private static function normalizeStatus(RegistrationStatus|string|null $status): ?RegistrationStatus
+    {
+        return $status instanceof RegistrationStatus ? $status : RegistrationStatus::tryFrom((string) $status);
     }
 }
