@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member, race, config version, idempotency key, and normalized entries / 会员、赛事、配置版本、幂等键与标准化报名项目
-// [OUT]: Validated registration with unique group snapshot entries / 已校验且组合唯一的报名快照明细
+// [OUT]: Validated registration with short readable number and unique group snapshot entries / 带短可读编号且组合唯一的报名快照明细
 // [POS]: Backend trusted registration transaction service / 后端可信报名事务服务
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -66,7 +66,7 @@ class RegistrationSubmissionService
             $registration ??= new Registration([
                 'race_id' => $race->id,
                 'member_id' => $member->id,
-                'registration_no' => $this->makeRegistrationNo($race),
+                'registration_no' => $this->makeRegistrationNo($race, $member),
             ]);
 
             $registration->fill([
@@ -183,9 +183,11 @@ class RegistrationSubmissionService
         return implode(':', $pigeonIds);
     }
 
-    private function makeRegistrationNo(Race $race): string
+    private function makeRegistrationNo(Race $race, Member $member): string
     {
-        return 'REG'.now()->format('YmdHis').str_pad((string) $race->id, 4, '0', STR_PAD_LEFT).random_int(100, 999);
+        $loftNumber = preg_replace('/\s+/', '', trim($member->loft_number));
+
+        return "R{$race->id}-{$loftNumber}";
     }
 
     private function writeSnapshots(Registration $registration, array $entries): void
