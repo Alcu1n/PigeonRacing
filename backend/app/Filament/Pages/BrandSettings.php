@@ -1,6 +1,6 @@
 <?php
-// [IN]: Filament form state and app settings / Filament 表单状态与应用设置
-// [OUT]: Persisted public brand logo path / 已持久化公开品牌 Logo 路径
+// [IN]: Filament form state, public storage disk, and app settings / Filament 表单状态、公开存储磁盘与应用设置
+// [OUT]: Persisted readable public brand logo path / 已持久化可读公开品牌 Logo 路径
 // [POS]: Backend admin brand settings page / 后端后台品牌设置页
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -17,6 +17,7 @@ use Filament\Schemas\Components\EmbeddedSchema;
 use Filament\Schemas\Components\Form;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Storage;
 
 class BrandSettings extends Page
 {
@@ -75,7 +76,13 @@ class BrandSettings extends Page
     public function save(): void
     {
         $data = $this->form->getState();
-        AppSetting::putValue(AppSetting::BRAND_LOGO_PATH, $data['brand_logo_path'] ?? null);
+        $path = $data['brand_logo_path'] ?? null;
+
+        if ($path) {
+            Storage::disk('public')->setVisibility($path, 'public');
+        }
+
+        AppSetting::putValue(AppSetting::BRAND_LOGO_PATH, $path);
 
         Notification::make()
             ->title('品牌设置已保存')

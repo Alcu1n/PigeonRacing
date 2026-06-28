@@ -657,6 +657,32 @@ curl -I https://feilesg.com/storage/这里替换为上面输出的路径
 
 正常结果应该是：`exists=true`，文件大小接近你上传的原始图片大小，`mimeType` 是 `image/png` 或 `image/jpeg`，`curl -I` 返回 `Content-Type: image/png` 或 `image/jpeg`。如果容器内文件大小正常但 `curl -I` 返回 HTML、404 或很小的 `Content-Length`，就是宿主机 Nginx 或 Docker Nginx 的 `/storage` 路由没有打到 Laravel public disk。
 
+如果 `http://127.0.0.1:8080/storage/真实路径` 也返回 `403`，说明 Docker Nginx 已经打到文件层，但 Nginx worker 没有权限读取 public disk。执行一次公开目录权限修复：
+
+```bash
+cd /opt/pigeon-racing
+
+chmod -R a+rX backend/storage/app/public
+
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan tinker --execute='
+$path = App\Models\AppSetting::getValue(App\Models\AppSetting::BRAND_LOGO_PATH);
+if ($path) {
+    Illuminate\Support\Facades\Storage::disk("public")->setVisibility($path, "public");
+}
+'
+
+docker compose -f /opt/pigeon-racing/docker-compose.yml restart nginx app
+```
+
+然后再次验证：
+
+```bash
+curl -I http://127.0.0.1:8080/storage/真实路径
+curl -I https://feilesg.com/storage/真实路径
+```
+
+两个地址都应该返回 `200`，并且 `Content-Type` 是图片类型。
+
 ### 16. 备份与恢复
 
 备份数据库和上传文件：
