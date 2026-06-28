@@ -17,140 +17,134 @@ The backend never trusts frontend totals: it validates race state, `config_versi
 
 When code changes, sync the source header, parent `.folder.md`, and this README if module boundaries change. / 修改代码时，同步源文件头、父级 `.folder.md`；若模块边界变化，同步本 README。
 
-## Production Deployment / 生产部署
+## 生产环境部署（从零开始）
 
-Recommended production topology: keep the application running with Docker Compose on `127.0.0.1:8080`, then put the cloud host Nginx or BaoTa site in front for domain binding and HTTPS. This keeps PHP-FPM, queue, scheduler, MySQL, and Redis consistent with local testing. / 推荐生产拓扑：应用本身用 Docker Compose 运行在 `127.0.0.1:8080`，再用云服务器宿主机 Nginx 或宝塔站点做域名绑定与 HTTPS。这样 PHP-FPM、队列、调度器、MySQL、Redis 与本地测试保持一致。
+本项目的生产部署本质上是一个单仓单机部署：`backend/` 是 Laravel API 与 Filament 后台，`frontend/member-h5/` 是构建后的会员 H5 静态资源，`docker-compose.yml` 拉起 Nginx、PHP-FPM、队列、调度器、MySQL 和 Redis。正确顺序是先准备配置与依赖，再启动容器，最后做 Laravel 初始化和域名 HTTPS 反向代理。
 
-The examples below use `example.com`; replace it with your real domain. / 以下示例使用 `example.com`，请替换为你的真实域名。
+推荐拓扑：Docker Compose 内部 Nginx 监听 `127.0.0.1:8080`，宿主机 Nginx 或宝塔负责绑定域名、申请 HTTPS，并反向代理到 `127.0.0.1:8080`。不要把 PHP、MySQL、Redis 分散到多套环境里，否则排错成本会无意义地增加。
 
-Official references for runtime installation: [Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/), [Docker Compose plugin](https://docs.docker.com/compose/install/linux/), [Certbot user guide](https://eff-certbot.readthedocs.io/en/stable/using.html), and [BaoTa Linux panel commands](https://www.bt.cn/new/btcode.html). / 运行环境安装官方参考：[Docker Engine on Ubuntu](https://docs.docker.com/engine/install/ubuntu/)、[Docker Compose plugin](https://docs.docker.com/compose/install/linux/)、[Certbot user guide](https://eff-certbot.readthedocs.io/en/stable/using.html) 与 [宝塔 Linux 面板命令](https://www.bt.cn/new/btcode.html)。
+以下命令假设项目部署在 `/opt/pigeon-racing`，域名示例使用 `feilesg.com`，请替换为你的真实域名。
 
-### A. DNS and Server Checklist / 域名与服务器检查
+### 1. 服务器与域名准备
 
-1. Buy or prepare a domain, then add DNS records at the domain provider. / 购买或准备域名，然后在域名服务商处添加解析记录。
+服务器建议使用 Ubuntu 22.04/24.04，至少 2GB 内存。云服务器安全组至少放行：
 
 ```text
-Type / 类型: A
-Host / 主机记录: @
-Value / 记录值: your_server_public_ip
-
-Type / 类型: A
-Host / 主机记录: www
-Value / 记录值: your_server_public_ip
+22    SSH 登录
+80    HTTP 域名验证和跳转
+443   HTTPS 正式访问
 ```
 
-2. Wait for DNS to take effect, then verify from your computer. / 等待 DNS 生效后在本机验证。
+`8080` 只建议临时测试使用。正式域名反向代理完成后，不要把 `8080` 暴露到公网。
+
+在域名服务商处添加解析：
+
+```text
+A 记录：@    -> 服务器公网 IP
+A 记录：www  -> 服务器公网 IP
+```
+
+在本机或服务器上验证解析：
 
 ```bash
-ping example.com
-nslookup example.com
+nslookup feilesg.com
+ping feilesg.com
 ```
 
-3. Open the cloud firewall/security group. / 放行云服务器安全组。
-
-```text
-Required / 必需: 22, 80, 443
-Optional / 可选: 8080 only for temporary direct testing; close it after reverse proxy is ready.
-可选: 8080 仅用于临时直连测试；反向代理完成后关闭。
-```
-
-4. On the server, use a fixed deployment path. / 在服务器上使用固定部署目录。
+创建固定部署目录：
 
 ```bash
 sudo mkdir -p /opt/pigeon-racing
 sudo chown -R "$USER":"$USER" /opt/pigeon-racing
+cd /opt/pigeon-racing
 ```
 
-### B. Docker Compose Deployment / Docker Compose 部署
+### 2. 安装正确的 Docker
 
-Install Docker Engine and the Compose plugin first. On Ubuntu, follow Docker's official repository method, then verify `docker compose version`. / 先安装 Docker Engine 和 Compose 插件。Ubuntu 建议使用 Docker 官方仓库安装方式，然后用 `docker compose version` 验证。
+生产服务器必须使用官方 Docker Engine 和 Compose 插件。不要使用 Snap 版 Docker；Snap 版经常把 Compose 文件解析到 `/var/lib/snapd/void`，导致明明有 `docker-compose.yml` 却报找不到配置文件。
 
-```bash
-docker --version
-docker compose version
-```
-
-If the server previously installed Docker through Snap, remove it and use the official Docker Engine package. Snap Docker can resolve Compose files from `/var/lib/snapd/void` and cause `no configuration file provided` even when `docker-compose.yml` exists in `/opt/pigeon-racing`. / 如果服务器之前通过 Snap 安装过 Docker，请卸载并改用官方 Docker Engine 包。Snap Docker 可能会从 `/var/lib/snapd/void` 解析 Compose 文件，即使 `/opt/pigeon-racing` 下存在 `docker-compose.yml`，也会报 `no configuration file provided`。
+如果机器装过 Snap Docker，先清掉：
 
 ```bash
 snap list | grep docker || true
 sudo snap remove docker || true
+hash -r
+```
+
+安装官方 Docker：
+
+```bash
 curl -fsSL https://get.docker.com | bash
 sudo systemctl enable docker
 sudo systemctl start docker
 hash -r
+```
+
+确认结果：
+
+```bash
 which docker
 docker --version
 docker compose version
 ```
 
-Expected Docker path after official installation. / 官方安装后的 Docker 路径应类似：
+正确路径通常是：
 
 ```text
 /usr/bin/docker
 ```
 
-If `docker --version` still tries `/snap/bin/docker` after uninstalling Snap Docker, Bash is using a stale command cache. Clear it or reconnect SSH. / 如果卸载 Snap Docker 后 `docker --version` 仍尝试 `/snap/bin/docker`，说明 Bash 还缓存着旧命令路径。清理缓存或重新 SSH 登录。
+如果仍然出现 `-bash: /snap/bin/docker: No such file or directory`，说明当前 shell 缓存了旧路径，执行：
 
 ```bash
 hash -r
-# or / 或者
-exit
 ```
 
-Clone or upload the project. / 克隆或上传项目。
+不行就退出 SSH 后重新登录。
+
+### 3. 拉取项目代码
 
 ```bash
 cd /opt/pigeon-racing
 git clone https://github.com/Alcu1n/PigeonRacing.git .
 ```
 
-Always verify Compose from the repository root and prefer an absolute `-f` path on production servers. This avoids path confusion from shells, panels, or old Docker installs. / 始终在仓库根目录验证 Compose；生产服务器建议使用绝对路径 `-f`。这样可以避免 shell、面板或旧 Docker 安装带来的路径混乱。
+确认仓库结构：
 
 ```bash
-cd /opt/pigeon-racing
+ls
+```
+
+应该看到：
+
+```text
+backend  docker  docker-compose.yml  frontend  README.md
+```
+
+用绝对路径验证 Compose 文件，避免 shell 当前目录和面板终端造成误判：
+
+```bash
 docker compose -f /opt/pigeon-racing/docker-compose.yml config --services
 ```
 
-The expected service names include `nginx`, `app`, `queue`, `scheduler`, `mysql`, and `redis`. If your output differs, replace `app` in later commands with the actual PHP/Laravel service name. / 预期服务名包含 `nginx`、`app`、`queue`、`scheduler`、`mysql` 与 `redis`。如果你的输出不同，后续命令中的 `app` 需要替换为实际 PHP/Laravel 服务名。
+应该包含：
 
-Create production environment file. / 创建生产环境配置。
-
-```bash
-cp backend/.env.example backend/.env
+```text
+nginx
+app
+queue
+scheduler
+mysql
+redis
 ```
 
-Edit `backend/.env`. / 编辑 `backend/.env`。
+如果这里失败，先解决 Docker 或路径问题，不要继续执行后面的 Laravel 命令。
 
-```env
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://example.com
-FRONTEND_URL=https://example.com
-PUBLIC_STORAGE_URL=/storage
+### 4. 首次启动前修改 docker-compose.yml
 
-DB_CONNECTION=mysql
-DB_HOST=mysql
-DB_PORT=3306
-DB_DATABASE=pigeon_registration
-DB_USERNAME=pigeon
-DB_PASSWORD=replace_with_a_strong_password
+生产环境请在第一次启动 MySQL 前修改数据库密码。MySQL 官方镜像只会在 volume 首次初始化时读取 `MYSQL_PASSWORD` 和 `MYSQL_ROOT_PASSWORD`；如果已经启动过，再改 Compose 文件不会自动改库内密码。
 
-CACHE_STORE=redis
-QUEUE_CONNECTION=redis
-SESSION_DRIVER=redis
-SESSION_DOMAIN=
-SANCTUM_STATEFUL_DOMAINS=example.com,www.example.com
-
-REDIS_CLIENT=predis
-REDIS_HOST=redis
-REDIS_PASSWORD=null
-REDIS_PORT=6379
-```
-
-For same-domain deployment, keep `SESSION_DOMAIN` empty. If you must share login between `example.com` and `www.example.com`, set `SESSION_DOMAIN=.example.com` and make sure both domains point to the same site. / 同域部署时 `SESSION_DOMAIN` 保持为空即可。如果必须让 `example.com` 和 `www.example.com` 共用登录态，设置 `SESSION_DOMAIN=.example.com`，并确保两个域名都指向同一站点。
-
-Harden `docker-compose.yml` before production: replace default database passwords and bind app Nginx to localhost only. / 生产前加固 `docker-compose.yml`：替换默认数据库密码，并让应用 Nginx 只监听本机。
+编辑 `/opt/pigeon-racing/docker-compose.yml`：
 
 ```yaml
 services:
@@ -160,103 +154,320 @@ services:
 
   mysql:
     environment:
-      MYSQL_PASSWORD: replace_with_a_strong_password
-      MYSQL_ROOT_PASSWORD: replace_with_a_strong_root_password
+      MYSQL_DATABASE: pigeon_registration
+      MYSQL_USER: pigeon
+      MYSQL_PASSWORD: 替换为强密码
+      MYSQL_ROOT_PASSWORD: 替换为root强密码
 ```
 
-Build dependencies and assets. / 构建依赖与前端资源。
+说明：
 
-```bash
-docker compose -f /opt/pigeon-racing/docker-compose.yml build app queue scheduler
-mkdir -p backend/bootstrap/cache backend/storage/framework/cache backend/storage/framework/sessions backend/storage/framework/views backend/storage/logs
-chmod -R 775 backend/bootstrap/cache backend/storage
-docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
+- `127.0.0.1:8080:80` 表示应用只给服务器本机访问，后面由宿主机 Nginx 或宝塔反向代理。
+- `DB_PASSWORD` 必须和这里的 `MYSQL_PASSWORD` 完全一致。
+- 密码不要带容易被 shell 或 YAML 误解的字符。必须使用特殊字符时，请用英文引号包住。
 
-cd frontend/member-h5
-npm ci
-npm run build
-cd ../..
+如果你确实要临时用公网 IP 加端口测试，可以短时间改成：
+
+```yaml
+ports:
+  - "8080:80"
 ```
 
-If `composer install` fails during `artisan package:discover` with `bootstrap/cache directory must be present and writable`, recreate Laravel runtime directories and retry Composer. / 如果 `composer install` 在 `artisan package:discover` 阶段报 `bootstrap/cache directory must be present and writable`，请重新创建 Laravel 运行目录并重试 Composer。
+测试结束后改回 `127.0.0.1:8080:80`。
+
+### 5. 创建后端生产 .env
 
 ```bash
 cd /opt/pigeon-racing
-mkdir -p backend/bootstrap/cache backend/storage/framework/cache backend/storage/framework/sessions backend/storage/framework/views backend/storage/logs
+cp backend/.env.example backend/.env
+nano backend/.env
+```
+
+推荐生产配置如下，请按你的域名和密码替换：
+
+```env
+APP_NAME="赛鸽赛事报名系统"
+APP_ENV=production
+APP_KEY=
+APP_DEBUG=false
+APP_URL=https://feilesg.com
+FRONTEND_URL=https://feilesg.com
+PUBLIC_STORAGE_URL=/storage
+
+LOG_CHANNEL=stack
+LOG_LEVEL=warning
+
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=pigeon_registration
+DB_USERNAME=pigeon
+DB_PASSWORD=替换为docker-compose里的MYSQL_PASSWORD
+
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+SESSION_DOMAIN=
+SANCTUM_STATEFUL_DOMAINS=feilesg.com,www.feilesg.com
+
+REDIS_CLIENT=predis
+REDIS_HOST=redis
+REDIS_PASSWORD=null
+REDIS_PORT=6379
+```
+
+`APP_KEY` 是 Laravel 应用加密密钥，用于加密 Cookie、Session 和应用内部加密数据。生产环境绝不能留空，但现在先留空，等 Composer 依赖安装完成、容器启动后执行 `php artisan key:generate --force` 自动写入。
+
+同域部署时 `SESSION_DOMAIN` 保持为空即可。如果你明确要让 `feilesg.com` 和 `www.feilesg.com` 共享登录态，可以设置为：
+
+```env
+SESSION_DOMAIN=.feilesg.com
+```
+
+### 6. 准备 Laravel 运行目录
+
+Composer 安装依赖时会触发 Laravel 脚本，`bootstrap/cache` 和 `storage` 必须提前存在且可写。
+
+```bash
+cd /opt/pigeon-racing
+mkdir -p backend/bootstrap/cache \
+  backend/storage/framework/cache \
+  backend/storage/framework/sessions \
+  backend/storage/framework/views \
+  backend/storage/logs
+chmod -R 775 backend/bootstrap/cache backend/storage
+```
+
+如果后续仍遇到权限问题，再执行：
+
+```bash
+sudo chown -R "$USER":"$USER" backend/bootstrap/cache backend/storage
+chmod -R 775 backend/bootstrap/cache backend/storage
+```
+
+### 7. 构建 PHP 镜像并安装后端依赖
+
+本项目 PHP 镜像在 `docker/php/Dockerfile`，已包含 Laravel 和 Excel 导入导出需要的 `gd`、`zip`、`intl`、`pdo_mysql` 等扩展。
+
+```bash
+cd /opt/pigeon-racing
+docker compose -f /opt/pigeon-racing/docker-compose.yml build app queue scheduler
+docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
+```
+
+如果出现：
+
+```text
+vendor/autoload.php: Failed to open stream
+```
+
+说明 Composer 没有成功完成，不能执行任何 Artisan 初始化命令。先修复 Composer 安装。
+
+如果出现：
+
+```text
+The /var/www/backend/bootstrap/cache directory must be present and writable.
+```
+
+重新创建目录并重试：
+
+```bash
+cd /opt/pigeon-racing
+mkdir -p backend/bootstrap/cache \
+  backend/storage/framework/cache \
+  backend/storage/framework/sessions \
+  backend/storage/framework/views \
+  backend/storage/logs
 chmod -R 775 backend/bootstrap/cache backend/storage
 docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
 ```
 
-You can also repair permissions from inside the app container if host permissions are confusing. / 如果宿主机权限不好判断，也可以从 app 容器内部修复。
+### 8. 构建会员端前端资源
+
+Docker Nginx 会读取 `frontend/member-h5/dist`，所以必须先构建前端。
+
+安装 Node.js 20+ 或 22+ 后执行：
 
 ```bash
-docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app sh -lc 'mkdir -p bootstrap/cache storage/framework/cache storage/framework/sessions storage/framework/views storage/logs && chmod -R 775 bootstrap/cache storage'
-docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
+cd /opt/pigeon-racing/frontend/member-h5
+npm ci
+npm run build
+cd /opt/pigeon-racing
 ```
 
-Start services before using `docker compose exec`. If you run `exec app ...` before containers are running, Docker will correctly report `service "app" is not running`. / 使用 `docker compose exec` 前必须先启动服务。如果容器还没运行就执行 `exec app ...`，Docker 会正常提示 `service "app" is not running`。
+确认构建结果：
 
 ```bash
+ls frontend/member-h5/dist
+```
+
+应该至少看到：
+
+```text
+index.html  assets
+```
+
+如果没有 `dist`，访问 `/login` 时 Nginx 只能返回错误或空内容。
+
+### 9. 启动容器
+
+```bash
+cd /opt/pigeon-racing
 docker compose -f /opt/pigeon-racing/docker-compose.yml up -d
 docker compose -f /opt/pigeon-racing/docker-compose.yml ps
 ```
 
-Generate the Laravel key, create the public storage link, and publish Filament assets. / 生成 Laravel 密钥、创建公开存储链接并发布 Filament 资源。
+正常应看到 `nginx`、`app`、`queue`、`scheduler`、`mysql`、`redis` 都在运行。
+
+注意：必须先 `up -d`，再使用 `exec`。如果容器未运行就执行：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec app php artisan key:generate
+```
+
+会出现：
+
+```text
+service "app" is not running
+```
+
+这不是 Laravel 问题，是容器还没启动。
+
+### 10. 初始化 Laravel
+
+生成 `APP_KEY`：
 
 ```bash
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec app php artisan key:generate --force
+```
+
+创建上传文件公开访问链接：
+
+```bash
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec app php artisan storage:link
+```
+
+发布 Filament 后台资源：
+
+```bash
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec app php artisan filament:assets
 ```
 
-`APP_KEY` is Laravel's application encryption key. It encrypts cookies, sessions, and encrypted values. Never leave it empty in production. If you cannot run Docker yet, generate a key in any working Laravel environment with `php artisan key:generate --show`, then paste the shown `base64:...` value into `backend/.env`. / `APP_KEY` 是 Laravel 应用加密密钥，用于加密 Cookie、Session 与加密字段。生产环境绝不能留空。如果暂时无法运行 Docker，可在任意可用 Laravel 环境执行 `php artisan key:generate --show`，再把输出的 `base64:...` 手动填入 `backend/.env`。
+清理并缓存生产配置：
 
-```env
-APP_KEY=base64:replace_with_generated_key
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
 ```
 
-Run migrations. Do not run `migrate --seed` on production unless you intentionally want demo data. / 执行迁移。生产环境不要运行 `migrate --seed`，除非你明确需要演示数据。
+### 11. 初始化数据库
+
+先测试数据库连接：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate:status
+```
+
+如果返回：
+
+```text
+Migration table not found
+```
+
+这通常不是错误，反而说明 Laravel 已经连上数据库，只是还没有执行迁移。继续执行：
 
 ```bash
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate --force
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
+```
+
+迁移完成后再缓存路由和视图：
+
+```bash
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan route:cache
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan view:cache
 ```
 
-Create the first admin account without seeding demo data. / 不写入演示数据，直接创建第一个后台管理员。
-
-```bash
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); App\Models\User::query()->updateOrCreate(["email"=>"admin@example.com"], ["name"=>"系统管理员", "password"=>Illuminate\Support\Facades\Hash::make("replace_with_a_strong_password")]); echo "admin ready\n";'
-```
-
-Check containers and logs. / 检查容器与日志。
-
-```bash
-docker compose -f /opt/pigeon-racing/docker-compose.yml ps
-docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 app
-docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 nginx
-docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 queue
-```
-
-Temporary direct test before domain proxy. / 域名反向代理前临时直连测试。
+如果出现数据库密码错误，例如：
 
 ```text
-http://your_server_public_ip:8080/login
-http://your_server_public_ip:8080/admin
+SQLSTATE[HY000] [1045] Access denied for user 'pigeon'
 ```
 
-### C. Host Nginx Domain Binding and HTTPS / 宿主机 Nginx 绑定域名与 HTTPS
+根因只有一个：`backend/.env` 的 `DB_PASSWORD` 和 MySQL volume 中真实的 `pigeon` 用户密码不一致。
 
-Install Nginx and Certbot on the host, then proxy the domain to the Compose Nginx service at `127.0.0.1:8080`. Certbot's Nginx plugin can issue and renew Let's Encrypt certificates after HTTP access works. / 在宿主机安装 Nginx 与 Certbot，把域名反向代理到 Compose Nginx 的 `127.0.0.1:8080`。HTTP 可访问后，Certbot 的 Nginx 插件可签发并续期 Let's Encrypt 证书。
+如果数据库还没有正式数据，可以直接重建 MySQL volume：
 
-Create `/etc/nginx/sites-available/pigeon-racing.conf`. / 创建 `/etc/nginx/sites-available/pigeon-racing.conf`。
+```bash
+cd /opt/pigeon-racing
+docker compose -f /opt/pigeon-racing/docker-compose.yml down -v
+docker compose -f /opt/pigeon-racing/docker-compose.yml up -d
+```
+
+注意：`down -v` 会删除数据库数据，只能在空库首次部署时使用。
+
+如果数据库已经有数据，不要删 volume，用 root 登录 MySQL 修改用户密码：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec mysql mysql -uroot -p
+```
+
+输入 `MYSQL_ROOT_PASSWORD` 后执行：
+
+```sql
+ALTER USER 'pigeon'@'%' IDENTIFIED BY '替换为backend/.env里的DB_PASSWORD';
+FLUSH PRIVILEGES;
+EXIT;
+```
+
+然后刷新 Laravel 配置缓存：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate:status
+```
+
+### 12. 创建第一个后台管理员
+
+不要在生产环境随意运行演示 seed。用下面命令创建管理员，把邮箱和密码替换掉：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); App\Models\User::query()->updateOrCreate(["email"=>"admin@example.com"], ["name"=>"系统管理员", "password"=>Illuminate\Support\Facades\Hash::make("替换为后台管理员强密码")]); echo "admin ready\n";'
+```
+
+后台地址：
+
+```text
+https://feilesg.com/admin
+```
+
+会员端地址：
+
+```text
+https://feilesg.com/login
+```
+
+### 13. 宿主机 Nginx 绑定域名和 HTTPS
+
+如果不用宝塔，推荐在宿主机安装 Nginx 和 Certbot：
+
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+创建站点配置：
+
+```bash
+sudo nano /etc/nginx/sites-available/pigeon-racing.conf
+```
+
+写入：
 
 ```nginx
 server {
     listen 80;
-    server_name example.com www.example.com;
+    server_name feilesg.com www.feilesg.com;
 
     client_max_body_size 20m;
 
@@ -271,7 +482,7 @@ server {
 }
 ```
 
-Enable and test Nginx. / 启用并测试 Nginx。
+启用站点：
 
 ```bash
 sudo ln -s /etc/nginx/sites-available/pigeon-racing.conf /etc/nginx/sites-enabled/pigeon-racing.conf
@@ -279,88 +490,53 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-Open HTTP first. / 先打开 HTTP。
+先测试 HTTP：
 
 ```text
-http://example.com/login
-http://example.com/admin
+http://feilesg.com/login
+http://feilesg.com/admin
 ```
 
-Issue HTTPS certificate. / 签发 HTTPS 证书。
+确认 HTTP 可访问后申请 HTTPS：
 
 ```bash
-sudo certbot --nginx -d example.com -d www.example.com
+sudo certbot --nginx -d feilesg.com -d www.feilesg.com
 sudo certbot renew --dry-run
 ```
 
-After HTTPS works, update `backend/.env` to `https://example.com`, then refresh Laravel caches. / HTTPS 正常后，把 `backend/.env` 改为 `https://example.com`，然后刷新 Laravel 缓存。
+HTTPS 生效后确认 `backend/.env`：
 
-```bash
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
+```env
+APP_URL=https://feilesg.com
+FRONTEND_URL=https://feilesg.com
+SANCTUM_STATEFUL_DOMAINS=feilesg.com,www.feilesg.com
 ```
 
-### D. Update Deployment / 后续更新
-
-Use this sequence for normal releases. / 常规更新使用以下顺序。
+刷新 Laravel 缓存：
 
 ```bash
 cd /opt/pigeon-racing
-git pull
-docker compose -f /opt/pigeon-racing/docker-compose.yml build app queue scheduler
-docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
-
-cd frontend/member-h5
-npm ci
-npm run build
-cd ../..
-
-docker compose -f /opt/pigeon-racing/docker-compose.yml up -d
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate --force
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan filament:assets
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan route:cache
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan view:cache
 ```
 
-### E. Backup and Restore / 备份与恢复
+### 14. 宝塔面板部署方式
 
-Back up MySQL and uploaded import reports. / 备份 MySQL 与导入错误报告等上传文件。
+宝塔推荐只做域名、SSL 和反向代理，应用仍然用 Docker Compose 运行。这是最稳的方式。
 
-```bash
-mkdir -p /opt/backups/pigeon-racing
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T mysql mysqldump -uroot -proot-secret pigeon_registration > /opt/backups/pigeon-racing/pigeon_registration-$(date +%F).sql
-tar -czf /opt/backups/pigeon-racing/backend-storage-$(date +%F).tar.gz backend/storage
-```
+流程：
 
-Restore carefully on an empty target. / 在空目标上谨慎恢复。
-
-```bash
-cat /opt/backups/pigeon-racing/pigeon_registration-YYYY-MM-DD.sql | docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T mysql mysql -uroot -proot-secret pigeon_registration
-tar -xzf /opt/backups/pigeon-racing/backend-storage-YYYY-MM-DD.tar.gz -C /opt/pigeon-racing
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
-```
-
-### F. BaoTa Panel Deployment / 宝塔面板部署
-
-There are two BaoTa paths. Prefer `F1`: BaoTa handles domain, SSL, and reverse proxy; Docker Compose still runs the app. `F2` is traditional BaoTa PHP deployment and needs more manual maintenance. / 宝塔有两条路径。优先使用 `F1`：宝塔负责域名、SSL、反向代理，Docker Compose 仍运行应用。`F2` 是传统宝塔 PHP 部署，手工维护更多。
-
-#### F1. Recommended: BaoTa Reverse Proxy + Docker Compose / 推荐：宝塔反向代理 + Docker Compose
-
-1. Install BaoTa on a clean Linux server using the official BaoTa install command for your OS, then log in to the panel. / 在干净 Linux 服务器上使用宝塔官方对应系统安装命令安装面板，然后登录面板。
-2. In BaoTa security and the cloud security group, open `80` and `443`; keep `8080` closed to the public after proxy is ready. / 在宝塔安全和云安全组放行 `80`、`443`；反向代理完成后不要公网开放 `8080`。
-3. In the BaoTa terminal or SSH, finish the Docker Compose deployment in section B and bind Compose Nginx to `127.0.0.1:8080`. / 在宝塔终端或 SSH 中完成本文 B 节 Docker Compose 部署，并把 Compose Nginx 绑定到 `127.0.0.1:8080`。
-4. In BaoTa: `Website` -> `Add site`. Domain: `example.com` and `www.example.com`. PHP version can be `Static` or any value because this site only proxies. / 宝塔中进入 `网站` -> `添加站点`。域名填 `example.com` 和 `www.example.com`。PHP 版本可选 `纯静态` 或任意值，因为该站点只做代理。
-5. Open the site settings -> `Reverse Proxy` -> `Add reverse proxy`. / 打开站点设置 -> `反向代理` -> `添加反向代理`。
+1. 在服务器 SSH 中按第 1 到第 12 步完成 Docker Compose 部署。
+2. `docker-compose.yml` 中保持 `127.0.0.1:8080:80`。
+3. 宝塔面板添加站点，域名填 `feilesg.com` 和 `www.feilesg.com`。
+4. PHP 版本可选“纯静态”，因为真实应用由 Docker 承载。
+5. 在站点设置里打开“反向代理”，目标 URL 填：
 
 ```text
-Name / 名称: pigeon-racing
-Target URL / 目标 URL: http://127.0.0.1:8080
-Send domain / 发送域名: $host
+http://127.0.0.1:8080
 ```
 
-If BaoTa shows custom proxy config, use this block. / 如果宝塔显示自定义代理配置，可使用以下内容。
+如果宝塔允许填写自定义代理配置，使用：
 
 ```nginx
 location / {
@@ -373,8 +549,8 @@ location / {
 }
 ```
 
-6. In BaoTa site settings -> `SSL`, apply for a Let's Encrypt certificate, enable force HTTPS, then test `/login` and `/admin`. / 在宝塔站点设置 -> `SSL` 中申请 Let's Encrypt 证书，开启强制 HTTPS，然后测试 `/login` 与 `/admin`。
-7. Update `backend/.env` to HTTPS domain and refresh Laravel caches. / 更新 `backend/.env` 为 HTTPS 域名并刷新 Laravel 缓存。
+6. 在宝塔站点 SSL 中申请 Let's Encrypt 证书，并开启强制 HTTPS。
+7. 回到服务器刷新 Laravel 缓存：
 
 ```bash
 cd /opt/pigeon-racing
@@ -382,168 +558,121 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan 
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
 ```
 
-#### F2. Traditional BaoTa PHP Deployment / 传统宝塔 PHP 部署
+不推荐用宝塔传统 PHP 站点直接跑本项目，除非你明确知道如何维护 PHP 扩展、Composer、Node、队列、调度器、Redis 和 Nginx 路由。这个项目的 Docker Compose 已经把这些边界固定好了，绕开它只会制造更多不确定性。
 
-Use this only if you do not want Docker. You must maintain PHP extensions, Composer, Node, MySQL, Redis, queue worker, and scheduler yourself. / 仅在不想使用 Docker 时使用此方式。你必须自行维护 PHP 扩展、Composer、Node、MySQL、Redis、队列 worker 和 scheduler。
+### 15. 日常更新流程
 
-Install runtime in BaoTa. / 在宝塔安装运行环境。
-
-```text
-Nginx: 1.24+
-PHP: 8.3 or 8.4
-MySQL: 8.0+ or 8.4
-Redis: installed and running
-PHP extensions: fileinfo, intl, pdo_mysql, redis or predis support, sodium, zip, gd
-Composer: installed
-Node.js: 20+ or 22+
-```
-
-Upload project to `/www/wwwroot/pigeon-racing`. / 上传项目到 `/www/wwwroot/pigeon-racing`。
+每次拉取新代码后按固定顺序执行：
 
 ```bash
-cd /www/wwwroot/pigeon-racing
-cp backend/.env.example backend/.env
-```
+cd /opt/pigeon-racing
+git pull
 
-Edit `backend/.env` for BaoTa services. / 按宝塔服务修改 `backend/.env`。
+docker compose -f /opt/pigeon-racing/docker-compose.yml build app queue scheduler
+docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
 
-```env
-APP_ENV=production
-APP_DEBUG=false
-APP_URL=https://example.com
-FRONTEND_URL=https://example.com
-PUBLIC_STORAGE_URL=/storage
-
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=pigeon_registration
-DB_USERNAME=pigeon
-DB_PASSWORD=replace_with_a_strong_password
-
-CACHE_STORE=redis
-QUEUE_CONNECTION=redis
-SESSION_DRIVER=redis
-SESSION_DOMAIN=
-SANCTUM_STATEFUL_DOMAINS=example.com,www.example.com
-
-REDIS_CLIENT=predis
-REDIS_HOST=127.0.0.1
-REDIS_PASSWORD=null
-REDIS_PORT=6379
-```
-
-Install dependencies and build. / 安装依赖并构建。
-
-```bash
-cd /www/wwwroot/pigeon-racing/backend
-composer install --no-dev --optimize-autoloader
-php artisan key:generate --force
-php artisan migrate --force
-php artisan filament:assets
-php artisan optimize:clear
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-
-cd /www/wwwroot/pigeon-racing/frontend/member-h5
+cd frontend/member-h5
 npm ci
 npm run build
+cd /opt/pigeon-racing
+
+docker compose -f /opt/pigeon-racing/docker-compose.yml up -d
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate --force
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan filament:assets
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan route:cache
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan view:cache
 ```
 
-Create admin account. / 创建后台管理员。
+检查服务：
 
 ```bash
-cd /www/wwwroot/pigeon-racing/backend
-php -r 'require "vendor/autoload.php"; $app=require "bootstrap/app.php"; $app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); App\Models\User::query()->updateOrCreate(["email"=>"admin@example.com"], ["name"=>"系统管理员", "password"=>Illuminate\Support\Facades\Hash::make("replace_with_a_strong_password")]); echo "admin ready\n";'
+docker compose -f /opt/pigeon-racing/docker-compose.yml ps
+docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 app
+docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 nginx
+docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 queue
 ```
 
-In BaoTa, add a site for `example.com`. Set site root to the frontend build directory. / 在宝塔添加 `example.com` 站点，站点根目录设为前端构建目录。
+### 16. 备份与恢复
+
+备份数据库和上传文件：
+
+```bash
+cd /opt/pigeon-racing
+mkdir -p /opt/backups/pigeon-racing
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T mysql mysqldump -uroot -p你的MYSQL_ROOT_PASSWORD pigeon_registration > /opt/backups/pigeon-racing/pigeon_registration-$(date +%F).sql
+tar -czf /opt/backups/pigeon-racing/backend-storage-$(date +%F).tar.gz backend/storage
+```
+
+恢复到空环境时：
+
+```bash
+cd /opt/pigeon-racing
+cat /opt/backups/pigeon-racing/pigeon_registration-YYYY-MM-DD.sql | docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T mysql mysql -uroot -p你的MYSQL_ROOT_PASSWORD pigeon_registration
+tar -xzf /opt/backups/pigeon-racing/backend-storage-YYYY-MM-DD.tar.gz -C /opt/pigeon-racing
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
+```
+
+### 17. 常见错误判断
+
+`no configuration file provided: not found`：当前目录不对，或 Docker 不是官方版本。使用绝对路径：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml config --services
+```
+
+`open /var/lib/snapd/void/docker-compose.yml: no such file or directory`：Snap Docker 问题。卸载 Snap Docker，安装官方 Docker，执行 `hash -r`。
+
+`service "app" is not running`：容器未启动。先执行：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml up -d
+```
+
+`vendor/autoload.php: Failed to open stream`：后端依赖不存在。先执行 Composer：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
+```
+
+`bootstrap/cache directory must be present and writable`：Laravel 运行目录缺失或不可写。重新创建目录并授权。
+
+`Migration table not found`：数据库连接正常，只是还没有迁移。执行：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate --force
+```
+
+`SQLSTATE[HY000] [1045] Access denied`：数据库密码不一致。检查 `backend/.env` 的 `DB_PASSWORD`、`docker-compose.yml` 的 `MYSQL_PASSWORD`，以及 MySQL volume 中真实用户密码。
+
+`500 Internal Server Error`：先看日志，不要猜：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 app
+docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 nginx
+```
+
+如果 `queue` 日志报 `vendor/autoload.php`，说明 Composer 依赖未装完整；如果 `app` 只显示 `fpm is running`，还要看 Laravel 日志：
+
+```bash
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec app tail -n 100 storage/logs/laravel.log
+```
+
+Nginx 日志中的：
 
 ```text
-Site root / 网站目录:
-/www/wwwroot/pigeon-racing/frontend/member-h5/dist
+can not modify /etc/nginx/conf.d/default.conf (read-only file system?)
 ```
 
-Add this Nginx rewrite/config in BaoTa site config. Adjust the PHP socket to your BaoTa PHP version, for example `/tmp/php-cgi-84.sock`. / 在宝塔站点配置中加入以下 Nginx 配置。按你的宝塔 PHP 版本调整 PHP socket，例如 `/tmp/php-cgi-84.sock`。
+通常不是致命错误。本项目把 Nginx 配置以只读 volume 挂载进去，官方入口脚本尝试修改默认配置失败，但后面显示 `Configuration complete; ready for start up` 就表示 Nginx 已经启动。
 
-```nginx
-client_max_body_size 20m;
-index index.html;
-
-location /assets/ {
-    expires 30d;
-    add_header Cache-Control "public, immutable";
-    try_files $uri =404;
-}
-
-location ~ ^/(api|admin|sanctum|up|livewire|livewire-[^/]+|css/filament|js/filament|fonts/filament)(/|$) {
-    root /www/wwwroot/pigeon-racing/backend/public;
-    try_files $uri /index.php?$query_string;
-}
-
-location / {
-    try_files $uri $uri/ /index.html;
-    add_header Cache-Control "no-store";
-}
-
-location ~ \.php$ {
-    root /www/wwwroot/pigeon-racing/backend/public;
-    fastcgi_pass unix:/tmp/php-cgi-84.sock;
-    fastcgi_index index.php;
-    include fastcgi_params;
-    fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
-    fastcgi_param DOCUMENT_ROOT $realpath_root;
-}
-```
-
-Set write permissions. / 设置写权限。
+登录循环、419、手机端提交失败：重点检查 `APP_URL`、`FRONTEND_URL`、`SANCTUM_STATEFUL_DOMAINS`、HTTPS 是否一致，然后执行：
 
 ```bash
-chown -R www:www /www/wwwroot/pigeon-racing/backend/storage /www/wwwroot/pigeon-racing/backend/bootstrap/cache
-chmod -R ug+rw /www/wwwroot/pigeon-racing/backend/storage /www/wwwroot/pigeon-racing/backend/bootstrap/cache
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
 ```
-
-Configure queue worker in BaoTa Supervisor Manager or system supervisor. / 在宝塔 Supervisor 管理器或系统 supervisor 中配置队列。
-
-```ini
-[program:pigeon-racing-queue]
-directory=/www/wwwroot/pigeon-racing/backend
-command=php artisan queue:work --tries=3 --sleep=1
-autostart=true
-autorestart=true
-user=www
-redirect_stderr=true
-stdout_logfile=/www/wwwroot/pigeon-racing/backend/storage/logs/queue.log
-```
-
-Configure scheduler in BaoTa cron. Run every minute. / 在宝塔计划任务中配置调度器，每分钟执行。
-
-```bash
-cd /www/wwwroot/pigeon-racing/backend && php artisan schedule:run --no-interaction
-```
-
-Apply SSL in BaoTa site settings and force HTTPS. Then test: / 在宝塔站点设置中申请 SSL 并开启强制 HTTPS，然后测试：
-
-```text
-https://example.com/login
-https://example.com/admin
-```
-
-### G. Production Troubleshooting / 生产排错
-
-- `no configuration file provided: not found`: run from `/opt/pigeon-racing`, or specify the Compose file explicitly with `docker compose -f /opt/pigeon-racing/docker-compose.yml ...`. / `no configuration file provided: not found`：进入 `/opt/pigeon-racing` 执行，或显式指定 `docker compose -f /opt/pigeon-racing/docker-compose.yml ...`。
-- `open /var/lib/snapd/void/docker-compose.yml: no such file or directory`: Snap Docker is resolving the wrong path. Remove Snap Docker, install official Docker Engine, run `hash -r`, then retry with the absolute `-f` path. / `open /var/lib/snapd/void/docker-compose.yml: no such file or directory`：Snap Docker 解析到了错误路径。卸载 Snap Docker，安装官方 Docker Engine，执行 `hash -r`，再用绝对 `-f` 路径重试。
-- `-bash: /snap/bin/docker: No such file or directory`: Bash cached the old Snap Docker path. Run `hash -r` or reconnect SSH. / `-bash: /snap/bin/docker: No such file or directory`：Bash 缓存了旧 Snap Docker 路径。执行 `hash -r` 或重新 SSH 登录。
-- `service "app" is not running`: containers are not started yet. Run `docker compose -f /opt/pigeon-racing/docker-compose.yml up -d`, then retry `exec app ...`. / `service "app" is not running`：容器还没有启动。先执行 `docker compose -f /opt/pigeon-racing/docker-compose.yml up -d`，再重试 `exec app ...`。
-- `vendor/autoload.php: Failed to open stream`: Composer dependencies are missing or Composer did not finish. Run `docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader`, then retry Artisan. / `vendor/autoload.php: Failed to open stream`：Composer 依赖缺失或 Composer 未完整执行。先运行 `docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader`，再重试 Artisan。
-- `bootstrap/cache directory must be present and writable`: Laravel runtime directories are missing or not writable. Run `mkdir -p backend/bootstrap/cache backend/storage/framework/cache backend/storage/framework/sessions backend/storage/framework/views backend/storage/logs && chmod -R 775 backend/bootstrap/cache backend/storage`, then rerun Composer. / `bootstrap/cache directory must be present and writable`：Laravel 运行目录缺失或不可写。执行 `mkdir -p backend/bootstrap/cache backend/storage/framework/cache backend/storage/framework/sessions backend/storage/framework/views backend/storage/logs && chmod -R 775 backend/bootstrap/cache backend/storage`，然后重新运行 Composer。
-- Empty `APP_KEY`: run `docker compose -f /opt/pigeon-racing/docker-compose.yml exec app php artisan key:generate --force`, then refresh config cache. / `APP_KEY` 为空：执行 `docker compose -f /opt/pigeon-racing/docker-compose.yml exec app php artisan key:generate --force`，然后刷新配置缓存。
-- `419` or login loops: check `APP_URL`, `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN`, HTTPS status, and browser cookies. / `419` 或登录循环：检查 `APP_URL`、`SANCTUM_STATEFUL_DOMAINS`、`SESSION_DOMAIN`、HTTPS 状态与浏览器 Cookie。
-- Member H5 loads but API fails: check Nginx routes for `/api`, `/sanctum`, and `/livewire`. / 会员端能打开但 API 失败：检查 Nginx 中 `/api`、`/sanctum`、`/livewire` 路由。
-- Admin CSS/JS missing: check routes for `/css/filament`, `/js/filament`, and run `php artisan filament:assets`. / 后台 CSS/JS 缺失：检查 `/css/filament`、`/js/filament` 路由，并执行 `php artisan filament:assets`。
-- Excel import fails on GD/ZIP: ensure PHP extensions `gd` and `zip` are installed in the active PHP runtime. / Excel 导入因 GD/ZIP 失败：确认当前 PHP 运行环境安装了 `gd` 与 `zip` 扩展。
-- Queue jobs do not run: check `queue` container or BaoTa Supervisor process. / 队列任务不执行：检查 `queue` 容器或宝塔 Supervisor 进程。
 
 ## Local Full-Stack Test / 本地完整联调测试
 
