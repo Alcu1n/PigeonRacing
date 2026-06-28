@@ -1,5 +1,5 @@
-{{-- [IN]: Import page Livewire state / 导入页面 Livewire 状态 --}}
-{{-- [OUT]: Compact styled pigeon import upload, preview, and confirm UI / 紧凑样式统一的足环导入上传、预览与确认 UI --}}
+{{-- [IN]: Import page Livewire state with server-side preview token / 带服务端预览令牌的导入页面 Livewire 状态 --}}
+{{-- [OUT]: Compact large-file-safe pigeon import upload, preview, and confirm UI / 紧凑且大文件安全的足环导入上传、预览与确认 UI --}}
 {{-- [POS]: Backend admin pigeon import Blade view / 后端后台足环导入 Blade 视图 --}}
 {{-- Protocol: When updating me, sync this header + parent folder's .folder.md --}}
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
@@ -13,7 +13,7 @@
                         表头固定为：<span class="font-semibold">序号、会员棚号、会员参赛名、足环号码</span>
                     </div>
                     <div class="text-xs text-gray-500 dark:text-gray-400">
-                        支持 .xlsx / .xls，最大 10MB。导入前会先预览，不会直接写入数据库。
+                        支持 .xlsx / .xls，最大 50MB。导入前会先预览，不会直接写入数据库。
                     </div>
                 </div>
 
@@ -78,6 +78,9 @@
                 </div>
 
                 <div class="mt-6 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                    <div class="border-b border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400">
+                        下方仅展示前 {{ $preview['sample_limit'] ?? 50 }} 行样例；确认导入会处理本次 Excel 的全部 {{ $preview['total_rows'] }} 行。
+                    </div>
                     <table class="w-full min-w-[760px] text-left text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>

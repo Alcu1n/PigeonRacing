@@ -1,6 +1,6 @@
 <?php
-// [IN]: Spreadsheet rows, members, pigeons, and admin id / 电子表格行、会员、足环与管理员 ID
-// [OUT]: Import preview, committed pigeon rows, and error report / 导入预览、已写入足环与错误报告
+// [IN]: Spreadsheet rows, server-side preview tokens, members, pigeons, and admin id / 电子表格行、服务端预览令牌、会员、足环与管理员 ID
+// [OUT]: Small browser preview, committed pigeon rows, and error report / 小体积浏览器预览、已写入足环与错误报告
 // [POS]: Backend Excel pigeon import rule service / 后端 Excel 足环导入规则服务
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -13,12 +13,19 @@ use App\Models\ImportBatch;
 use App\Models\Member;
 use App\Models\Pigeon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 
 class PigeonImportService
 {
     public const HEADERS = ['序号', '会员棚号', '会员参赛名', '足环号码'];
+    public const MAX_UPLOAD_KB = 51200;
+    public const PREVIEW_SAMPLE_LIMIT = 50;
+    private const PREVIEW_DIR = 'imports/previews';
+    private const QUERY_CHUNK_SIZE = 1000;
+    private const INSERT_CHUNK_SIZE = 1000;
 
     public function rowsFromSpreadsheet(string $path): array
     {
@@ -59,14 +66,8 @@ class PigeonImportService
 
     public function preview(array $rows): array
     {
-        $members = Member::query()
-            ->whereIn('loft_number', collect($rows)->pluck('loft_number')->filter()->unique())
-            ->get()
-            ->keyBy('loft_number');
-        $existingRings = Pigeon::query()
-            ->whereIn('ring_number', collect($rows)->pluck('ring_number')->filter()->unique())
-            ->pluck('ring_number')
-            ->flip();
+        $members = $this->membersByLoft($rows);
+        $existingRings = $this->existingRingSet($rows);
         $seenRings = [];
         $rowsPreview = [];
 
@@ -114,9 +115,58 @@ class PigeonImportService
         ];
     }
 
+    public function browserPreview(array $preview): array
+    {
+        return [
+            'token' => $preview['token'] ?? null,
+            'total_rows' => $preview['total_rows'],
+            'valid_rows' => $preview['valid_rows'],
+            'failed_rows' => $preview['failed_rows'],
+            'duplicate_rows' => $preview['duplicate_rows'],
+            'create_member_rows' => $preview['create_member_rows'],
+            'update_member_name_rows' => $preview['update_member_name_rows'],
+            'rows' => array_slice($preview['rows'], 0, self::PREVIEW_SAMPLE_LIMIT),
+            'sample_limit' => self::PREVIEW_SAMPLE_LIMIT,
+        ];
+    }
+
+    public function storeRowsForConfirmation(array $rows): string
+    {
+        $token = (string) Str::uuid();
+        $path = $this->previewPath($token);
+        $payload = json_encode(['rows' => $rows], JSON_UNESCAPED_UNICODE);
+
+        if ($payload === false || ! Storage::disk('local')->put($path, $payload)) {
+            throw ValidationException::withMessages(['upload' => '导入预览缓存保存失败，请重新上传。']);
+        }
+
+        return $token;
+    }
+
     public function commit(string $fileName, array $preview, ?int $adminId): ImportBatch
     {
-        $preview = $this->preview($preview['source_rows'] ?? []);
+        return $this->commitRows($fileName, $preview['source_rows'] ?? [], $adminId);
+    }
+
+    public function commitStoredPreview(string $fileName, string $token, ?int $adminId): ImportBatch
+    {
+        try {
+            return $this->commitRows($fileName, $this->rowsFromStoredPreview($token), $adminId);
+        } finally {
+            $this->forgetStoredPreview($token);
+        }
+    }
+
+    public function discardStoredPreview(?string $token): void
+    {
+        if ($token !== null) {
+            $this->forgetStoredPreview($token);
+        }
+    }
+
+    private function commitRows(string $fileName, array $rows, ?int $adminId): ImportBatch
+    {
+        $preview = $this->preview($rows);
 
         return DB::transaction(function () use ($fileName, $adminId, $preview): ImportBatch {
             $batch = ImportBatch::query()->create([
@@ -132,6 +182,7 @@ class PigeonImportService
             $success = 0;
             $affectedMemberIds = [];
             $insertRows = [];
+            $memberCache = [];
 
             foreach ($preview['rows'] as $row) {
                 if ($row['errors'] !== []) {
@@ -139,7 +190,7 @@ class PigeonImportService
                 }
 
                 $data = $row['data'];
-                $member = Member::query()->firstOrNew(['loft_number' => $data['loft_number']]);
+                $member = $memberCache[$data['loft_number']] ?? Member::query()->firstOrNew(['loft_number' => $data['loft_number']]);
                 $isNewMember = ! $member->exists;
                 $member->phone ??= null;
                 $member->password ??= null;
@@ -149,6 +200,7 @@ class PigeonImportService
                 $member->participant_name = $data['participant_name'];
                 $member->status ??= 'enabled';
                 $member->save();
+                $memberCache[$member->loft_number] = $member;
 
                 $affectedMemberIds[] = $member->id;
                 $insertRows[] = [
@@ -162,6 +214,11 @@ class PigeonImportService
                     'updated_at' => now(),
                 ];
                 $success++;
+
+                if (count($insertRows) >= self::INSERT_CHUNK_SIZE) {
+                    Pigeon::query()->insert($insertRows);
+                    $insertRows = [];
+                }
             }
 
             if ($insertRows !== []) {
@@ -190,6 +247,61 @@ class PigeonImportService
 
             return $batch;
         });
+    }
+
+    private function rowsFromStoredPreview(string $token): array
+    {
+        if (! Str::isUuid($token)) {
+            throw ValidationException::withMessages(['upload' => '导入预览已失效，请重新上传。']);
+        }
+
+        $path = $this->previewPath($token);
+        if (! Storage::disk('local')->exists($path)) {
+            throw ValidationException::withMessages(['upload' => '导入预览已失效，请重新上传。']);
+        }
+
+        $payload = json_decode((string) Storage::disk('local')->get($path), true);
+        if (! is_array($payload) || ! is_array($payload['rows'] ?? null)) {
+            throw ValidationException::withMessages(['upload' => '导入预览数据损坏，请重新上传。']);
+        }
+
+        return $payload['rows'];
+    }
+
+    private function forgetStoredPreview(string $token): void
+    {
+        if (Str::isUuid($token)) {
+            Storage::disk('local')->delete($this->previewPath($token));
+        }
+    }
+
+    private function previewPath(string $token): string
+    {
+        return self::PREVIEW_DIR.'/'.$token.'.json';
+    }
+
+    private function membersByLoft(array $rows): \Illuminate\Support\Collection
+    {
+        return collect($rows)
+            ->pluck('loft_number')
+            ->filter()
+            ->unique()
+            ->values()
+            ->chunk(self::QUERY_CHUNK_SIZE)
+            ->flatMap(fn ($lofts) => Member::query()->whereIn('loft_number', $lofts->all())->get())
+            ->keyBy('loft_number');
+    }
+
+    private function existingRingSet(array $rows): \Illuminate\Support\Collection
+    {
+        return collect($rows)
+            ->pluck('ring_number')
+            ->filter()
+            ->unique()
+            ->values()
+            ->chunk(self::QUERY_CHUNK_SIZE)
+            ->flatMap(fn ($rings) => Pigeon::query()->whereIn('ring_number', $rings->all())->pluck('ring_number'))
+            ->flip();
     }
 
     private function validateRow(array $row): array

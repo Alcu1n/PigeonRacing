@@ -603,6 +603,19 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan 
 docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue scheduler nginx
 ```
 
+如果服务器上 `npm run build` 长时间卡住，通常卡在 `vue-tsc --noEmit` 类型检查阶段。生产发布急需更新前端静态资源时，可以临时只执行 Vite 构建，跳过类型检查：
+
+If `npm run build` hangs on the server, it is usually stuck at the `vue-tsc --noEmit` type-check step. For an urgent production asset release, run the Vite build only and skip type checking temporarily:
+
+```bash
+cd /opt/pigeon-racing/frontend/member-h5
+npx vite build
+cd /opt/pigeon-racing
+```
+
+注意：`npx vite build` 只是应急构建命令。本地开发或正式发版前仍应优先跑 `npm run build`，因为它会先做 TypeScript 类型检查。
+Note: `npx vite build` is an emergency build command only. Prefer `npm run build` for local development and normal releases because it runs TypeScript type checks first.
+
 说明：
 
 - `git pull --ff-only` 可以避免服务器上出现意外合并提交。如果提示本地有修改，先不要强行覆盖，检查 `git status --short` 输出。
@@ -611,6 +624,8 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue schedu
 - 如果这次涉及 Logo、Excel 报告等公开上传文件访问问题，也按完整流程执行；关键步骤是拉取最新 `backend/routes/web.php`、公开存储控制器与 `docker/nginx/default.conf`，然后清理路由缓存并重启 `app` 与 `nginx`。
 - 如果这次只是界面文案或状态显示更新，例如把报名状态从 `pending_confirmation` 改为“未确认/已确认”，仍然要同时执行后端构建、前端 `npm run build`、`filament:assets`、缓存清理和容器重启。后台 Filament 页面来自 Laravel，会员端页面来自 Vite 构建产物，漏掉任一边都会出现一边已更新、一边仍显示旧文案。
 - For UI/status-label-only releases, still run the full backend build, frontend build, Filament asset publish, cache clear, and container restart. The admin UI is served by Laravel while the member H5 is a built Vite app; skipping one side leaves stale labels in production.
+- 如果这次涉及足环 Excel 大批量导入、上传大小、413 错误或 PHP 运行限制，必须执行完整流程里的 `docker compose ... build app queue scheduler` 和 `restart app queue scheduler nginx`。Nginx 的 `client_max_body_size` 与 PHP 的 `upload_max_filesize/post_max_size/memory_limit` 都是容器运行配置，单纯 `git pull` 不会生效。
+- For large Excel import, upload-size, 413, or PHP runtime-limit releases, always rebuild `app queue scheduler` and restart `app queue scheduler nginx`. Nginx body limits and PHP upload/memory limits are runtime config, so `git pull` alone is not enough.
 - `migrate --force` 是安全的增量迁移命令，不会清空已有数据。
 - 不要执行 `docker compose down -v`，它会删除数据库 volume。
 
@@ -938,8 +953,8 @@ Member import. / 会员导入。
 Pigeon import. / 足环导入。
 
 1. Open `后台 -> 足环管理 -> 导入 Excel`. / 打开 `后台 -> 足环管理 -> 导入 Excel`。
-2. Use the fixed header `序号，会员棚号，会员参赛名，足环号码`; `.xlsx` and `.xls` are accepted, max 10MB. / 使用固定表头 `序号，会员棚号，会员参赛名，足环号码`；支持 `.xlsx` 与 `.xls`，最大 10MB。
-3. Click `预览导入` before writing data; the preview shows valid rows, failed rows, duplicate rings, new members, and participant-name updates. / 写入前点击 `预览导入`；预览会显示可导入行、失败行、重复足环、新建会员与参赛名更新数量。
+2. Use the fixed header `序号，会员棚号，会员参赛名，足环号码`; `.xlsx` and `.xls` are accepted, max 50MB. / 使用固定表头 `序号，会员棚号，会员参赛名，足环号码`；支持 `.xlsx` 与 `.xls`，最大 50MB。
+3. Click `预览导入` before writing data; the preview shows valid rows, failed rows, duplicate rings, new members, participant-name updates, and only the first 50 sample rows. The full source rows stay in a server-side preview cache so 50,000-row imports do not make Livewire confirmation requests too large. / 写入前点击 `预览导入`；预览会显示可导入行、失败行、重复足环、新建会员、参赛名更新和前 50 行样例。完整源数据保存在服务端预览缓存中，避免 5 万行导入时 Livewire 确认请求过大。
 4. Click `确认导入`; missing loft numbers create member files with empty phone/password and first-login password-change policy, so they cannot log in until an admin fills credentials. / 点击 `确认导入`；缺失棚号会创建手机号和密码为空且带首次改密策略的会员档案，管理员补齐凭据前不能登录。
 5. If failures exist, download the generated error report from the import result panel. / 如有失败行，在导入结果区域下载错误报告。
 6. Use `删除所有足环` only for guarded cleanup before reimport; if any registration detail references a pigeon, deletion is blocked to protect historical records. / 仅在重新导入前使用 `删除所有足环` 做受保护清理；如已有报名明细引用足环，系统会阻止删除以保护历史记录。

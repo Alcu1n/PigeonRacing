@@ -1,6 +1,6 @@
 <?php
-// [IN]: Uploaded Excel file and pigeon import service / 已上传 Excel 文件与足环导入服务
-// [OUT]: Preview-confirm pigeon import page / 预览确认式足环导入页面
+// [IN]: Uploaded Excel file, server-side preview token, and pigeon import service / 已上传 Excel 文件、服务端预览令牌与足环导入服务
+// [OUT]: Large-file-safe preview-confirm pigeon import page / 大文件安全的预览确认式足环导入页面
 // [POS]: Backend admin pigeon import route / 后端后台足环导入路由
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -30,6 +30,8 @@ class ImportPigeons extends Page
 
     public ?string $fileName = null;
 
+    public ?string $previewToken = null;
+
     public ?array $lastResult = null;
 
     public function getTitle(): string
@@ -40,12 +42,14 @@ class ImportPigeons extends Page
     public function previewUpload(PigeonImportService $service): void
     {
         $this->validate([
-            'upload' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+            'upload' => ['required', 'file', 'mimes:xlsx,xls', 'max:'.PigeonImportService::MAX_UPLOAD_KB],
         ]);
 
         try {
             $rows = $service->rowsFromSpreadsheet($this->upload->getRealPath());
-            $this->preview = $service->preview($rows);
+            $preview = $service->preview($rows);
+            $this->previewToken = $service->storeRowsForConfirmation($rows);
+            $this->preview = $service->browserPreview([...$preview, 'token' => $this->previewToken]);
             $this->fileName = $this->upload->getClientOriginalName();
             $this->lastResult = null;
         } catch (ValidationException $exception) {
@@ -55,11 +59,11 @@ class ImportPigeons extends Page
 
     public function confirmImport(PigeonImportService $service): void
     {
-        if (! $this->preview || ! $this->fileName) {
+        if (! $this->preview || ! $this->fileName || ! $this->previewToken) {
             return;
         }
 
-        $batch = $service->commit($this->fileName, $this->preview, auth()->id());
+        $batch = $service->commitStoredPreview($this->fileName, $this->previewToken, auth()->id());
         $this->lastResult = [
             'success_rows' => $batch->success_rows,
             'failed_rows' => $batch->failed_rows,
@@ -71,12 +75,13 @@ class ImportPigeons extends Page
             ->success()
             ->send();
 
-        $this->reset(['upload', 'preview', 'fileName']);
+        $this->reset(['upload', 'preview', 'fileName', 'previewToken']);
     }
 
-    public function resetImport(): void
+    public function resetImport(PigeonImportService $service): void
     {
-        $this->reset(['upload', 'preview', 'fileName', 'lastResult']);
+        $service->discardStoredPreview($this->previewToken);
+        $this->reset(['upload', 'preview', 'fileName', 'previewToken', 'lastResult']);
     }
 
     public function downloadErrorReport(): ?BinaryFileResponse

@@ -1,6 +1,6 @@
 <?php
 // [IN]: Pigeon import service, spreadsheet files, and database / 足环导入服务、电子表格文件与数据库
-// [OUT]: Import preview and commit behavior assertions / 导入预览与确认行为断言
+// [OUT]: Import preview, server-side confirmation cache, and commit behavior assertions / 导入预览、服务端确认缓存与确认行为断言
 // [POS]: Backend pigeon import feature test / 后端足环导入功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -12,6 +12,7 @@ use App\Models\Pigeon;
 use App\Services\PigeonImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Tests\TestCase;
@@ -96,6 +97,33 @@ class PigeonImportServiceTest extends TestCase
 
         $this->assertDatabaseHas('members', ['loft_number' => 'A002', 'participant_name' => '新名']);
         $this->assertDatabaseHas('pigeons', ['ring_number' => '2026-13-000003', 'participant_name' => '新名']);
+    }
+
+    public function test_browser_preview_keeps_large_rows_server_side_until_confirm(): void
+    {
+        $service = app(PigeonImportService::class);
+        $rows = collect(range(1, 60))->map(fn (int $number): array => [
+            'line' => $number + 1,
+            'sequence' => (string) $number,
+            'loft_number' => 'L'.str_pad((string) $number, 4, '0', STR_PAD_LEFT),
+            'participant_name' => '会员'.$number,
+            'ring_number' => '2026-13-'.str_pad((string) $number, 6, '0', STR_PAD_LEFT),
+        ])->all();
+
+        $preview = $service->preview($rows);
+        $token = $service->storeRowsForConfirmation($rows);
+        $browserPreview = $service->browserPreview([...$preview, 'token' => $token]);
+
+        $this->assertArrayNotHasKey('source_rows', $browserPreview);
+        $this->assertSame(50, count($browserPreview['rows']));
+        $this->assertSame($token, $browserPreview['token']);
+        $this->assertTrue(Storage::disk('local')->exists("imports/previews/{$token}.json"));
+
+        $batch = $service->commitStoredPreview('large-rings.xlsx', $token, null);
+
+        $this->assertSame(60, $batch->success_rows);
+        $this->assertDatabaseHas('pigeons', ['ring_number' => '2026-13-000060']);
+        $this->assertFalse(Storage::disk('local')->exists("imports/previews/{$token}.json"));
     }
 
     private function makeSheet(array $rows): string
