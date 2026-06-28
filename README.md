@@ -564,11 +564,26 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan 
 
 ### 15. 日常更新流程
 
-每次拉取新代码后按固定顺序执行：
+生产环境已经部署完成后，后续从 GitHub 更新代码不要重新初始化服务器、不要删除 MySQL volume、不要重新生成 `APP_KEY`、不要重新申请 SSL。只需要在服务器上进入 `/opt/pigeon-racing`，按下面顺序发布即可。
+
+先确认当前在正确目录：
 
 ```bash
 cd /opt/pigeon-racing
-git pull
+pwd
+docker compose -f /opt/pigeon-racing/docker-compose.yml ps
+```
+
+确认输出路径是 `/opt/pigeon-racing`，并且容器服务名包含 `app`、`nginx`、`mysql`、`redis`、`queue`、`scheduler`。
+
+正式更新：
+
+```bash
+cd /opt/pigeon-racing
+
+git fetch origin
+git status --short
+git pull --ff-only
 
 docker compose -f /opt/pigeon-racing/docker-compose.yml build app queue scheduler
 docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
@@ -578,14 +593,23 @@ npm ci
 npm run build
 cd /opt/pigeon-racing
 
-docker compose -f /opt/pigeon-racing/docker-compose.yml up -d
+docker compose -f /opt/pigeon-racing/docker-compose.yml up -d --remove-orphans
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate --force
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan filament:assets
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan route:cache
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan view:cache
+docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue scheduler nginx
 ```
+
+说明：
+
+- `git pull --ff-only` 可以避免服务器上出现意外合并提交。如果提示本地有修改，先不要强行覆盖，检查 `git status --short` 输出。
+- 只要 GitHub 更新涉及 PHP 代码、Composer 依赖、前端资源或 Dockerfile，都可以直接执行完整流程。
+- 如果这次只是修复 HTTPS 后台样式问题，也按完整流程执行；关键步骤是拉取最新 `backend/bootstrap/app.php`，然后清理配置缓存并重启 `app` 与 `nginx`。
+- `migrate --force` 是安全的增量迁移命令，不会清空已有数据。
+- 不要执行 `docker compose down -v`，它会删除数据库 volume。
 
 检查服务：
 
@@ -594,6 +618,24 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml ps
 docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 app
 docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 nginx
 docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 queue
+```
+
+更新后验证：
+
+```text
+https://feilesg.com/login
+https://feilesg.com/admin
+```
+
+如果后台能打开但没有样式，先强制刷新浏览器缓存；仍然无样式时，在服务器执行：
+
+```bash
+cd /opt/pigeon-racing
+grep -E 'APP_URL|FRONTEND_URL|SANCTUM_STATEFUL_DOMAINS' backend/.env
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan filament:assets
+docker compose -f /opt/pigeon-racing/docker-compose.yml restart app nginx
 ```
 
 ### 16. 备份与恢复
