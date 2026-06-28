@@ -1,5 +1,5 @@
 <!-- [IN]: Race id route param and backend bootstrap API / 赛事 ID 路由参数与后端初始化 API -->
-<!-- [OUT]: Ultra-compact race header plus local single, multi, detail, and submit workflow / 超紧凑赛事头部与本地单羽、多羽、明细和提交流程 -->
+<!-- [OUT]: Ultra-compact race header with return action plus local single, multi, detail, and submit workflow / 带返回动作的超紧凑赛事头部与本地单羽、多羽、明细和提交流程 -->
 <!-- [POS]: Frontend core registration screen / 前端核心报名页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -68,15 +68,17 @@ async function confirmSubmit(): Promise<void> {
     <template v-else-if="store.race && store.member">
       <header class="registration-header">
         <div class="registration-title-row">
-          <h1>{{ store.race.name }}</h1>
-          <MemberTopActions />
+          <div class="registration-header-main">
+            <h1>{{ store.race.name }}</h1>
+            <div class="member-line">
+              <span>{{ store.member.loft_number }}</span>
+              <span>{{ store.member.participant_name }}</span>
+              <span>{{ store.pigeons.length }} 羽</span>
+            </div>
+            <p class="deadline-line">报名截止：{{ store.race.registration_end_at }}</p>
+          </div>
+          <MemberTopActions show-race-list-return />
         </div>
-        <div class="member-line">
-          <span>{{ store.member.loft_number }}</span>
-          <span>{{ store.member.participant_name }}</span>
-          <span>{{ store.pigeons.length }} 羽</span>
-        </div>
-        <p class="deadline-line">报名截止：{{ store.race.registration_end_at }}</p>
       </header>
 
       <nav class="tabs">
@@ -95,8 +97,6 @@ async function confirmSubmit(): Promise<void> {
 
       <AmountBar
         :selected-count="store.selectedCount"
-        :single-amount-cent="store.singleAmountCent"
-        :multi-amount-cent="store.multiAmountCent"
         :total-amount-cent="store.totalAmountCent"
         @submit="confirmSubmit"
       />

@@ -1,5 +1,5 @@
-<!-- [IN]: Authenticated member profile API and password form / 已鉴权会员档案 API 与改密表单 -->
-<!-- [OUT]: Member profile, pigeon list, and password update workflow / 会员档案、足环列表与改密流程 -->
+<!-- [IN]: Authenticated member profile, registration history API, and password form / 已鉴权会员档案、报名历史 API 与改密表单 -->
+<!-- [OUT]: Member profile, registration history, pigeon list, and password update workflow / 会员档案、报名历史、足环列表与改密流程 -->
 <!-- [POS]: Frontend member profile screen / 前端会员个人档案页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -10,12 +10,15 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import MemberTopActions from '../components/MemberTopActions.vue'
 import { useAuthStore } from '../stores/auth'
-import type { Pigeon } from '../types/domain'
+import type { Pigeon, RegistrationHistoryItem } from '../types/domain'
+import { api } from '../api/client'
+import { yuan } from '../utils/money'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const pigeons = ref<Pigeon[]>([])
+const registrations = ref<RegistrationHistoryItem[]>([])
 const loading = ref(true)
 const submitting = ref(false)
 const password = ref('')
@@ -23,10 +26,26 @@ const passwordConfirmation = ref('')
 const forcePassword = computed(() => route.query.forcePassword === '1' || auth.member?.must_change_password)
 
 onMounted(async () => {
-  const profile = await auth.fetchProfile()
-  pigeons.value = profile.pigeons
-  loading.value = false
+  try {
+    const profile = await auth.fetchProfile()
+    pigeons.value = profile.pigeons
+    await loadRegistrationHistory()
+  } finally {
+    loading.value = false
+  }
 })
+
+async function loadRegistrationHistory(): Promise<void> {
+  if (forcePassword.value) return
+
+  try {
+    const response = await api.get('/api/member/registrations')
+    registrations.value = response.data
+  } catch {
+    registrations.value = []
+    showToast('报名记录加载失败')
+  }
+}
 
 async function updatePassword(): Promise<void> {
   if (submitting.value) return
@@ -89,6 +108,24 @@ async function updatePassword(): Promise<void> {
         <button class="primary-action wide" :disabled="submitting" @click="updatePassword">
           {{ submitting ? '保存中...' : '保存新密码' }}
         </button>
+      </section>
+
+      <section v-if="!forcePassword" class="profile-card">
+        <h2>报名记录</h2>
+        <p v-if="registrations.length === 0" class="empty-note">暂无报名记录</p>
+        <div v-else class="history-list">
+          <button
+            v-for="item in registrations"
+            :key="item.registration_id"
+            class="history-list-item"
+            type="button"
+            @click="router.push(`/profile/registrations/${item.registration_id}`)"
+          >
+            <strong>{{ item.race_name }}</strong>
+            <span>{{ item.submitted_at }} · {{ item.status }}</span>
+            <small>{{ yuan(item.total_amount_cent) }} · 单羽 {{ item.single_count }} 项 · 多羽 {{ item.multi_group_count }} 组</small>
+          </button>
+        </div>
       </section>
 
       <section class="profile-card">

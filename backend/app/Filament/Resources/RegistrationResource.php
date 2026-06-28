@@ -1,6 +1,6 @@
 <?php
-// [IN]: Registration model records and confirmation action / 报名模型记录与确认动作
-// [OUT]: Filament registration review table ordered for confirmation workflow / 按确认流程排序的 Filament 报名查看表格
+// [IN]: Registration model records, snapshot matrix service, and confirmation action / 报名模型记录、快照矩阵服务与确认动作
+// [OUT]: Filament registration review table and dense detail matrix / Filament 报名审核表格与高密度详情矩阵
 // [POS]: Backend admin registration resource / 后端后台报名资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -10,9 +10,13 @@ namespace App\Filament\Resources;
 use App\Enums\RegistrationStatus;
 use App\Filament\Resources\RegistrationResource\Pages;
 use App\Models\Registration;
+use App\Services\RegistrationDetailMatrixService;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
@@ -27,6 +31,35 @@ class RegistrationResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([]);
+    }
+
+    public static function infolist(Schema $schema): Schema
+    {
+        return $schema->components([
+            Section::make('报名概览')
+                ->columns(3)
+                ->schema([
+                    TextEntry::make('registration_no')->label('报名编号')->placeholder('-'),
+                    TextEntry::make('race.name')->label('赛事名称')->placeholder('-'),
+                    TextEntry::make('status')
+                        ->label('确认状态')
+                        ->badge()
+                        ->formatStateUsing(fn (RegistrationStatus $state): string => $state === RegistrationStatus::Confirmed ? '已确认' : '待确认')
+                        ->color(fn (RegistrationStatus $state): string => $state === RegistrationStatus::Confirmed ? 'success' : 'warning'),
+                    TextEntry::make('member.loft_number')->label('会员棚号')->placeholder('-'),
+                    TextEntry::make('member.participant_name')->label('会员参赛名')->placeholder('-'),
+                    TextEntry::make('total_amount_cent')
+                        ->label('总金额（元）')
+                        ->formatStateUsing(fn (?int $state): string => self::formatYuan($state)),
+                    TextEntry::make('submitted_at')->label('提交时间')->dateTime()->placeholder('-'),
+                    TextEntry::make('confirmed_at')->label('确认时间')->dateTime()->placeholder('-'),
+                    TextEntry::make('remark')->label('备注')->placeholder('-'),
+                ]),
+            View::make('filament.resources.registration-resource.registration-detail-matrix')
+                ->viewData(fn (Registration $record): array => [
+                    'matrix' => app(RegistrationDetailMatrixService::class)->matrix($record),
+                ]),
+        ]);
     }
 
     public static function table(Table $table): Table
@@ -79,5 +112,10 @@ class RegistrationResource extends Resource
             'confirmed_at' => now(),
             'confirmed_by' => auth()->id(),
         ])->save();
+    }
+
+    private static function formatYuan(?int $cent): string
+    {
+        return rtrim(rtrim(number_format(($cent ?? 0) / 100, 2, '.', ''), '0'), '.');
     }
 }

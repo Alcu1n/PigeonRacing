@@ -1,5 +1,5 @@
 // [IN]: Backend API JSON contracts / 后端 API JSON 契约
-// [OUT]: Frontend domain TypeScript types / 前端领域 TypeScript 类型
+// [OUT]: Frontend domain TypeScript types including registration history / 包含报名历史的前端领域 TypeScript 类型
 // [POS]: Frontend shared domain contract / 前端共享领域契约
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -62,11 +62,25 @@ export interface ExistingRegistrationEntry {
 
 export interface ExistingRegistration {
   id: number
+  race_id?: number
+  race_name?: string
   registration_no: string
   status: string
   total_amount_cent: number
   submitted_at: string
   entries: ExistingRegistrationEntry[]
+}
+
+export interface RegistrationHistoryItem {
+  registration_id: number
+  race_id: number
+  race_name: string
+  registration_no: string
+  status: string
+  total_amount_cent: number
+  submitted_at: string
+  single_count: number
+  multi_group_count: number
 }
 
 export interface BootstrapPayload {

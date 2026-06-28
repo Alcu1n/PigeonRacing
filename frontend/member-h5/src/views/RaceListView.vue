@@ -1,5 +1,5 @@
-<!-- [IN]: Authenticated member session / 已鉴权会员会话 -->
-<!-- [OUT]: Visible race cards, profile/logout actions, and registration entry navigation / 可见赛事卡片、个人信息/退出动作与报名入口导航 -->
+<!-- [IN]: Authenticated member session and visible race API / 已鉴权会员会话与可见赛事 API -->
+<!-- [OUT]: Highlighted race list with deadline-aware actions and registration entry navigation / 带截止状态动作的突出赛事列表与报名入口导航 -->
 <!-- [POS]: Frontend race list screen / 前端赛事列表页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -19,10 +19,28 @@ onMounted(async () => {
   races.value = response.data
   loading.value = false
 })
+
+function isRaceEnded(race: Race): boolean {
+  const endTime = parseRaceEndAt(race.registration_end_at).getTime()
+
+  return race.status !== 'open' || (Number.isFinite(endTime) && endTime <= Date.now())
+}
+
+function parseRaceEndAt(value: string): Date {
+  return new Date(value.replace(' ', 'T'))
+}
+
+function raceEndDate(value: string): string {
+  return value.split(' ')[0] ?? value
+}
+
+function raceEndTime(value: string): string {
+  return value.split(' ')[1]?.slice(0, 5) ?? ''
+}
 </script>
 
 <template>
-  <main class="page">
+  <main class="page race-list-page">
     <header class="page-header page-topbar">
       <div>
         <h1>可报名赛事</h1>
@@ -32,13 +50,29 @@ onMounted(async () => {
     </header>
 
     <p v-if="loading" class="empty-note">加载赛事中...</p>
-    <article v-for="race in races" :key="race.id" class="race-card">
-      <div>
+    <section class="race-list">
+      <article v-for="race in races" :key="race.id" class="race-card">
         <h2>{{ race.name }}</h2>
-        <p>报名截止：{{ race.registration_end_at }}</p>
-        <span :class="['status-dot', race.status]">{{ race.status === 'open' ? '报名中' : race.status }}</span>
-      </div>
-      <button class="primary-action" @click="router.push(`/races/${race.id}/register`)">进入报名</button>
-    </article>
+        <div class="race-card-body">
+          <div class="race-deadline-panel">
+            <span>报名截止</span>
+            <strong>{{ raceEndDate(race.registration_end_at) }}</strong>
+            <small>{{ raceEndTime(race.registration_end_at) }}</small>
+          </div>
+          <div class="race-card-action">
+            <span :class="['status-dot', isRaceEnded(race) ? 'ended' : 'open']">
+              {{ isRaceEnded(race) ? '报名已结束' : '报名中' }}
+            </span>
+            <button
+              :class="['primary-action', 'race-entry-action', { ended: isRaceEnded(race) }]"
+              :disabled="isRaceEnded(race)"
+              @click="router.push(`/races/${race.id}/register`)"
+            >
+              {{ isRaceEnded(race) ? '已结束' : '进入报名' }}
+            </button>
+          </div>
+        </div>
+      </article>
+    </section>
   </main>
 </template>

@@ -1,6 +1,6 @@
 <?php
-// [IN]: Filament panel builder / Filament 面板构建器
-// [OUT]: Admin panel resource and settings page registration / 后台资源与设置页面注册
+// [IN]: Filament panel builder and topbar render hooks / Filament 面板构建器与顶部栏渲染钩子
+// [OUT]: Admin panel resources, settings pages, and contact topbar copy / 后台资源、设置页面与顶部栏联系信息
 // [POS]: Backend Filament admin panel provider / 后端 Filament 后台面板提供者
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -15,6 +15,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -32,6 +33,10 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors(['primary' => Color::Emerald])
+            ->renderHook(
+                PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
+                fn () => view('filament.admin-topbar-contact'),
+            )
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([Dashboard::class])

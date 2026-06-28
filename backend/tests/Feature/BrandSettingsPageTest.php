@@ -1,7 +1,7 @@
 <?php
-// [IN]: Filament admin session and brand settings page / Filament 后台会话与品牌设置页
-// [OUT]: Brand settings page render assertions / 品牌设置页渲染断言
-// [POS]: Backend admin brand settings page feature test / 后端后台品牌设置页功能测试
+// [IN]: Filament admin session, brand settings page, and topbar contact hook / Filament 后台会话、品牌设置页与顶部栏联系信息钩子
+// [OUT]: Brand settings and admin topbar render assertions / 品牌设置与后台顶部栏渲染断言
+// [POS]: Backend admin shell feature test / 后端后台外壳功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 
@@ -26,6 +26,10 @@ class BrandSettingsPageTest extends TestCase
         $this->actingAs($admin)
             ->get('/admin/brand-settings')
             ->assertOk()
-            ->assertSee('品牌 Logo');
+            ->assertSee('品牌 Logo')
+            ->assertSee('联系电话：')
+            ->assertSee('18650024626')
+            ->assertSee('定制开发 微信：')
+            ->assertSee('lemonrere');
     }
 }

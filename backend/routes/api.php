@@ -1,6 +1,6 @@
 <?php
-// [IN]: Member API HTTP requests / 会员 API HTTP 请求
-// [OUT]: Member-guard session API responses / member guard 会话 API 响应
+// [IN]: Member API HTTP requests, registration history, and detail routes / 会员 API HTTP 请求、报名历史与详情路由
+// [OUT]: Member-guard session and registration API responses / member guard 会话与报名 API 响应
 // [POS]: Backend API route map / 后端 API 路由地图
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -22,6 +22,7 @@ Route::middleware('web')->prefix('member')->group(function (): void {
         Route::post('/password', [ProfileController::class, 'updatePassword']);
         Route::get('/races', [RaceController::class, 'index']);
         Route::get('/races/{race}/bootstrap', [RaceController::class, 'bootstrap']);
+        Route::get('/registrations', [RegistrationController::class, 'index']);
         Route::post('/races/{race}/registrations', [RegistrationController::class, 'store']);
         Route::get('/registrations/{registration}', [RegistrationController::class, 'show']);
     });
