@@ -608,6 +608,7 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue schedu
 - `git pull --ff-only` 可以避免服务器上出现意外合并提交。如果提示本地有修改，先不要强行覆盖，检查 `git status --short` 输出。
 - 只要 GitHub 更新涉及 PHP 代码、Composer 依赖、前端资源或 Dockerfile，都可以直接执行完整流程。
 - 如果这次只是修复 HTTPS 后台样式问题，也按完整流程执行；关键步骤是拉取最新 `backend/bootstrap/app.php`，然后清理配置缓存并重启 `app` 与 `nginx`。
+- 如果这次涉及 Logo、Excel 报告等公开上传文件访问问题，也按完整流程执行；关键步骤是拉取最新 `docker/nginx/default.conf`，然后重启 `nginx`。
 - `migrate --force` 是安全的增量迁移命令，不会清空已有数据。
 - 不要执行 `docker compose down -v`，它会删除数据库 volume。
 
@@ -637,6 +638,24 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan 
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan filament:assets
 docker compose -f /opt/pigeon-racing/docker-compose.yml restart app nginx
 ```
+
+如果品牌 Logo 上传后后台显示很小的文件大小，或者会员端登录页看不到 Logo，按下面命令定位：
+
+```bash
+cd /opt/pigeon-racing
+
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan tinker --execute='
+$path = App\Models\AppSetting::getValue(App\Models\AppSetting::BRAND_LOGO_PATH);
+dump($path);
+dump(Illuminate\Support\Facades\Storage::disk("public")->exists($path));
+dump(Illuminate\Support\Facades\Storage::disk("public")->size($path));
+dump(Illuminate\Support\Facades\Storage::disk("public")->mimeType($path));
+'
+
+curl -I https://feilesg.com/storage/这里替换为上面输出的路径
+```
+
+正常结果应该是：`exists=true`，文件大小接近你上传的原始图片大小，`mimeType` 是 `image/png` 或 `image/jpeg`，`curl -I` 返回 `Content-Type: image/png` 或 `image/jpeg`。如果容器内文件大小正常但 `curl -I` 返回 HTML、404 或很小的 `Content-Length`，就是宿主机 Nginx 或 Docker Nginx 的 `/storage` 路由没有打到 Laravel public disk。
 
 ### 16. 备份与恢复
 
