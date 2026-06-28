@@ -512,6 +512,8 @@ FRONTEND_URL=https://feilesg.com
 SANCTUM_STATEFUL_DOMAINS=feilesg.com,www.feilesg.com
 ```
 
+后台样式依赖 Laravel 正确认出原始请求协议。宿主机 Nginx 必须保留 `X-Forwarded-Proto $scheme`，项目启动层会信任该代理头，避免 Filament CSS/JS 在 HTTPS 页面里被生成为 `http://...`。
+
 刷新 Laravel 缓存：
 
 ```bash
@@ -673,6 +675,8 @@ can not modify /etc/nginx/conf.d/default.conf (read-only file system?)
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
 ```
+
+HTTPS 后后台能打开但没有样式：在浏览器开发者工具 Network 里查看 `/css/filament`、`/js/filament` 请求。如果样式链接是 `http://`，说明反向代理协议头或 Laravel 配置缓存不正确；确认宿主机 Nginx 传递 `X-Forwarded-Proto $scheme`，并重新执行 `optimize:clear` 与 `config:cache`。如果请求是 404，重新执行 `php artisan filament:assets`。
 
 ## Local Full-Stack Test / 本地完整联调测试
 
