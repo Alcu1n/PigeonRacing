@@ -608,7 +608,7 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue schedu
 - `git pull --ff-only` 可以避免服务器上出现意外合并提交。如果提示本地有修改，先不要强行覆盖，检查 `git status --short` 输出。
 - 只要 GitHub 更新涉及 PHP 代码、Composer 依赖、前端资源或 Dockerfile，都可以直接执行完整流程。
 - 如果这次只是修复 HTTPS 后台样式问题，也按完整流程执行；关键步骤是拉取最新 `backend/bootstrap/app.php`，然后清理配置缓存并重启 `app` 与 `nginx`。
-- 如果这次涉及 Logo、Excel 报告等公开上传文件访问问题，也按完整流程执行；关键步骤是拉取最新 `docker/nginx/default.conf`，然后重启 `nginx`。
+- 如果这次涉及 Logo、Excel 报告等公开上传文件访问问题，也按完整流程执行；关键步骤是拉取最新 `backend/routes/web.php`、公开存储控制器与 `docker/nginx/default.conf`，然后清理路由缓存并重启 `app` 与 `nginx`。
 - `migrate --force` 是安全的增量迁移命令，不会清空已有数据。
 - 不要执行 `docker compose down -v`，它会删除数据库 volume。
 
@@ -655,14 +655,14 @@ dump(Illuminate\Support\Facades\Storage::disk("public")->mimeType($path));
 curl -I https://feilesg.com/storage/这里替换为上面输出的路径
 ```
 
-正常结果应该是：`exists=true`，文件大小接近你上传的原始图片大小，`mimeType` 是 `image/png` 或 `image/jpeg`，`curl -I` 返回 `Content-Type: image/png` 或 `image/jpeg`。如果容器内文件大小正常但 `curl -I` 返回 HTML、404 或很小的 `Content-Length`，就是宿主机 Nginx 或 Docker Nginx 的 `/storage` 路由没有打到 Laravel public disk。
+正常结果应该是：`exists=true`，文件大小接近你上传的原始图片大小，`mimeType` 是 `image/png` 或 `image/jpeg`，`curl -I` 返回 `Content-Type: image/png` 或 `image/jpeg`。如果容器内文件大小正常但 `curl -I` 返回 HTML、403、404 或很小的 `Content-Length`，就是 Nginx 没有把 `/storage` 交给 Laravel，或 Laravel 路由缓存还没有刷新。
 
-如果 `http://127.0.0.1:8080/storage/真实路径` 也返回 `403`，说明 Docker Nginx 已经打到文件层，但 Nginx worker 没有权限读取 public disk。执行一次公开目录权限修复：
+如果 `http://127.0.0.1:8080/storage/真实路径` 也返回 `403`，先确认 Docker Nginx 已加载新的 `/storage` 专用 PHP-FPM 配置，并刷新 Laravel 路由缓存。这个专用配置必须是 `location ^~ /storage/`，不能让 `/storage` 继续走 `try_files $uri /index.php`，否则存在 `public/storage` 软链接时 Nginx 会优先自己读文件并再次 403。
 
 ```bash
 cd /opt/pigeon-racing
 
-chmod -R a+rX backend/storage/app/public
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T nginx sh -lc 'nginx -T | grep -A10 "location \\^~ /storage"'
 
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan tinker --execute='
 $path = App\Models\AppSetting::getValue(App\Models\AppSetting::BRAND_LOGO_PATH);
@@ -671,7 +671,9 @@ if ($path) {
 }
 '
 
-docker compose -f /opt/pigeon-racing/docker-compose.yml restart nginx app
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
+docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan route:cache
+docker compose -f /opt/pigeon-racing/docker-compose.yml restart app nginx
 ```
 
 然后再次验证：

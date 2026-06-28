@@ -1,5 +1,5 @@
 # [IN]: Docker Compose CLI and project source tree / Docker Compose CLI 与项目源码树
-# [OUT]: Nginx, PHP-FPM, queue, scheduler, MySQL, Redis, and public storage mounts / Nginx、PHP-FPM、队列、调度器、MySQL、Redis 与公开存储挂载
+# [OUT]: Nginx, PHP-FPM, queue, scheduler, MySQL, and Redis services / Nginx、PHP-FPM、队列、调度器、MySQL 与 Redis 服务
 # [POS]: Root deployment orchestration / 根部署编排
 # Protocol: When updating me, sync this header + parent folder's .folder.md
 # 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -12,7 +12,6 @@ services:
       - "8080:80"
     volumes:
       - ./backend:/var/www/backend
-      - ./backend/storage/app/public:/var/www/storage-public:ro
       - ./frontend/member-h5/dist:/var/www/frontend:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
