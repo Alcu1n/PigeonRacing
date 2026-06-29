@@ -1,5 +1,5 @@
 /* [IN]: Member H5 markup and design tokens / 会员 H5 标记与设计令牌 */
-/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, localized status pills, compact amount bar, highlighted race list, readable ring headers, SVG matrix star sizing, history detail, and compact matrix / 居中 Logo 登录页脚、本地化状态标签、紧凑金额栏、突出赛事列表、可读足环表头、SVG 矩阵星标尺寸、历史详情与紧凑矩阵移动端 UI 样式 */
+/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, localized status pills, compact amount bar, highlighted race list, paint-stable matrix selection, history detail, and compact matrix / 居中 Logo 登录页脚、本地化状态标签、紧凑金额栏、突出赛事列表、稳定绘制的矩阵选中态、历史详情与紧凑矩阵移动端 UI 样式 */
 /* [POS]: Frontend global stylesheet / 前端全局样式 */
 /* Protocol: When updating me, sync this header + parent folder's .folder.md */
 /* 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md */
@@ -861,6 +861,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 }
 
 .matrix-toggle {
+  position: relative;
   min-width: 42px;
   background: transparent;
   color: var(--muted);
@@ -871,8 +872,23 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .matrix-toggle.selected {
   background: #dff5e8;
   color: var(--green-dark);
-  box-shadow: inset 0 0 0 2px var(--green);
   font-weight: 900;
+}
+
+.matrix-toggle.selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  box-sizing: border-box;
+  border: 2px solid var(--green);
+  pointer-events: none;
+}
+
+.matrix-toggle.selected span,
+.matrix-toggle.selected img {
+  position: relative;
+  z-index: 2;
 }
 
 .matrix-toggle.selected span {

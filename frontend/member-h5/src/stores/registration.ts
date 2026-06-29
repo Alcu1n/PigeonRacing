@@ -1,5 +1,5 @@
 // [IN]: Bootstrap payload and local member registration actions / 初始化数据与会员本地报名动作
-// [OUT]: Matrix state, row select-all, repeat-aware unique multi groups, per-project group counts, summaries, drafts, and submit payload / 矩阵状态、行全选、支持重复规则且唯一的多羽组合、按项目成组数、汇总、草稿与提交数据
+// [OUT]: Database-prioritized matrix restore, runtime reset, drafts, repeat-aware groups, summaries, and submit payload / 数据库优先矩阵恢复、运行时重置、草稿、支持重复规则的组合、汇总与提交数据
 // [POS]: Frontend registration state machine / 前端报名状态机
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -107,7 +107,17 @@ export const useRegistrationStore = defineStore('registration', () => {
     multiGroups.value = []
     selectedMultiProjectId.value = multiProjects.value[0]?.id ?? null
     hydrateExisting(payload.existing_registration)
-    restoreDraftIfFresh()
+    restoreDraftIfFresh(payload.existing_registration)
+  }
+
+  function resetRuntimeState(): void {
+    bootstrap.value = null
+    activeTab.value = 'single'
+    searchQuery.value = ''
+    selectedMultiProjectId.value = null
+    pendingMultiPigeonIds.value = []
+    singleMatrix.value = {}
+    multiGroups.value = []
   }
 
   function toggleSingle(pigeonId: number, projectId: number): void {
@@ -256,18 +266,50 @@ export const useRegistrationStore = defineStore('registration', () => {
     localStorage.setItem(key, JSON.stringify(payload))
   }
 
-  function restoreDraftIfFresh(): void {
+  function restoreDraftIfFresh(existing: ExistingRegistration | null): void {
     const key = draftKey()
     if (!key || !race.value) return
     const raw = localStorage.getItem(key)
     if (!raw) return
-    const draft = JSON.parse(raw) as DraftPayload
+    const draft = parseDraft(raw)
+    if (!draft) {
+      localStorage.removeItem(key)
+      return
+    }
     if (draft.configVersion !== race.value.config_version) {
+      localStorage.removeItem(key)
+      return
+    }
+    if (existing && !draftIsNewerThanExisting(draft, existing)) {
       localStorage.removeItem(key)
       return
     }
     singleMatrix.value = draft.singleMatrix
     multiGroups.value = draft.multiGroups
+  }
+
+  function parseDraft(raw: string): DraftPayload | null {
+    try {
+      return JSON.parse(raw) as DraftPayload
+    } catch {
+      return null
+    }
+  }
+
+  function draftIsNewerThanExisting(draft: DraftPayload, existing: ExistingRegistration): boolean {
+    const draftTime = parseTimestamp(draft.updatedAt)
+    const submittedTime = parseTimestamp(existing.submitted_at)
+    if (draftTime === null || submittedTime === null) return false
+
+    return draftTime > submittedTime
+  }
+
+  function parseTimestamp(value: string | null | undefined): number | null {
+    if (!value) return null
+    const normalized = value.includes('T') ? value : value.replace(' ', 'T')
+    const timestamp = Date.parse(normalized)
+
+    return Number.isNaN(timestamp) ? null : timestamp
   }
 
   return {
@@ -298,6 +340,7 @@ export const useRegistrationStore = defineStore('registration', () => {
     selectedCount,
     singleProjectStats,
     load,
+    resetRuntimeState,
     toggleSingle,
     isSingleRowAllSelected,
     toggleSingleRowAll,

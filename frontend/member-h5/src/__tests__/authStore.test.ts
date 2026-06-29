@@ -1,11 +1,12 @@
 // [IN]: Auth store and mocked member API client / 鉴权 Store 与模拟会员 API 客户端
-// [OUT]: Login, profile restore, and password-change assertions / 登录、档案恢复与改密断言
+// [OUT]: Login, profile restore, password-change, and registration reset assertions / 登录、档案恢复、改密与报名重置断言
 // [POS]: Frontend auth store feature tests / 前端鉴权 Store 功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useAuthStore } from '../stores/auth'
+import { useRegistrationStore } from '../stores/registration'
 import { api } from '../api/client'
 
 vi.mock('../api/client', () => ({
@@ -32,6 +33,46 @@ describe('auth store', () => {
     await auth.login('13800000000', 'password')
 
     expect(auth.member?.must_change_password).toBe(true)
+  })
+
+  it('clears registration runtime state before logging in', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      data: { member: memberPayload(false) },
+    })
+
+    const auth = useAuthStore()
+    const registration = useRegistrationStore()
+    registration.bootstrap = {
+      race: { id: 1, name: '旧赛事', registration_end_at: '2026-06-29 12:00:00', status: 'open', config_version: 1 },
+      member: memberPayload(false),
+      projects: [],
+      pigeons: [],
+      existing_registration: null,
+    }
+
+    await auth.login('13800000000', 'password')
+
+    expect(registration.bootstrap).toBeNull()
+  })
+
+  it('clears member and registration runtime state after logout', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { ok: true } })
+
+    const auth = useAuthStore()
+    const registration = useRegistrationStore()
+    auth.member = memberPayload(false)
+    registration.bootstrap = {
+      race: { id: 1, name: '旧赛事', registration_end_at: '2026-06-29 12:00:00', status: 'open', config_version: 1 },
+      member: memberPayload(false),
+      projects: [],
+      pigeons: [],
+      existing_registration: null,
+    }
+
+    await auth.logout()
+
+    expect(auth.member).toBeNull()
+    expect(registration.bootstrap).toBeNull()
   })
 
   it('loads profile with pigeons when refreshing an authenticated route', async () => {

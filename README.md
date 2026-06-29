@@ -17,6 +17,16 @@ The backend never trusts frontend totals: it validates race state, `config_versi
 
 When code changes, sync the source header, parent `.folder.md`, and this README if module boundaries change. / 修改代码时，同步源文件头、父级 `.folder.md`；若模块边界变化，同步本 README。
 
+## Member Session and Registration Recovery / 会员会话与报名恢复
+
+Member login is an account-switch operation: the API clears the previous `member` guard session before validating the new credentials, and member API JSON responses use `Cache-Control: no-store` to reduce WeChat WebView session-cache risk. / 会员登录是一次账号切换操作：API 会在校验新账号前清理旧的 `member` guard 会话，并且会员 API JSON 响应使用 `Cache-Control: no-store`，降低微信 WebView 会话缓存风险。
+
+The latest successfully submitted database registration is the cross-browser source of truth. / 最近一次成功提交到数据库的报名记录，是跨浏览器恢复的唯一权威来源。
+
+When a member enters a race, bootstrap restores `existing_registration` into the single-pigeon matrix, multi-pigeon groups, and selected-detail view. / 会员进入赛事时，初始化接口会把 `existing_registration` 恢复到单羽矩阵、多羽组合和已选明细视图。
+
+Local drafts only protect unsent same-browser edits: stale config drafts and drafts older than the database submission are discarded. / 本地草稿只保护同一浏览器未提交的编辑：配置过期的草稿，以及早于数据库提交时间的草稿都会被丢弃。
+
 ## 生产环境部署（从零开始）
 
 本项目的生产部署本质上是一个单仓单机部署：`backend/` 是 Laravel API 与 Filament 后台，`frontend/member-h5/` 是构建后的会员 H5 静态资源，`docker-compose.yml` 拉起 Nginx、PHP-FPM、队列、调度器、MySQL 和 Redis。正确顺序是先准备配置与依赖，再启动容器，最后做 Laravel 初始化和域名 HTTPS 反向代理。

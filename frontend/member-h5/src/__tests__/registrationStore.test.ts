@@ -1,5 +1,5 @@
 // [IN]: Pinia registration store and fake bootstrap data / Pinia 报名 Store 与模拟初始化数据
-// [OUT]: Local registration behavior and unique group assertions / 本地报名行为与唯一组合断言
+// [OUT]: Local registration, database restore, draft priority, reset, and unique group assertions / 本地报名、数据库恢复、草稿优先级、重置与唯一组合断言
 // [POS]: Frontend registration store tests / 前端报名状态测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -173,6 +173,92 @@ describe('registration store', () => {
 
     expect(store.submitEntries).toEqual([])
   })
+
+  it('restores submitted registration from bootstrap for cross-browser recovery', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.existing_registration = existingRegistration('2026-06-29 10:00:00')
+
+    store.load(payload)
+
+    expect(store.singleMatrix[101][1]).toBe(true)
+    expect(store.multiEntries).toEqual([{ project_id: 2, pigeon_ids: [101, 102] }])
+    expect(store.submitEntries).toEqual([
+      { project_id: 1, pigeon_ids: [101] },
+      { project_id: 2, pigeon_ids: [101, 102] },
+    ])
+  })
+
+  it('keeps submitted registration when local draft is older than database submission', () => {
+    const store = useRegistrationStore()
+    const first = bootstrap()
+    store.load(first)
+    store.toggleSingle(999, 1)
+
+    const next = bootstrap()
+    next.existing_registration = existingRegistration('2026-06-29 10:00:00')
+    localStorage.setItem('pigeon-registration-draft:1:1', JSON.stringify({
+      raceId: 1,
+      memberId: 1,
+      configVersion: 1,
+      singleMatrix: { 999: { 1: true } },
+      multiGroups: [],
+      updatedAt: '2026-06-29T01:59:00.000Z',
+    }))
+
+    store.load(next)
+
+    expect(store.submitEntries).toEqual([
+      { project_id: 1, pigeon_ids: [101] },
+      { project_id: 2, pigeon_ids: [101, 102] },
+    ])
+    expect(localStorage.getItem('pigeon-registration-draft:1:1')).toBeNull()
+  })
+
+  it('restores newer local draft over existing registration for unsent same-browser edits', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.existing_registration = existingRegistration('2026-06-29 10:00:00')
+    localStorage.setItem('pigeon-registration-draft:1:1', JSON.stringify({
+      raceId: 1,
+      memberId: 1,
+      configVersion: 1,
+      singleMatrix: { 999: { 1: true } },
+      multiGroups: [],
+      updatedAt: '2026-06-29T10:01:00.000Z',
+    }))
+
+    store.load(payload)
+
+    expect(store.submitEntries).toEqual([{ project_id: 1, pigeon_ids: [999] }])
+  })
+
+  it('drops invalid local draft and keeps database registration', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.existing_registration = existingRegistration('2026-06-29 10:00:00')
+    localStorage.setItem('pigeon-registration-draft:1:1', '{bad-json')
+
+    store.load(payload)
+
+    expect(store.submitEntries).toEqual([
+      { project_id: 1, pigeon_ids: [101] },
+      { project_id: 2, pigeon_ids: [101, 102] },
+    ])
+    expect(localStorage.getItem('pigeon-registration-draft:1:1')).toBeNull()
+  })
+
+  it('resets runtime state without deleting saved drafts', () => {
+    const store = useRegistrationStore()
+    store.load(bootstrap())
+    store.toggleSingle(101, 1)
+
+    store.resetRuntimeState()
+
+    expect(store.bootstrap).toBeNull()
+    expect(store.submitEntries).toEqual([])
+    expect(localStorage.getItem('pigeon-registration-draft:1:1')).not.toBeNull()
+  })
 })
 
 function bootstrap(): BootstrapPayload {
@@ -196,5 +282,36 @@ function bootstrap(): BootstrapPayload {
       { id: 999, ring_number: 'CHN-2026-03-000999' },
     ],
     existing_registration: null,
+  }
+}
+
+function existingRegistration(submittedAt: string) {
+  return {
+    id: 10,
+    registration_no: 'R1-A001',
+    status: 'submitted',
+    total_amount_cent: 25000,
+    submitted_at: submittedAt,
+    entries: [
+      {
+        project_id: 1,
+        project_name: '单羽 50 元',
+        group_size: 1,
+        price_cent: 5000,
+        group_index: 1,
+        pigeons: [{ pigeon_id: 101, ring_number: 'CHN-2026-03-000101', sort_order: 1 }],
+      },
+      {
+        project_id: 2,
+        project_name: '双羽组 200 元',
+        group_size: 2,
+        price_cent: 20000,
+        group_index: 1,
+        pigeons: [
+          { pigeon_id: 101, ring_number: 'CHN-2026-03-000101', sort_order: 1 },
+          { pigeon_id: 102, ring_number: 'CHN-2026-03-000102', sort_order: 2 },
+        ],
+      },
+    ],
   }
 }

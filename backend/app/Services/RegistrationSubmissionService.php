@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member, race, config version, idempotency key, and normalized entries / 会员、赛事、配置版本、幂等键与标准化报名项目
-// [OUT]: Validated registration with short readable number and unique group snapshot entries / 带短可读编号且组合唯一的报名快照明细
+// [OUT]: Validated registration with readable number, unique groups, and bootstrap cache invalidation / 带可读编号、唯一组合与初始化缓存失效的报名快照
 // [POS]: Backend trusted registration transaction service / 后端可信报名事务服务
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -32,6 +32,8 @@ class RegistrationSubmissionService
             ->first();
 
         if ($existingSameRequest) {
+            $this->cache->forgetBootstrap($race, $member);
+
             return $existingSameRequest;
         }
 
