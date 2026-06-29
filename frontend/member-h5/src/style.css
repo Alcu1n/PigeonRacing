@@ -1,5 +1,5 @@
 /* [IN]: Member H5 markup and design tokens / 会员 H5 标记与设计令牌 */
-/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, localized status pills, compact amount bar, highlighted race list, SVG matrix star sizing, history detail, and readable compact matrix / 居中 Logo 登录页脚、本地化状态标签、紧凑金额栏、突出赛事列表、SVG 矩阵星标尺寸、历史详情与可读紧凑矩阵移动端 UI 样式 */
+/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, localized status pills, compact amount bar, highlighted race list, readable ring headers, SVG matrix star sizing, history detail, and compact matrix / 居中 Logo 登录页脚、本地化状态标签、紧凑金额栏、突出赛事列表、可读足环表头、SVG 矩阵星标尺寸、历史详情与紧凑矩阵移动端 UI 样式 */
 /* [POS]: Frontend global stylesheet / 前端全局样式 */
 /* Protocol: When updating me, sync this header + parent folder's .folder.md */
 /* 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md */
@@ -802,8 +802,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .header-row .ring-cell, .header-row .select-all-cell, .project-head {
   padding: 3px 2px;
   text-align: center;
-  font-size: 11px;
-  line-height: 1.05;
+  font-size: 12px;
+  line-height: 1;
   white-space: normal;
   word-break: break-all;
 }
@@ -849,13 +849,13 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   padding: 2px 4px;
   background: inherit;
   color: var(--text);
-  font-size: 8px;
-  line-height: 1.08;
+  font-size: 9px;
+  line-height: 1;
   text-align: left;
 }
 
 .ring-button strong {
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0;
   color: var(--green-dark);
 }
