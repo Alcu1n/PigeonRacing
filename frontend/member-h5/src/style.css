@@ -1,5 +1,5 @@
 /* [IN]: Member H5 markup and design tokens / 会员 H5 标记与设计令牌 */
-/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, localized status pills, compact amount bar, highlighted race list, history detail, and readable compact matrix / 居中 Logo 登录页脚、本地化状态标签、紧凑金额栏、突出赛事列表、历史详情与可读紧凑矩阵移动端 UI 样式 */
+/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, localized status pills, compact amount bar, highlighted race list, SVG matrix star sizing, history detail, and readable compact matrix / 居中 Logo 登录页脚、本地化状态标签、紧凑金额栏、突出赛事列表、SVG 矩阵星标尺寸、历史详情与可读紧凑矩阵移动端 UI 样式 */
 /* [POS]: Frontend global stylesheet / 前端全局样式 */
 /* Protocol: When updating me, sync this header + parent folder's .folder.md */
 /* 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md */
@@ -878,6 +878,13 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .matrix-toggle.selected span {
   font-size: 14px;
   line-height: 1;
+}
+
+.matrix-selected-icon {
+  display: block;
+  width: 18px;
+  height: 18px;
+  margin: 0 auto;
 }
 
 .multi-current, .detail-block, .group-card {

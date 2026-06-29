@@ -1,10 +1,11 @@
 <!-- [IN]: Registration store single projects and pigeons / 报名 Store 的单羽项目与足环 -->
-<!-- [OUT]: Full-width compact single-pigeon matrix with row select-all and star selected markers / 带行全选与星标选中态的全宽紧凑单羽矩阵 -->
+<!-- [OUT]: Full-width compact single-pigeon matrix with row select-all and SVG star selected markers / 带行全选与 SVG 星标选中态的全宽紧凑单羽矩阵 -->
 <!-- [POS]: Frontend single registration matrix component / 前端单羽报名矩阵组件 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
+import starIcon from '../assets/star.svg'
 import { useRegistrationStore } from '../stores/registration'
 import { yuan } from '../utils/money'
 
@@ -65,7 +66,7 @@ function projectHeadLines(name: string): [string, string] {
           :class="{ selected: singleMatrix[pigeon.id]?.[project.id] }"
           @click="store.toggleSingle(pigeon.id, project.id)"
         >
-          <span v-if="singleMatrix[pigeon.id]?.[project.id]">⭐️</span>
+          <img v-if="singleMatrix[pigeon.id]?.[project.id]" class="matrix-selected-icon" :src="starIcon" alt="" aria-hidden="true" />
           <span v-else>○</span>
         </button>
       </div>
