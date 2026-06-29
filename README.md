@@ -602,7 +602,7 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer in
 
 cd frontend/member-h5
 npm ci
-VITE_ASSET_BASE_URL=https://cdn.feilesg.com/ npm run build
+VITE_ASSET_BASE_URL=https://cdn.feilesg.com/ npx vite build
 cd /opt/pigeon-racing
 
 docker compose -f /opt/pigeon-racing/docker-compose.yml up -d --remove-orphans
@@ -613,6 +613,13 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan 
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan route:cache
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan view:cache
 docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue scheduler nginx
+```
+
+如果使用 CDN 缓存静态文件，请在终端执行以下命令来打包 dist 静态文件，解压后将 assets 文件夹上传到 OSS 存储中：
+
+```bash
+cd /opt/pigeon-racing/frontend/member-h5
+tar -czvf dist.tar.gz dist/
 ```
 
 如果服务器上 `npm run build` 长时间卡住，通常卡在 `vue-tsc --noEmit` 类型检查阶段。生产发布急需更新前端静态资源时，可以临时只执行 Vite 构建，跳过类型检查：
