@@ -74,8 +74,8 @@ async function submit(): Promise<void> {
       <button class="primary-action wide" :disabled="loading" @click="submit">{{ loading ? '登录中...' : '登录' }}</button>
     </section>
     <footer class="login-footer">
-      <span>© 飞乐赛鸽 2026 联系电话 18650024626</span>
-      <span>定制开发 微信：lemonrere</span>
+      <span>© 飞乐赛鸽 2026 联系电话：18650024626</span>
+      <span>开发 微信：lemonrere</span>
     </footer>
   </main>
 </template>

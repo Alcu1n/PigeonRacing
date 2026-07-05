@@ -7,6 +7,7 @@ An online registration system for pigeon races: Laravel owns trusted business ru
 - `backend/`: Laravel 13 API, Filament admin panel, migrations, seeders, imports, exports, and registration services. / Laravel 13 API、Filament 后台、迁移、种子、导入导出与报名服务。
 - `frontend/member-h5/`: Vue 3 mobile H5 member app with local matrix state and draft persistence. / Vue 3 手机端会员 H5，包含本地矩阵状态与草稿保存。
 - `docker/`: Nginx and PHP runtime configuration for single-server deployment. / 单机部署所需的 Nginx 与 PHP 运行配置。
+- `scripts/`: Repeatable deployment and maintenance helpers, including OSS asset upload automation. / 可重复执行的部署与维护辅助脚本，包括 OSS 静态资源上传自动化。
 - `赛鸽赛事报名系统产品说明文档.md`: Original product specification and acceptance source. / 原始产品说明与验收来源。
 
 ## Core Protocol / 核心协议
@@ -610,10 +611,7 @@ git pull --ff-only
 docker compose -f /opt/pigeon-racing/docker-compose.yml build app queue scheduler
 docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
 
-cd frontend/member-h5
-npm ci
-VITE_ASSET_BASE_URL=https://cdn.feilesg.com/ npx vite build
-cd /opt/pigeon-racing
+bash scripts/deploy-member-assets-to-oss.sh
 
 docker compose -f /opt/pigeon-racing/docker-compose.yml up -d --remove-orphans
 docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate --force
@@ -625,25 +623,75 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan 
 docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue scheduler nginx
 ```
 
-如果使用 CDN 缓存静态文件，请在终端执行以下命令来打包 dist 静态文件，解压后将 assets 文件夹上传到 OSS 存储中：
+`scripts/deploy-member-assets-to-oss.sh` 会自动进入 `frontend/member-h5`，用 `VITE_ASSET_BASE_URL=https://cdn.feilesg.com/ npx vite build` 构建会员端，并把 `dist/assets/` 同步到 OSS 的 `assets/` 目录。入口 `dist/index.html` 仍留在服务器，由 Nginx 提供，API、Sanctum Cookie 和后台都继续走 `https://feilesg.com`。
+
+`scripts/deploy-member-assets-to-oss.sh` automatically builds `frontend/member-h5` with `VITE_ASSET_BASE_URL=https://cdn.feilesg.com/ npx vite build` and syncs `dist/assets/` to the OSS `assets/` prefix. The entry `dist/index.html` stays on the origin server, while API, Sanctum cookies, and the admin panel still use `https://feilesg.com`.
+
+脚本默认跳过 TypeScript 类型检查，只做 Vite 构建。这是当前生产发布路径，避免服务器上 `vue-tsc --noEmit` 卡住。需要在发布前额外跑类型检查时，手动打开 `RUN_TYPECHECK=1`：
+
+The script skips TypeScript type checking by default and only runs the Vite build. This is the current production release path to avoid `vue-tsc --noEmit` hanging on the server. Enable `RUN_TYPECHECK=1` when you want an extra type-check gate before upload:
 
 ```bash
-cd /opt/pigeon-racing/frontend/member-h5
-tar -czvf dist.tar.gz dist/
-```
-
-如果服务器上 `npm run build` 长时间卡住，通常卡在 `vue-tsc --noEmit` 类型检查阶段。生产发布急需更新前端静态资源时，可以临时只执行 Vite 构建，跳过类型检查：
-
-If `npm run build` hangs on the server, it is usually stuck at the `vue-tsc --noEmit` type-check step. For an urgent production asset release, run the Vite build only and skip type checking temporarily:
-
-```bash
-cd /opt/pigeon-racing/frontend/member-h5
-npx vite build
 cd /opt/pigeon-racing
+RUN_TYPECHECK=1 bash scripts/deploy-member-assets-to-oss.sh
 ```
 
-注意：`npx vite build` 只是应急构建命令。本地开发或正式发版前仍应优先跑 `npm run build`，因为它会先做 TypeScript 类型检查。
-Note: `npx vite build` is an emergency build command only. Prefer `npm run build` for local development and normal releases because it runs TypeScript type checks first.
+注意：正式发布时仍建议在本地或 CI 跑 `npm run build`，确保类型错误不会被长期积累。生产服务器上的自动上传脚本优先保证稳定发布静态资源。
+Note: For normal releases, still run `npm run build` locally or in CI so type errors do not accumulate. The production server upload script prioritizes stable static-asset publishing.
+
+首次启用 OSS 自动上传前，在服务器安装 `ossutil 2.0`。以下示例适用于 Linux x86_64；其他架构请到阿里云 OSS 文档选择对应包。
+
+```bash
+cd /tmp
+curl -o ossutil-2.3.0-linux-amd64.zip https://gosspublic.alicdn.com/ossutil/v2/2.3.0/ossutil-2.3.0-linux-amd64.zip
+unzip ossutil-2.3.0-linux-amd64.zip
+sudo install -m 0755 ossutil-2.3.0-linux-amd64/ossutil /usr/local/bin/ossutil
+ossutil version
+```
+
+Before enabling OSS automation, install `ossutil 2.0` on the server. The example above is for Linux x86_64; choose the matching package from Alibaba Cloud OSS documentation for other architectures.
+
+在服务器项目目录配置 OSS 本地环境文件。不要把 AccessKey 写入 Git 仓库、README 或命令历史。项目已忽略 `.env.oss.local`，脚本会自动读取它：
+
+Configure a host-local OSS env file in the server project directory. Do not commit AccessKeys to Git, README, or shell history. The project ignores `.env.oss.local`, and the script loads it automatically:
+
+```bash
+cd /opt/pigeon-racing
+cat > .env.oss.local <<'EOF'
+export OSS_BUCKET='filesg'
+export OSS_REGION='oss-cn-hongkong'
+export OSS_PREFIX='assets/'
+export VITE_ASSET_BASE_URL='https://cdn.feilesg.com/'
+export OSS_ACCESS_KEY_ID='替换为新的RAM用户AccessKeyId'
+export OSS_ACCESS_KEY_SECRET='替换为新的RAM用户AccessKeySecret'
+EOF
+chmod 600 .env.oss.local
+```
+
+如果 AccessKey 曾经出现在聊天记录、截图、日志或命令历史里，视为已泄露。请在阿里云 RAM 里禁用或删除旧 Key，重新生成一对只用于发布 `filesg/assets/` 的最小权限 Key，再写入 `.env.oss.local`。
+
+If an AccessKey has appeared in chat, screenshots, logs, or shell history, treat it as leaked. Disable or delete the old key in Alibaba Cloud RAM, generate a new least-privilege key only for publishing `filesg/assets/`, and then write it to `.env.oss.local`.
+
+以后发布无需手动 `source`，直接运行脚本：
+
+For future releases, no manual `source` is needed. Run the script directly:
+
+```bash
+cd /opt/pigeon-racing
+bash scripts/deploy-member-assets-to-oss.sh
+```
+
+如果你想把密钥放在其他本机路径，也可以用 `OSS_ENV_FILE` 指定：
+
+If you want to store the secret file elsewhere, set `OSS_ENV_FILE`:
+
+```bash
+OSS_ENV_FILE=/root/pigeon-oss.env bash scripts/deploy-member-assets-to-oss.sh
+```
+
+自动上传脚本默认不删除 OSS 上的旧 hash 文件，避免仍在使用旧 HTML 的浏览器瞬间断资源。如果确定只保留当前版本资源，可以手动加 `OSS_DELETE_EXTRA=1`，但这需要额外授予 `oss:DeleteObject`，并建议先开启 OSS 版本控制。
+
+The upload script does not delete old hashed OSS files by default, so browsers that still hold an older HTML file do not lose assets. If you explicitly want exact mirroring, run with `OSS_DELETE_EXTRA=1`; this requires `oss:DeleteObject`, and OSS versioning is recommended first.
 
 如果没有使用 OSS/CDN，前端构建命令保持 `npm run build` 即可。如果使用 OSS/CDN，只上传 `frontend/member-h5/dist/assets/` 到 OSS 根目录的 `assets/` 下；`frontend/member-h5/dist/index.html` 仍由服务器 Nginx 提供，用户入口仍是 `https://feilesg.com/login`，不要把用户入口改成 `https://cdn.feilesg.com/login`。
 
@@ -657,6 +705,22 @@ If OSS/CDN is not enabled, keep using `npm run build`. If OSS/CDN is enabled, up
 3. 缓存：assets/* 可长缓存，因为 Vite 文件名带 hash；index.html 不建议放 CDN 作为入口。
 4. Content-Type：确保 .js 为 application/javascript，.css 为 text/css，.svg 为 image/svg+xml。
 5. 跨域：允许 https://feilesg.com 或 * 加载静态资源，避免 module script 被浏览器拦截。
+```
+
+自动上传所需最小 RAM 权限：
+
+```text
+oss:ListObjects  用于增量对比 OSS 目标目录
+oss:PutObject    用于上传 dist/assets 文件
+oss:DeleteObject 仅在 OSS_DELETE_EXTRA=1 时需要
+```
+
+Minimum RAM permissions for automated upload:
+
+```text
+oss:ListObjects  compares the OSS destination prefix
+oss:PutObject    uploads dist/assets files
+oss:DeleteObject required only when OSS_DELETE_EXTRA=1
 ```
 
 说明：
