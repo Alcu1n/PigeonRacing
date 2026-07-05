@@ -715,6 +715,26 @@ If OSS/CDN is not enabled, keep using `npm run build`. If OSS/CDN is enabled, up
 5. 跨域：允许 https://feilesg.com 或 * 加载静态资源，避免 module script 被浏览器拦截。
 ```
 
+OSS assets 同步成功后，在阿里云 CDN 控制台刷新缓存：
+
+```text
+操作类型：刷新
+操作方式：目录
+URL：https://cdn.feilesg.com/assets/
+```
+
+目录刷新必须填写完整 URL，并且必须以 `/` 结尾。不要选择“预热 + 目录”；阿里云 CDN 预热只支持具体文件 URL，不支持目录。由于 Vite 资源文件名带 hash，多数新文件本来不会命中旧缓存，但目录刷新可以清掉同名 CSS、图片或异常缓存，发布后更稳。
+
+After OSS assets are synchronized, purge the Alibaba Cloud CDN cache:
+
+```text
+Action: Refresh
+Method: Directory
+URL: https://cdn.feilesg.com/assets/
+```
+
+Directory purge requires a full URL and must end with `/`. Do not use "Prefetch + Directory"; Alibaba Cloud CDN prefetch supports exact file URLs only, not directories. Vite hashed filenames usually avoid stale cache for new files, but directory purge is safer for same-name CSS, images, or abnormal cache states.
+
 自动上传所需最小 RAM 权限：
 
 ```text
