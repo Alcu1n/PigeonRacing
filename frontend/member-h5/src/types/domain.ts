@@ -1,5 +1,5 @@
 // [IN]: Backend API JSON contracts / 后端 API JSON 契约
-// [OUT]: Frontend domain TypeScript types and localized registration status helpers / 前端领域 TypeScript 类型与本地化报名状态辅助函数
+// [OUT]: Frontend domain TypeScript types, localized registration status helpers, and information contracts / 前端领域 TypeScript 类型、本地化报名状态辅助函数与信息发布契约
 // [POS]: Frontend shared domain contract / 前端共享领域契约
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -81,6 +81,22 @@ export interface RegistrationHistoryItem {
   submitted_at: string
   single_count: number
   multi_group_count: number
+}
+
+export type InformationCategory = 'rules' | 'results' | 'notice'
+
+export interface InformationPostListItem {
+  id: number
+  title: string
+  slug: string
+  category: InformationCategory
+  summary?: string | null
+  is_pinned: boolean
+  published_at?: string | null
+}
+
+export interface InformationPostDetail extends InformationPostListItem {
+  content_html: string
 }
 
 export interface BootstrapPayload {

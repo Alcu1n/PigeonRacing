@@ -1,5 +1,5 @@
 /* [IN]: Member H5 markup and design tokens / 会员 H5 标记与设计令牌 */
-/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, localized status pills, compact amount bar, highlighted race list, paint-stable matrix selection, history detail, and compact matrix / 居中 Logo 登录页脚、本地化状态标签、紧凑金额栏、突出赛事列表、稳定绘制的矩阵选中态、历史详情与紧凑矩阵移动端 UI 样式 */
+/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, public information pages, localized status pills, compact amount bar, highlighted race list, paint-stable matrix selection, history detail, and compact matrix / 居中 Logo 登录页脚、公开信息页、本地化状态标签、紧凑金额栏、突出赛事列表、稳定绘制的矩阵选中态、历史详情与紧凑矩阵移动端 UI 样式 */
 /* [POS]: Frontend global stylesheet / 前端全局样式 */
 /* Protocol: When updating me, sync this header + parent folder's .folder.md */
 /* 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md */
@@ -219,6 +219,266 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .login-footer span {
   display: block;
+}
+
+.information-entry {
+  width: min(100%, 420px);
+  display: grid;
+  gap: 5px;
+  border: 1px solid #cddfd5;
+  border-radius: 8px;
+  padding: 13px 15px;
+  background: rgba(255, 255, 255, .82);
+  color: var(--text);
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 10px 28px rgba(13, 43, 30, .07);
+}
+
+.information-entry strong {
+  color: var(--green-dark);
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.information-entry span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.information-page {
+  width: min(100%, 480px);
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 14px 14px 42px;
+  background:
+    linear-gradient(180deg, rgba(11, 122, 75, .07), rgba(245, 247, 246, 0) 180px),
+    var(--bg);
+}
+
+.information-hero {
+  position: relative;
+  display: grid;
+  gap: 5px;
+  padding: 24px 2px 16px;
+}
+
+.information-hero p,
+.information-hero span {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.information-hero h1 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.15;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.information-back {
+  position: absolute;
+  top: 18px;
+  right: 0;
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0 12px;
+  background: #e9f2ee;
+  color: var(--green-dark);
+  border: 1px solid #c9dbd2;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.information-back.inline {
+  position: static;
+  margin-bottom: 12px;
+}
+
+.information-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  margin: 4px 0 13px;
+}
+
+.information-tabs button {
+  min-height: 34px;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  color: #365247;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.information-tabs button.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  box-shadow: 0 10px 20px rgba(11, 122, 75, .16);
+}
+
+.information-list {
+  display: grid;
+  gap: 10px;
+}
+
+.information-card {
+  display: grid;
+  gap: 7px;
+  width: 100%;
+  border: 1px solid #cfe0d7;
+  border-radius: 8px;
+  padding: 14px;
+  background: #fff;
+  color: var(--text);
+  text-align: left;
+  box-shadow: 0 12px 30px rgba(13, 43, 30, .07);
+}
+
+.information-card strong {
+  font-size: 18px;
+  line-height: 1.32;
+  font-weight: 950;
+}
+
+.information-card small {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.information-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.information-card-meta b,
+.information-card-meta em {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+.information-card-meta b {
+  background: #e7f5ee;
+  color: var(--green-dark);
+}
+
+.information-card-meta em {
+  background: #fff2d8;
+  color: #9a5c00;
+}
+
+.information-empty {
+  margin: 24px 0 0;
+  padding: 18px;
+  border: 1px dashed #cfe0d7;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .72);
+  color: var(--muted);
+  text-align: center;
+  font-weight: 800;
+}
+
+.information-detail {
+  overflow: hidden;
+  border: 1px solid #cfe0d7;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(13, 43, 30, .08);
+}
+
+.information-detail header {
+  display: grid;
+  gap: 9px;
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.information-detail h1 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.28;
+  font-weight: 950;
+}
+
+.information-detail header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
+.information-prose {
+  padding: 16px;
+  color: #1b2c24;
+  font-size: 15px;
+  line-height: 1.78;
+  overflow-wrap: anywhere;
+}
+
+.information-prose :first-child {
+  margin-top: 0;
+}
+
+.information-prose :last-child {
+  margin-bottom: 0;
+}
+
+.information-prose h1,
+.information-prose h2,
+.information-prose h3 {
+  margin: 1.15em 0 .45em;
+  line-height: 1.3;
+}
+
+.information-prose p {
+  margin: .75em 0;
+}
+
+.information-prose img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 12px auto;
+}
+
+.information-prose table {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 12px 0;
+}
+
+.information-prose th,
+.information-prose td {
+  border: 1px solid var(--border);
+  padding: 7px 9px;
+  white-space: nowrap;
+}
+
+.information-prose th {
+  background: #eef6f1;
+  color: #265443;
 }
 
 .race-list-page {

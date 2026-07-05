@@ -12,6 +12,7 @@ use App\Filament\Resources\PigeonResource;
 use App\Filament\Resources\RaceProjectResource;
 use App\Filament\Resources\RaceResource;
 use App\Filament\Resources\RegistrationResource;
+use App\Filament\Resources\InformationPostResource;
 use Filament\Pages\Dashboard;
 
 class AdminDashboard extends Dashboard
@@ -68,6 +69,13 @@ class AdminDashboard extends Dashboard
                 "icon" => "heroicon-o-photo",
                 "href" => BrandSettings::getUrl(),
                 "accent" => "oklch(0.72 0.12 285)",
+            ],
+            [
+                "label" => "信息发布",
+                "description" => "发布赛事规程、成绩与通知公告",
+                "icon" => "heroicon-o-newspaper",
+                "href" => InformationPostResource::getUrl("index"),
+                "accent" => "oklch(0.73 0.14 210)",
             ],
         ];
     }

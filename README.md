@@ -28,6 +28,16 @@ When a member enters a race, bootstrap restores `existing_registration` into the
 
 Local drafts only protect unsent same-browser edits: stale config drafts and drafts older than the database submission are discarded. / 本地草稿只保护同一浏览器未提交的编辑：配置过期的草稿，以及早于数据库提交时间的草稿都会被丢弃。
 
+## Public Information Publishing / 公开信息发布
+
+Admins publish race rules, results, and notices from `后台 / 信息发布` with the Filament TipTap rich editor. / 管理员可在 `后台 / 信息发布` 使用 Filament TipTap 富文本编辑器发布赛事规程、成绩发布和通知公告。
+
+Only posts with status `发布` are visible to visitors. Drafts remain hidden from the public API. / 只有状态为 `发布` 的内容会对访客可见，草稿不会出现在公开 API 中。
+
+Public member-side routes do not require login: `/information` lists published posts, `/information/{slug}` shows a sanitized rich-text detail page, and the misspelled `/infomation` redirects to `/information`. / 会员端公开路由无需登录：`/information` 展示已发布列表，`/information/{slug}` 展示经过清洗的富文本详情页，错误拼写 `/infomation` 会跳转到 `/information`。
+
+The login page includes an `信息发布页面` entry below the login panel. Its API boundary is `GET /api/public/information` and `GET /api/public/information/{slug}`. / 登录页表单下方提供 `信息发布页面` 入口。对应 API 边界为 `GET /api/public/information` 与 `GET /api/public/information/{slug}`。
+
 ## 生产环境部署（从零开始）
 
 本项目的生产部署本质上是一个单仓单机部署：`backend/` 是 Laravel API 与 Filament 后台，`frontend/member-h5/` 是构建后的会员 H5 静态资源，`docker-compose.yml` 拉起 Nginx、PHP-FPM、队列、调度器、MySQL 和 Redis。正确顺序是先准备配置与依赖，再启动容器，最后做 Laravel 初始化和域名 HTTPS 反向代理。
