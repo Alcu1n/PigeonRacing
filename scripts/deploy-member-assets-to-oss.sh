@@ -22,7 +22,7 @@ fi
 OSSUTIL_BIN="${OSSUTIL_BIN:-ossutil}"
 OSS_BUCKET="${OSS_BUCKET:-filesg}"
 OSS_PREFIX="${OSS_PREFIX:-assets/}"
-OSS_REGION="${OSS_REGION:-oss-cn-hongkong}"
+OSS_REGION="${OSS_REGION:-cn-hongkong}"
 VITE_ASSET_BASE_URL="${VITE_ASSET_BASE_URL:-https://cdn.feilesg.com/}"
 RUN_TYPECHECK="${RUN_TYPECHECK:-0}"
 DRY_RUN="${DRY_RUN:-0}"
@@ -41,6 +41,12 @@ normalize_prefix() {
     local value="$1"
     value="${value#/}"
     value="${value%/}"
+    printf '%s' "$value"
+}
+
+normalize_region() {
+    local value="$1"
+    value="${value#oss-}"
     printf '%s' "$value"
 }
 
@@ -109,6 +115,7 @@ main() {
     [[ -n "${OSS_ACCESS_KEY_ID:-}" ]] || fail "Set OSS_ACCESS_KEY_ID in a host-local secret file"
     [[ -n "${OSS_ACCESS_KEY_SECRET:-}" ]] || fail "Set OSS_ACCESS_KEY_SECRET in a host-local secret file"
 
+    OSS_REGION="$(normalize_region "$OSS_REGION")"
     export OSS_REGION
 
     if [[ -f "$OSS_ENV_FILE" ]]; then

@@ -663,7 +663,7 @@ Configure a host-local OSS env file in the server project directory. Do not comm
 cd /opt/pigeon-racing
 cat > .env.oss.local <<'EOF'
 export OSS_BUCKET='filesg'
-export OSS_REGION='oss-cn-hongkong'
+export OSS_REGION='cn-hongkong'
 export OSS_PREFIX='assets/'
 export VITE_ASSET_BASE_URL='https://cdn.feilesg.com/'
 export OSS_ACCESS_KEY_ID='替换为新的RAM用户AccessKeyId'
@@ -671,6 +671,10 @@ export OSS_ACCESS_KEY_SECRET='替换为新的RAM用户AccessKeySecret'
 EOF
 chmod 600 .env.oss.local
 ```
+
+注意：这里的 `OSS_REGION` 必须写阿里云 Region ID，例如香港是 `cn-hongkong`，不是 endpoint 前缀 `oss-cn-hongkong`。如果写成 `oss-cn-hongkong`，ossutil 会拼出错误域名 `filesg.oss-oss-cn-hongkong.aliyuncs.com`。
+
+Note: `OSS_REGION` must be the Alibaba Cloud Region ID, for example `cn-hongkong` for Hong Kong, not the endpoint prefix `oss-cn-hongkong`. If you set `oss-cn-hongkong`, ossutil may build the invalid host `filesg.oss-oss-cn-hongkong.aliyuncs.com`.
 
 如果 AccessKey 曾经出现在聊天记录、截图、日志或命令历史里，视为已泄露。请在阿里云 RAM 里禁用或删除旧 Key，重新生成一对只用于发布 `filesg/assets/` 的最小权限 Key，再写入 `.env.oss.local`。
 
