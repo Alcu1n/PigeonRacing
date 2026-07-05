@@ -627,9 +627,9 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue schedu
 
 `scripts/deploy-member-assets-to-oss.sh` automatically builds `frontend/member-h5` with `VITE_ASSET_BASE_URL=https://cdn.feilesg.com/ npx vite build` and syncs `dist/assets/` to the OSS `assets/` prefix. The entry `dist/index.html` stays on the origin server, while API, Sanctum cookies, and the admin panel still use `https://feilesg.com`.
 
-不同 ossutil 版本的 `sync` 可选参数不完全一致。脚本会自动检测 `--snapshot-path` 和 `--meta` 是否可用；不支持时会降级为普通增量同步，不会因为优化参数中断发布。
+不同 ossutil 版本的 `sync` 可选参数不完全一致。脚本只使用跨版本最稳定的基础参数：`sync 源目录 OSS目标 -f`，以及可选 `--delete`。缓存头请在 OSS/CDN 控制台配置，不放在发布脚本里阻塞上线。
 
-Different ossutil versions expose slightly different optional `sync` flags. The script detects `--snapshot-path` and `--meta` support at runtime; unsupported flags are skipped so publishing falls back to normal incremental sync instead of failing.
+Different ossutil versions expose slightly different optional `sync` flags. The script uses only the most stable cross-version flags: `sync source-dir oss-target -f`, plus optional `--delete`. Configure cache headers in the OSS/CDN console instead of blocking releases in the upload script.
 
 脚本默认跳过 TypeScript 类型检查，只做 Vite 构建。这是当前生产发布路径，避免服务器上 `vue-tsc --noEmit` 卡住。需要在发布前额外跑类型检查时，手动打开 `RUN_TYPECHECK=1`：
 

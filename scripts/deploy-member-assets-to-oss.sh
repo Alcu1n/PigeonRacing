@@ -1,5 +1,5 @@
 # [IN]: Member H5 source, ossutil 2.0, and OSS environment variables / 会员端 H5 源码、ossutil 2.0 与 OSS 环境变量
-# [OUT]: CDN-prefixed Vite build and synchronized OSS assets prefix / CDN 前缀的 Vite 构建与已同步的 OSS assets 前缀
+# [OUT]: CDN-prefixed Vite build and baseline-compatible OSS asset sync / CDN 前缀的 Vite 构建与基础兼容 OSS 资源同步
 # [POS]: Production helper for uploading member static assets to Alibaba Cloud OSS / 上传会员端静态资源到阿里云 OSS 的生产辅助脚本
 # Protocol: When updating me, sync this header + parent folder's .folder.md
 # 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -11,7 +11,6 @@ OSS_ENV_FILE="${OSS_ENV_FILE:-$ROOT_DIR/.env.oss.local}"
 FRONTEND_DIR="$ROOT_DIR/frontend/member-h5"
 ASSETS_DIR="$FRONTEND_DIR/dist/assets"
 INDEX_FILE="$FRONTEND_DIR/dist/index.html"
-SNAPSHOT_DIR="$ROOT_DIR/.ossutil-snapshot/member-h5-assets"
 
 if [[ -f "$OSS_ENV_FILE" ]]; then
     set -a
@@ -28,7 +27,6 @@ VITE_ASSET_BASE_URL="${VITE_ASSET_BASE_URL:-https://cdn.feilesg.com/}"
 RUN_TYPECHECK="${RUN_TYPECHECK:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 OSS_DELETE_EXTRA="${OSS_DELETE_EXTRA:-0}"
-OSS_CACHE_CONTROL="${OSS_CACHE_CONTROL:-public, max-age=31536000, immutable}"
 
 fail() {
     printf 'ERROR: %s\n' "$1" >&2
@@ -86,8 +84,6 @@ sync_assets() {
     local destination
     local dry_run_flags=()
     local delete_flags=()
-    local metadata_flags=()
-    local snapshot_flags=()
 
     destination="$(oss_destination)"
 
@@ -99,25 +95,10 @@ sync_assets() {
         delete_flags+=(--delete)
     fi
 
-    if "$OSSUTIL_BIN" sync --help 2>&1 | grep -q -- '--snapshot-path'; then
-        mkdir -p "$SNAPSHOT_DIR"
-        snapshot_flags+=(--snapshot-path "$SNAPSHOT_DIR")
-    else
-        printf 'ossutil sync does not support --snapshot-path; continuing without local sync snapshots.\n'
-    fi
-
-    if "$OSSUTIL_BIN" sync --help 2>&1 | grep -q -- '--meta'; then
-        metadata_flags+=(--meta "Cache-Control:$OSS_CACHE_CONTROL")
-    else
-        printf 'ossutil sync does not support --meta; configure Cache-Control on OSS/CDN if needed.\n'
-    fi
-
     printf 'Syncing %s -> %s\n' "$ASSETS_DIR/" "$destination"
 
     "$OSSUTIL_BIN" sync "$ASSETS_DIR/" "$destination" \
         -f \
-        "${snapshot_flags[@]}" \
-        "${metadata_flags[@]}" \
         "${dry_run_flags[@]}" \
         "${delete_flags[@]}"
 }
