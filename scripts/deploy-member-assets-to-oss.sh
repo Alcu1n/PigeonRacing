@@ -86,10 +86,10 @@ sync_assets() {
     local destination
     local dry_run_flags=()
     local delete_flags=()
+    local metadata_flags=()
+    local snapshot_flags=()
 
     destination="$(oss_destination)"
-
-    mkdir -p "$SNAPSHOT_DIR"
 
     if [[ "$DRY_RUN" == "1" ]]; then
         dry_run_flags+=(--dry-run)
@@ -99,12 +99,25 @@ sync_assets() {
         delete_flags+=(--delete)
     fi
 
+    if "$OSSUTIL_BIN" sync --help 2>&1 | grep -q -- '--snapshot-path'; then
+        mkdir -p "$SNAPSHOT_DIR"
+        snapshot_flags+=(--snapshot-path "$SNAPSHOT_DIR")
+    else
+        printf 'ossutil sync does not support --snapshot-path; continuing without local sync snapshots.\n'
+    fi
+
+    if "$OSSUTIL_BIN" sync --help 2>&1 | grep -q -- '--meta'; then
+        metadata_flags+=(--meta "Cache-Control:$OSS_CACHE_CONTROL")
+    else
+        printf 'ossutil sync does not support --meta; configure Cache-Control on OSS/CDN if needed.\n'
+    fi
+
     printf 'Syncing %s -> %s\n' "$ASSETS_DIR/" "$destination"
 
     "$OSSUTIL_BIN" sync "$ASSETS_DIR/" "$destination" \
         -f \
-        --snapshot-path "$SNAPSHOT_DIR" \
-        --meta "Cache-Control:$OSS_CACHE_CONTROL" \
+        "${snapshot_flags[@]}" \
+        "${metadata_flags[@]}" \
         "${dry_run_flags[@]}" \
         "${delete_flags[@]}"
 }
