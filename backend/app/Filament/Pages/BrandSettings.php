@@ -1,6 +1,6 @@
 <?php
-// [IN]: Filament form state, public storage disk, and app settings / Filament 表单状态、公开存储磁盘与应用设置
-// [OUT]: Persisted readable public brand logo path / 已持久化可读公开品牌 Logo 路径
+// [IN]: Filament form state, public storage disk, supported logo image types, and app settings / Filament 表单状态、公开存储磁盘、受支持 Logo 图片类型与应用设置
+// [OUT]: Persisted readable public brand logo path for member H5 rendering / 已持久化、可供会员 H5 渲染的公开品牌 Logo 路径
 // [POS]: Backend admin brand settings page / 后端后台品牌设置页
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -46,9 +46,9 @@ class BrandSettings extends Page
                     ->directory('branding')
                     ->visibility('public')
                     ->image()
-                    ->acceptedFileTypes(['image/png', 'image/jpeg'])
+                    ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif', 'image/svg+xml'])
                     ->maxSize(2048)
-                    ->helperText('支持 PNG、JPG，建议使用透明背景或横向 Logo。'),
+                    ->helperText('支持 PNG、JPG、JPEG、WebP、GIF、AVIF、SVG，建议使用透明背景或横向 Logo。'),
             ])
             ->statePath('data');
     }
