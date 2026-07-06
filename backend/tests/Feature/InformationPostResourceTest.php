@@ -45,4 +45,12 @@ class InformationPostResourceTest extends TestCase
         $this->assertFalse(method_exists(InformationPostResource::class, 'textColorTool'));
         $this->assertFalse(method_exists(InformationPostResource::class, 'textColorClearTool'));
     }
+
+    public function test_livewire_payload_depth_supports_rich_editor_documents(): void
+    {
+        $this->assertGreaterThanOrEqual(64, config('livewire.payload.max_nesting_depth'));
+        $this->assertSame(1024 * 1024, config('livewire.payload.max_size'));
+        $this->assertSame(50, config('livewire.payload.max_calls'));
+        $this->assertSame(200, config('livewire.payload.max_components'));
+    }
 }
