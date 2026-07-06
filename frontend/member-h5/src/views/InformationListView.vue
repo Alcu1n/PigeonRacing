@@ -9,6 +9,7 @@ import { useRouter } from 'vue-router'
 import { api } from '../api/client'
 import type { InformationCategory, InformationPostListItem } from '../types/domain'
 import { informationCategoryLabel } from '../utils/information'
+import { setPageTitle } from '../utils/pageTitle'
 
 const router = useRouter()
 const activeCategory = ref<InformationCategory | 'all'>('all')
@@ -25,7 +26,10 @@ const categories: Array<{ value: InformationCategory | 'all'; label: string }> =
 
 const emptyText = computed(() => error.value || (loading.value ? '加载中...' : '暂无发布内容'))
 
-onMounted(load)
+onMounted(() => {
+  setPageTitle('信息发布')
+  void load()
+})
 
 async function load(): Promise<void> {
   loading.value = true

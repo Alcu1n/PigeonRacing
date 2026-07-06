@@ -36,14 +36,24 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .login-screen {
   min-height: 100dvh;
   display: grid;
-  align-content: center;
+  grid-template-rows: minmax(0, 1fr) auto;
+  align-items: stretch;
   justify-items: center;
-  gap: 10px;
-  padding: clamp(12px, 3dvh, 22px) 22px 14px;
+  gap: 0;
+  padding: 0 22px max(12px, env(safe-area-inset-bottom));
   background:
     radial-gradient(circle at 50% 0, rgba(11, 122, 75, .12), rgba(11, 122, 75, 0) 240px),
     linear-gradient(180deg, rgba(11, 122, 75, .07), rgba(245, 247, 246, 0) 36%),
     var(--bg);
+}
+
+.login-main {
+  width: 100%;
+  align-self: center;
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: clamp(12px, 3.5dvh, 28px) 0;
 }
 
 .login-panel, .result-panel {
@@ -227,7 +237,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   font-size: 11px;
   line-height: 1.4;
   text-align: center;
-  margin-top: 1px;
+  align-self: end;
+  padding-bottom: 2px;
 }
 
 .login-footer span {
@@ -291,10 +302,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 }
 
 @media (max-height: 740px) {
-  .login-screen {
-    align-content: start;
+  .login-main {
     gap: 8px;
-    padding-top: 10px;
+    padding-block: 10px;
   }
 
   .login-panel {

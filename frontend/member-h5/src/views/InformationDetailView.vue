@@ -4,11 +4,12 @@
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
 import type { InformationPostDetail } from '../types/domain'
 import { informationCategoryLabel, sanitizeInformationHtml } from '../utils/information'
+import { setPageTitle } from '../utils/pageTitle'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,6 +20,7 @@ const error = ref('')
 const sanitizedHtml = computed(() => sanitizeInformationHtml(post.value?.content_html ?? ''))
 
 onMounted(load)
+onUnmounted(() => setPageTitle())
 
 async function load(): Promise<void> {
   loading.value = true
@@ -27,9 +29,11 @@ async function load(): Promise<void> {
   try {
     const response = await api.get(`/api/public/information/${String(route.params.slug)}`)
     post.value = response.data.post ?? null
+    setPageTitle(post.value?.title ?? '信息详情')
   } catch {
     error.value = '内容不存在或已下线'
     post.value = null
+    setPageTitle('内容不存在')
   } finally {
     loading.value = false
   }

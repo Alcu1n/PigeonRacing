@@ -57,27 +57,29 @@ async function submit(): Promise<void> {
 
 <template>
   <main class="login-screen">
-    <section class="login-panel">
-      <div class="login-brand">
-        <img v-if="logoUrl" class="login-logo" :src="logoUrl" alt="飞乐赛鸽 Logo" @error="logoUrl = null" />
-        <h1>赛鸽赛事报名</h1>
-        <p>会员专属报名入口</p>
-      </div>
-      <label>
-        <span>手机号</span>
-        <input v-model="phone" inputmode="tel" autocomplete="username" placeholder="请输入会员手机号" />
-      </label>
-      <label>
-        <span>密码</span>
-        <input v-model="password" type="password" autocomplete="current-password" placeholder="请输入登录密码" />
-      </label>
-      <button class="primary-action wide" :disabled="loading" @click="submit">{{ loading ? '登录中...' : '登录' }}</button>
-    </section>
+    <div class="login-main">
+      <section class="login-panel">
+        <div class="login-brand">
+          <img v-if="logoUrl" class="login-logo" :src="logoUrl" alt="飞乐赛鸽 Logo" @error="logoUrl = null" />
+          <h1>赛鸽赛事报名</h1>
+          <p>会员专属报名入口</p>
+        </div>
+        <label>
+          <span>手机号</span>
+          <input v-model="phone" inputmode="tel" autocomplete="username" placeholder="请输入会员手机号" />
+        </label>
+        <label>
+          <span>密码</span>
+          <input v-model="password" type="password" autocomplete="current-password" placeholder="请输入登录密码" />
+        </label>
+        <button class="primary-action wide" :disabled="loading" @click="submit">{{ loading ? '登录中...' : '登录' }}</button>
+      </section>
 
-    <RouterLink class="information-entry" to="/information">
-      <strong>信息发布页面</strong>
-      <span>协会/俱乐部 赛事规程、成绩发布、通知公告入口</span>
-    </RouterLink>
+      <RouterLink class="information-entry" to="/information">
+        <strong>信息发布页面</strong>
+        <span>协会/俱乐部 赛事规程、成绩发布、通知公告入口</span>
+      </RouterLink>
+    </div>
 
     <footer class="login-footer">
       <span>© 飞乐赛鸽 2026 联系电话：18650024626</span>
