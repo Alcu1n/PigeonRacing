@@ -9,7 +9,9 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\InformationPostResource;
 use App\Models\User;
+use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class InformationPostResourceTest extends TestCase
@@ -29,5 +31,18 @@ class InformationPostResourceTest extends TestCase
             ->assertOk()
             ->assertSee('标题')
             ->assertSee('正文');
+    }
+
+    public function test_information_editor_uses_single_direct_color_palette_tool(): void
+    {
+        $method = new ReflectionMethod(InformationPostResource::class, 'textColorPaletteTool');
+        $tool = $method->invoke(null);
+
+        $this->assertInstanceOf(RichEditorTool::class, $tool);
+        $this->assertSame('textColorPalette', $tool->getName());
+        $this->assertStringContainsString('setTextColor({ color })', $tool->getJsHandler());
+        $this->assertStringContainsString('data-pigeon-text-color-palette', $tool->getJsHandler());
+        $this->assertFalse(method_exists(InformationPostResource::class, 'textColorTool'));
+        $this->assertFalse(method_exists(InformationPostResource::class, 'textColorClearTool'));
     }
 }
