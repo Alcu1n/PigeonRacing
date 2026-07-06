@@ -17,5 +17,8 @@ export function informationCategoryLabel(category: InformationCategory): string 
 }
 
 export function sanitizeInformationHtml(html: string): string {
-  return DOMPurify.sanitize(html, { USE_PROFILES: { html: true } })
+  return DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true },
+    ADD_ATTR: ['class', 'data-color', 'style'],
+  })
 }

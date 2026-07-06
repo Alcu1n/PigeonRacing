@@ -433,6 +433,37 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   overflow-wrap: anywhere;
 }
 
+.information-prose .color {
+  color: var(--color);
+}
+
+.information-prose .color[data-color="red"],
+.information-prose .color[data-color="Red"] {
+  color: #dc2626;
+}
+
+.information-prose .color[data-color="amber"],
+.information-prose .color[data-color="orange"],
+.information-prose .color[data-color="Amber"],
+.information-prose .color[data-color="Orange"] {
+  color: #d97706;
+}
+
+.information-prose .color[data-color="green"],
+.information-prose .color[data-color="Green"] {
+  color: #16a34a;
+}
+
+.information-prose .color[data-color="blue"],
+.information-prose .color[data-color="Blue"] {
+  color: #2563eb;
+}
+
+.information-prose .color[data-color="purple"],
+.information-prose .color[data-color="Purple"] {
+  color: #9333ea;
+}
+
 .information-prose :first-child {
   margin-top: 0;
 }

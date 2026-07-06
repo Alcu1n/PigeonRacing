@@ -14,9 +14,10 @@ describe('information helpers', () => {
   })
 
   it('removes unsafe scripts from rich text', () => {
-    const html = sanitizeInformationHtml('<p>公告</p><script>alert(1)</script>')
+    const html = sanitizeInformationHtml('<p><span class="color" data-color="red" style="--color: #dc2626">公告</span></p><script>alert(1)</script>')
 
-    expect(html).toContain('<p>公告</p>')
+    expect(html).toContain('data-color="red"')
+    expect(html).toContain('公告')
     expect(html).not.toContain('<script>')
   })
 })

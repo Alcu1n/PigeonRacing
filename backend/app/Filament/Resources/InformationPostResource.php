@@ -13,6 +13,8 @@ use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\RichEditor\RichEditorTool;
+use Filament\Forms\Components\RichEditor\TextColor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
@@ -23,6 +25,7 @@ use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Filament\Support\Icons\Heroicon;
 
 class InformationPostResource extends Resource
 {
@@ -57,9 +60,29 @@ class InformationPostResource extends Resource
                 ->fileAttachmentsVisibility('public')
                 ->fileAttachmentsAcceptedFileTypes(['image/png', 'image/jpeg', 'image/gif', 'image/webp'])
                 ->fileAttachmentsMaxSize(10240)
-                ->customTextColors()
+                ->textColors(self::editorTextColors())
+                ->tools([
+                    self::textColorTool('textColorRed', '红', 'red', '#dc2626'),
+                    self::textColorTool('textColorAmber', '橙', 'amber', '#d97706'),
+                    self::textColorTool('textColorGreen', '绿', 'green', '#16a34a'),
+                    self::textColorTool('textColorBlue', '蓝', 'blue', '#2563eb'),
+                    self::textColorTool('textColorPurple', '紫', 'purple', '#9333ea'),
+                    self::textColorClearTool(),
+                ])
                 ->toolbarButtons([
-                    ['bold', 'italic', 'underline', 'strike', 'link', 'textColor'],
+                    [
+                        'bold',
+                        'italic',
+                        'underline',
+                        'strike',
+                        'link',
+                        'textColorRed',
+                        'textColorAmber',
+                        'textColorGreen',
+                        'textColorBlue',
+                        'textColorPurple',
+                        'textColorClear',
+                    ],
                     ['h2', 'h3', 'paragraph'],
                     ['alignStart', 'alignCenter', 'alignEnd'],
                     ['blockquote', 'bulletList', 'orderedList'],
@@ -117,6 +140,39 @@ class InformationPostResource extends Resource
             'index' => Pages\ListInformationPosts::route('/'),
             'create' => Pages\CreateInformationPost::route('/create'),
             'edit' => Pages\EditInformationPost::route('/{record}/edit'),
+        ];
+    }
+
+    private static function textColorTool(string $name, string $label, string $colorKey, string $color): RichEditorTool
+    {
+        return RichEditorTool::make($name)
+            ->label($label)
+            ->icon(Heroicon::Swatch)
+            ->activeKey('textColor')
+            ->activeOptions(['data-color' => $colorKey])
+            ->jsHandler("\$getEditor()?.chain().focus().setTextColor('{$colorKey}').run()")
+            ->extraAttributes(['style' => "color: {$color}"]);
+    }
+
+    private static function textColorClearTool(): RichEditorTool
+    {
+        return RichEditorTool::make('textColorClear')
+            ->label('清除颜色')
+            ->icon(Heroicon::Minus)
+            ->jsHandler("\$getEditor()?.chain().focus().unsetTextColor().run()");
+    }
+
+    /**
+     * @return array<string, TextColor>
+     */
+    private static function editorTextColors(): array
+    {
+        return [
+            'red' => TextColor::make('红色', '#dc2626', '#f87171'),
+            'amber' => TextColor::make('橙色', '#d97706', '#fbbf24'),
+            'green' => TextColor::make('绿色', '#16a34a', '#4ade80'),
+            'blue' => TextColor::make('蓝色', '#2563eb', '#60a5fa'),
+            'purple' => TextColor::make('紫色', '#9333ea', '#c084fc'),
         ];
     }
 }
