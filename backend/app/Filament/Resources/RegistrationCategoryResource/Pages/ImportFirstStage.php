@@ -12,6 +12,7 @@ use App\Filament\Resources\RegistrationCategoryResource;
 use App\Models\RegistrationCategory;
 use App\Services\ProgressiveStageImportService;
 use Filament\Notifications\Notification;
+use Filament\Resources\Pages\Concerns\InteractsWithRecord;
 use Filament\Resources\Pages\Page;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -21,13 +22,12 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ImportFirstStage extends Page
 {
+    use InteractsWithRecord;
     use WithFileUploads;
 
     protected static string $resource = RegistrationCategoryResource::class;
 
     protected string $view = 'filament.resources.registration-category-resource.pages.import-first-stage';
-
-    public RegistrationCategory $record;
 
     public ?TemporaryUploadedFile $upload = null;
 
@@ -41,12 +41,13 @@ class ImportFirstStage extends Page
 
     public function mount(int|string $record): void
     {
-        $this->record = RegistrationCategory::query()->with(['race', 'stageProjects'])->findOrFail($record);
+        $this->record = $this->resolveRecord($record);
+        $this->category()->load(['race', 'stageProjects']);
     }
 
     public function getTitle(): string
     {
-        return "导入 {$this->record->name} 第一阶段";
+        return "导入 {$this->category()->name} 第一阶段";
     }
 
     public function previewUpload(ProgressiveStageImportService $service): void
@@ -56,7 +57,7 @@ class ImportFirstStage extends Page
         ]);
 
         try {
-            $rows = $service->rowsFromSpreadsheet($this->upload->getRealPath(), $this->record);
+            $rows = $service->rowsFromSpreadsheet($this->upload->getRealPath(), $this->category());
             $preview = $service->preview($rows);
             $this->previewToken = $service->storeRowsForConfirmation($rows);
             $this->preview = $service->browserPreview([...$preview, 'token' => $this->previewToken]);
@@ -73,7 +74,7 @@ class ImportFirstStage extends Page
             return;
         }
 
-        $batch = $service->commitStoredPreview($this->record, $this->fileName, $this->previewToken, auth()->id());
+        $batch = $service->commitStoredPreview($this->category(), $this->fileName, $this->previewToken, auth()->id());
         $this->lastResult = [
             'success_rows' => $batch->success_rows,
             'failed_rows' => $batch->failed_rows,
@@ -96,9 +97,9 @@ class ImportFirstStage extends Page
 
     public function downloadTemplate(ProgressiveStageImportService $service): BinaryFileResponse
     {
-        $stage = $service->firstStage($this->record);
+        $stage = $service->firstStage($this->category());
 
-        return Excel::download(new ProgressiveStageImportTemplateExport($stage->name), "递进第一阶段导入模板-{$this->record->name}.xlsx");
+        return Excel::download(new ProgressiveStageImportTemplateExport($stage->name), "递进第一阶段导入模板-{$this->category()->name}.xlsx");
     }
 
     public function downloadErrorReport(): ?BinaryFileResponse
@@ -112,5 +113,13 @@ class ImportFirstStage extends Page
         abort_unless(is_file($fullPath), 404);
 
         return response()->download($fullPath);
+    }
+
+    private function category(): RegistrationCategory
+    {
+        $record = $this->getRecord();
+        abort_unless($record instanceof RegistrationCategory, 404);
+
+        return $record;
     }
 }

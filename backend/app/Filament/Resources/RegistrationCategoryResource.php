@@ -1,12 +1,13 @@
 <?php
 // [IN]: Progressive registration category records / 递进报名类别记录
-// [OUT]: Filament category management with current stage and import entry / 带当前阶段与导入入口的 Filament 类别管理
+// [OUT]: Filament category management with current stage, import entry, and template download / 带当前阶段、导入入口与模板下载的 Filament 类别管理
 // [POS]: Backend admin progressive category resource / 后端后台递进类别资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 
 namespace App\Filament\Resources;
 
+use App\Exports\ProgressiveStageImportTemplateExport;
 use App\Filament\Resources\RegistrationCategoryResource\Pages;
 use App\Models\RegistrationCategory;
 use Filament\Actions\Action;
@@ -20,6 +21,7 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Maatwebsite\Excel\Facades\Excel;
 
 class RegistrationCategoryResource extends Resource
 {
@@ -56,7 +58,17 @@ class RegistrationCategoryResource extends Resource
             Action::make('importFirstStage')
                 ->label('导入第一阶段')
                 ->icon('heroicon-o-arrow-up-tray')
-                ->url(fn (RegistrationCategory $record): string => self::getUrl('import-first-stage', ['record' => $record])),
+                ->url(fn (RegistrationCategory $record): string => self::getUrl('import-first-stage', ['record' => $record->getKey()])),
+            Action::make('downloadFirstStageTemplate')
+                ->label('下载模板')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(function (RegistrationCategory $record) {
+                    $stage = $record->stageProjects()->first();
+                    abort_unless($stage, 404, '请先为该类别配置第一阶段项目。');
+
+                    return Excel::download(new ProgressiveStageImportTemplateExport($stage->name), "递进第一阶段导入模板-{$record->name}.xlsx");
+                }),
             EditAction::make(),
             DeleteAction::make(),
         ]);
