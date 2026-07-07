@@ -67,7 +67,7 @@ class RegistrationCategoryResource extends Resource
                 ->action(function (RegistrationCategory $record) {
                     $stage = app(ProgressiveStageImportService::class)->firstStage($record);
 
-                    return Excel::download(new ProgressiveStageImportTemplateExport($stage->name), "递进第一阶段导入模板-{$record->name}.xlsx");
+                    return Excel::download(new ProgressiveStageImportTemplateExport($stage->name, (int) $stage->group_size), "递进第一阶段导入模板-{$record->name}.xlsx");
                 }),
             EditAction::make(),
             DeleteAction::make(),

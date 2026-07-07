@@ -24,8 +24,11 @@ class SubmitRegistrationRequest extends FormRequest
             'progressive_entries' => ['nullable', 'array'],
             'progressive_entries.*.category_id' => ['required', 'integer', 'min:1'],
             'progressive_entries.*.stage_project_id' => ['required', 'integer', 'min:1'],
-            'progressive_entries.*.pigeon_ids' => ['required', 'array', 'min:1'],
+            'progressive_entries.*.pigeon_ids' => ['nullable', 'array', 'min:1'],
             'progressive_entries.*.pigeon_ids.*' => ['required', 'integer', 'min:1'],
+            'progressive_entries.*.groups' => ['nullable', 'array', 'min:1'],
+            'progressive_entries.*.groups.*.pigeon_ids' => ['required_with:progressive_entries.*.groups', 'array', 'min:1'],
+            'progressive_entries.*.groups.*.pigeon_ids.*' => ['required', 'integer', 'min:1'],
         ];
     }
 
@@ -38,6 +41,12 @@ class SubmitRegistrationRequest extends FormRequest
 
                 if ($entries === [] && $progressiveEntries === []) {
                     $validator->errors()->add('entries', '请至少选择一项报名项目。');
+                }
+
+                foreach ($progressiveEntries as $index => $entry) {
+                    if (($entry['pigeon_ids'] ?? []) === [] && ($entry['groups'] ?? []) === []) {
+                        $validator->errors()->add("progressive_entries.{$index}.groups", '递进报名请至少选择一组。');
+                    }
                 }
             },
         ];

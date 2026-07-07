@@ -9,6 +9,7 @@ namespace Tests\Feature;
 
 use App\Enums\RaceStatus;
 use App\Enums\RegistrationStatus;
+use App\Exports\ProgressiveStageImportTemplateExport;
 use App\Models\Member;
 use App\Models\Pigeon;
 use App\Models\ProgressiveStageEntry;
@@ -120,6 +121,101 @@ class ProgressiveStageRegistrationTest extends TestCase
 
         $this->assertSame('福安 1.5K', $service->firstStage($category)->name);
         $this->assertSame(1, $preview['valid_rows']);
+    }
+
+    public function test_progressive_stage_keeps_configured_group_size(): void
+    {
+        [, , $stage] = $this->progressiveFixtures(groupSize: 3);
+
+        $this->assertSame(3, $stage->fresh()->group_size);
+    }
+
+    public function test_multi_pigeon_template_puts_group_rings_in_one_cell(): void
+    {
+        $rows = (new ProgressiveStageImportTemplateExport('阶段 1', 3))->array();
+
+        $this->assertSame('2025-13-000001，2025-13-000002，2025-13-000003', $rows[0][3]);
+    }
+
+    public function test_multi_pigeon_first_stage_import_validates_group_rows_and_usage_limit(): void
+    {
+        [, $category, $stage] = $this->progressiveFixtures(groupSize: 3);
+        $service = app(ProgressiveStageImportService::class);
+        $rows = $service->rowsFromSpreadsheet($this->makeSheet([
+            ['序号', '会员棚号', '会员参赛名', '足环号码', $stage->name],
+            [1, 'A001', '张三鸽舍', '2026-13-000001，2026-13-000002，2026-13-000003', '✓'],
+            [2, 'A001', '张三鸽舍', '2026-13-000003，2026-13-000002，2026-13-000001', '✓'],
+            [3, 'A001', '张三鸽舍', '2026-13-000001，2026-13-000004，2026-13-000005', '✓'],
+            [4, 'A001', '张三鸽舍', '2026-13-000006，2026-13-000006，2026-13-000007', '✓'],
+            [5, 'A001', '张三鸽舍', '2026-13-000008，2026-13-000009', '✓'],
+        ]), $category);
+        $preview = $service->preview($rows, $category);
+
+        $this->assertSame(2, $preview['valid_rows']);
+        $this->assertSame(3, $preview['failed_rows']);
+
+        $batch = $service->commitStoredPreview($category, 'groups.xlsx', $service->storeRowsForConfirmation($rows), null);
+        $this->assertSame(2, $batch->success_rows);
+        $this->assertSame(6, ProgressiveStageEntry::query()->where('race_project_id', $stage->id)->count());
+        $this->assertSame(2, ProgressiveStageEntry::query()
+            ->where('race_project_id', $stage->id)
+            ->get()
+            ->groupBy('group_key')
+            ->count());
+
+        $stage->forceFill(['max_usage_per_pigeon' => 1])->save();
+        $limitedPreview = $service->preview($rows, $category);
+        $this->assertSame(1, $limitedPreview['valid_rows']);
+    }
+
+    public function test_second_stage_requires_previous_confirmed_whole_group_and_charges_per_group(): void
+    {
+        [$race, $category, $firstStage, $secondStage] = $this->progressiveFixtures(withSecondStage: true, groupSize: 3);
+        $member = Member::query()->create([
+            'phone' => '13900000014',
+            'password' => 'password',
+            'loft_number' => 'A001',
+            'participant_name' => '张三鸽舍',
+            'status' => 'enabled',
+        ]);
+        $first = $this->pigeon($member, '2026-13-000301');
+        $second = $this->pigeon($member, '2026-13-000302');
+        $third = $this->pigeon($member, '2026-13-000303');
+        $other = $this->pigeon($member, '2026-13-000304');
+        $this->stageGroupEntries($race, $category, $firstStage, $member, [$first, $second, $third], RegistrationStatus::Confirmed);
+
+        $registration = app(RegistrationSubmissionService::class)->submit(
+            $member,
+            $race,
+            $race->config_version,
+            (string) Str::uuid(),
+            [],
+            [[
+                'category_id' => $category->id,
+                'stage_project_id' => $secondStage->id,
+                'groups' => [['pigeon_ids' => [$third->id, $first->id, $second->id]]],
+            ]],
+        );
+
+        $this->assertSame($secondStage->price_cent, $registration->total_amount_cent);
+        $this->assertSame(3, ProgressiveStageEntry::query()->where('registration_id', $registration->id)->count());
+        $this->assertSame(1, ProgressiveStageEntry::query()->where('registration_id', $registration->id)->get()->groupBy('group_key')->count());
+
+        $this->expectException(RegistrationRuleException::class);
+        $this->expectExceptionMessage('上一阶段已确认足环组');
+
+        app(RegistrationSubmissionService::class)->submit(
+            $member,
+            $race,
+            $race->config_version,
+            (string) Str::uuid(),
+            [],
+            [[
+                'category_id' => $category->id,
+                'stage_project_id' => $secondStage->id,
+                'groups' => [['pigeon_ids' => [$first->id, $second->id, $other->id]]],
+            ]],
+        );
     }
 
     public function test_current_stage_submission_requires_previous_stage_confirmed_pigeon(): void
@@ -235,7 +331,7 @@ class ProgressiveStageRegistrationTest extends TestCase
         ]);
     }
 
-    private function progressiveFixtures(bool $withSecondStage = false): array
+    private function progressiveFixtures(bool $withSecondStage = false, int $groupSize = 1): array
     {
         $race = Race::query()->create([
             'name' => '测试赛事',
@@ -257,7 +353,7 @@ class ProgressiveStageRegistrationTest extends TestCase
             'registration_category_id' => $category->id,
             'stage_order' => 1,
             'name' => '福安 1.5K',
-            'group_size' => 1,
+            'group_size' => $groupSize,
             'price_cent' => 150000,
             'sort_order' => 1,
             'is_enabled' => true,
@@ -275,7 +371,7 @@ class ProgressiveStageRegistrationTest extends TestCase
             'registration_category_id' => $category->id,
             'stage_order' => 2,
             'name' => '平阳 1.5K',
-            'group_size' => 1,
+            'group_size' => $groupSize,
             'price_cent' => 150000,
             'sort_order' => 2,
             'is_enabled' => true,
@@ -314,6 +410,20 @@ class ProgressiveStageRegistrationTest extends TestCase
             'submitted_at' => now(),
             'confirmed_at' => $status === RegistrationStatus::Confirmed ? now() : null,
         ];
+    }
+
+    private function stageGroupEntries(Race $race, RegistrationCategory $category, RaceProject $stage, Member $member, array $pigeons, RegistrationStatus $status): void
+    {
+        $groupKey = collect($pigeons)->pluck('id')->sort()->implode(':');
+        foreach ($pigeons as $index => $pigeon) {
+            ProgressiveStageEntry::query()->create([
+                ...$this->stageEntry($race, $category, $stage, $member, $pigeon, $status),
+                'group_key' => $groupKey,
+                'group_index' => 1,
+                'group_size_snapshot' => $stage->group_size,
+                'pigeon_sort_order' => $index + 1,
+            ]);
+        }
     }
 
     private function makeSheet(array $rows): string

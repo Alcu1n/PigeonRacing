@@ -46,7 +46,6 @@ class RaceProject extends Model
             $project->project_type ??= self::TYPE_STANDARD;
 
             if ($project->project_type === self::TYPE_PROGRESSIVE_STAGE) {
-                $project->group_size = 1;
                 if ($project->registration_category_id) {
                     $categoryRaceId = RegistrationCategory::query()->whereKey($project->registration_category_id)->value('race_id');
                     if ($categoryRaceId) {

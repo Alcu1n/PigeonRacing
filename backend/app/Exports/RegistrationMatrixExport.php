@@ -62,7 +62,7 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
                 'member',
                 'entries' => fn ($query) => $query->orderBy('group_index')->orderBy('id'),
                 'entries.pigeons' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
-                'progressiveStageEntries' => fn ($query) => $query->orderBy('race_project_id')->orderBy('ring_number_snapshot'),
+                'progressiveStageEntries' => fn ($query) => $query->orderBy('race_project_id')->orderBy('group_index')->orderBy('pigeon_sort_order'),
             ])
             ->orderBy('submitted_at')
             ->orderBy('id')
@@ -100,15 +100,23 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
                 }
             }
 
-            foreach ($registration->progressiveStageEntries as $entry) {
-                $exportedProgressiveEntryIds[] = $entry->id;
-                $key = "{$registration->id}:progressive:{$entry->race_project_id}:{$entry->pigeon_id}";
+            foreach ($this->progressiveEntryGroups($registration->progressiveStageEntries) as $group) {
+                array_push($exportedProgressiveEntryIds, ...$group['entry_ids']);
+                if ($group['group_size'] > 1) {
+                    $row = $this->rowTemplate($member?->loft_number ?? '', $member?->participant_name ?? '', '');
+                    $row['projects'][$group['project_id']] = implode('，', $group['rings']);
+                    $multiRows[] = $row;
+
+                    continue;
+                }
+
+                $key = "{$registration->id}:progressive:{$group['project_id']}:{$group['pigeon_ids'][0]}";
                 $singleRows[$key] ??= $this->rowTemplate(
                     $member?->loft_number ?? '',
                     $member?->participant_name ?? '',
-                    $entry->ring_number_snapshot,
+                    $group['rings'][0] ?? '',
                 );
-                $singleRows[$key]['projects'][$entry->race_project_id] = '✓';
+                $singleRows[$key]['projects'][$group['project_id']] = '✓';
             }
 
             array_push($rows, ...array_values($singleRows), ...$multiRows);
@@ -124,15 +132,28 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
             ->orderBy('race_project_id')
             ->get();
 
-        foreach ($orphanProgressiveEntries as $entry) {
+        foreach ($this->progressiveEntryGroups($orphanProgressiveEntries) as $group) {
+            $entry = $group['first'];
             $member = $entry->member;
-            $key = "progressive-orphan:{$entry->member_id}:{$entry->pigeon_id}";
+            if ($group['group_size'] > 1) {
+                $row = $this->rowTemplate(
+                    $member?->loft_number ?? $entry->loft_number_snapshot,
+                    $member?->participant_name ?? $entry->participant_name_snapshot,
+                    '',
+                );
+                $row['projects'][$group['project_id']] = implode('，', $group['rings']);
+                $orphanProgressiveRows[] = $row;
+
+                continue;
+            }
+
+            $key = "progressive-orphan:{$entry->member_id}:{$group['pigeon_ids'][0]}";
             $orphanProgressiveRows[$key] ??= $this->rowTemplate(
                 $member?->loft_number ?? $entry->loft_number_snapshot,
                 $member?->participant_name ?? $entry->participant_name_snapshot,
-                $entry->ring_number_snapshot,
+                $group['rings'][0] ?? '',
             );
-            $orphanProgressiveRows[$key]['projects'][$entry->race_project_id] = '✓';
+            $orphanProgressiveRows[$key]['projects'][$group['project_id']] = '✓';
         }
 
         array_push($rows, ...array_values($orphanProgressiveRows));
@@ -180,6 +201,27 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
             'ring_number' => $ringNumber,
             'projects' => array_fill_keys($this->projects->pluck('id')->all(), ''),
         ];
+    }
+
+    private function progressiveEntryGroups(Collection $entries): array
+    {
+        return $entries
+            ->groupBy(fn (ProgressiveStageEntry $entry): string => $entry->race_project_id.':'.($entry->group_key ?: $entry->pigeon_id))
+            ->map(function (Collection $group): array {
+                /** @var ProgressiveStageEntry $first */
+                $first = $group->sortBy('pigeon_sort_order')->first();
+
+                return [
+                    'first' => $first,
+                    'entry_ids' => $group->pluck('id')->all(),
+                    'project_id' => $first->race_project_id,
+                    'group_size' => (int) $first->group_size_snapshot,
+                    'pigeon_ids' => $group->sortBy('pigeon_sort_order')->pluck('pigeon_id')->all(),
+                    'rings' => $group->sortBy('pigeon_sort_order')->pluck('ring_number_snapshot')->filter()->values()->all(),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function styleSheet(Worksheet $sheet): void
@@ -247,9 +289,11 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
             ->pluck('total', 'race_project_id');
         $progressiveCounts = ProgressiveStageEntry::query()
             ->where('race_id', $this->race->id)
-            ->selectRaw('race_project_id, count(*) as total')
+            ->get(['race_project_id', 'member_id', 'group_key', 'pigeon_id'])
             ->groupBy('race_project_id')
-            ->pluck('total', 'race_project_id');
+            ->map(fn (Collection $entries): int => $entries
+                ->groupBy(fn (ProgressiveStageEntry $entry): string => $entry->member_id.':'.($entry->group_key ?: $entry->pigeon_id))
+                ->count());
 
         return $this->projects
             ->map(fn ($project): string => $project->name.'：'.((int) ($standardCounts[$project->id] ?? 0) + (int) ($progressiveCounts[$project->id] ?? 0)))

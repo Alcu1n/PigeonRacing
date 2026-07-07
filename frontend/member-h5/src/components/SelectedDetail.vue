@@ -16,9 +16,9 @@ const singleGroups = computed(() => store.singleProjects.map((project) => {
 }).filter((group) => group.entries.length > 0))
 
 const progressiveGroups = computed(() => store.progressiveCategories.map((category) => {
-  const pigeonIds = store.progressiveSelections[category.id] ?? []
-  return { category, pigeonIds }
-}).filter((group) => group.pigeonIds.length > 0))
+  const groups = store.progressiveSelections[category.id] ?? []
+  return { category, groups }
+}).filter((group) => group.groups.length > 0))
 </script>
 
 <template>
@@ -46,12 +46,11 @@ const progressiveGroups = computed(() => store.progressiveCategories.map((catego
 
     <article v-for="group in progressiveGroups" :key="group.category.id" class="detail-block">
       <h3>{{ group.category.name }} · {{ group.category.current_stage?.name }}</h3>
-      <p>共 {{ group.pigeonIds.length }} 羽，小计 {{ yuan(group.pigeonIds.length * (group.category.current_stage?.price_cent ?? 0)) }}</p>
-      <ul>
-        <li v-for="pigeonId in group.pigeonIds.slice(0, 12)" :key="group.category.id + '-' + pigeonId">
-          {{ store.pigeonById(pigeonId).ring_number }}
-        </li>
-      </ul>
+      <p>共 {{ group.groups.length }} 组，小计 {{ yuan(group.groups.length * (group.category.current_stage?.price_cent ?? 0)) }}</p>
+      <div v-for="(item, index) in group.groups.slice(0, 12)" :key="group.category.id + '-' + item.group_key" class="mini-group">
+        <strong>第 {{ index + 1 }} 组</strong>
+        <span>{{ item.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
+      </div>
     </article>
 
     <p v-if="store.selectedCount === 0" class="empty-note">尚未选择报名项目</p>

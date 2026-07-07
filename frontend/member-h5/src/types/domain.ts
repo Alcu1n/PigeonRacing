@@ -57,7 +57,8 @@ export interface RegistrationEntryPayload {
 export interface ProgressiveRegistrationEntryPayload {
   category_id: number
   stage_project_id: number
-  pigeon_ids: number[]
+  groups: Array<{ pigeon_ids: number[] }>
+  pigeon_ids?: number[]
 }
 
 export interface ExistingRegistrationEntry {
@@ -86,8 +87,12 @@ export interface ExistingProgressiveEntry {
   category_name?: string | null
   stage_project_id: number
   stage_project_name: string
+  group_key?: string | null
+  group_index?: number
+  group_size?: number
   pigeon_id: number
   ring_number: string
+  pigeon_sort_order?: number
   price_cent: number
   status: string
   submitted_at?: string | null
@@ -114,12 +119,22 @@ export interface ProgressiveCategory {
     id: number
     name: string
     price_cent: number
+    group_size: number
     stage_order?: number | null
     sort_order: number
   } | null
+  eligible_groups?: ProgressiveStageGroup[]
   eligible_pigeons: Pigeon[]
+  selected_groups?: ProgressiveStageGroup[]
   selected_pigeon_ids: number[]
   status?: string | null
+}
+
+export interface ProgressiveStageGroup {
+  group_key: string
+  group_index: number
+  pigeon_ids: number[]
+  pigeons: Array<Pigeon & { sort_order?: number }>
 }
 
 export type InformationCategory = 'rules' | 'results' | 'notice'

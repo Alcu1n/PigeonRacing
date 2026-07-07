@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member stage registration result rows / 会员阶段报名结果行
-// [OUT]: Progressive stage status, snapshots, and relationships / 递进阶段状态、快照与关联关系
+// [OUT]: Group-aware progressive stage status, snapshots, and relationships / 支持组概念的递进阶段状态、快照与关联关系
 // [POS]: Backend progressive stage result model / 后端递进阶段报名结果模型
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -22,7 +22,11 @@ class ProgressiveStageEntry extends Model
         'registration_category_id',
         'race_project_id',
         'member_id',
+        'group_key',
+        'group_index',
+        'group_size_snapshot',
         'pigeon_id',
+        'pigeon_sort_order',
         'loft_number_snapshot',
         'participant_name_snapshot',
         'ring_number_snapshot',

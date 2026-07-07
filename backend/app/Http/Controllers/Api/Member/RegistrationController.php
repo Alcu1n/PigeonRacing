@@ -44,7 +44,9 @@ class RegistrationController extends Controller
                 'multi_group_count' => $registration->entries
                     ->where('group_size_snapshot', '>', 1)
                     ->count(),
-                'progressive_count' => $registration->progressiveStageEntries->count(),
+                'progressive_count' => $registration->progressiveStageEntries
+                    ->groupBy(fn ($entry): string => $entry->race_project_id.':'.($entry->group_key ?: $entry->pigeon_id))
+                    ->count(),
             ])
             ->values();
 

@@ -12,7 +12,7 @@ use Maatwebsite\Excel\Concerns\WithHeadings;
 
 class ProgressiveStageImportTemplateExport implements FromArray, WithHeadings
 {
-    public function __construct(private readonly string $stageName) {}
+    public function __construct(private readonly string $stageName, private readonly int $groupSize = 1) {}
 
     public function headings(): array
     {
@@ -21,9 +21,16 @@ class ProgressiveStageImportTemplateExport implements FromArray, WithHeadings
 
     public function array(): array
     {
+        $firstRingGroup = collect(range(1, max(1, $this->groupSize)))
+            ->map(fn (int $index): string => '2025-13-'.str_pad((string) $index, 6, '0', STR_PAD_LEFT))
+            ->implode('，');
+        $secondRingGroup = collect(range(max(1, $this->groupSize) + 1, max(1, $this->groupSize) * 2))
+            ->map(fn (int $index): string => '2025-13-'.str_pad((string) $index, 6, '0', STR_PAD_LEFT))
+            ->implode('，');
+
         return [
-            [1, 'A001', '张三鸽舍', '2025-13-000001', '✓'],
-            [2, 'A001', '张三鸽舍', '2025-13-000002', ''],
+            [1, 'A001', '张三鸽舍', $firstRingGroup, '✓'],
+            [2, 'A001', '张三鸽舍', $secondRingGroup, ''],
         ];
     }
 }

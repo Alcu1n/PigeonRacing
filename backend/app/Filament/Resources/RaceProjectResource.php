@@ -53,7 +53,7 @@ class RaceProjectResource extends Resource
                 ->minValue(1)
                 ->helperText('递进阶段项目按此顺序判断上一阶段资格。第一阶段填 1。'),
             TextInput::make('name')->label('项目名称')->required()->maxLength(128),
-            TextInput::make('group_size')->label('项目羽数')->helperText('普通项目：1 显示在单羽矩阵，大于 1 显示为多羽组合；递进阶段项目保存时固定为 1。')->numeric()->minValue(1)->required(),
+            TextInput::make('group_size')->label('项目羽数')->helperText('普通项目：1 显示在单羽矩阵，大于 1 显示为多羽组合；递进阶段项目：1 为单羽递进，大于 1 为整组递进。')->numeric()->minValue(1)->required(),
             TextInput::make('price_cent')
                 ->label('报名金额（元）')
                 ->numeric()

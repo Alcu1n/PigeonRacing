@@ -83,43 +83,74 @@ class ProgressiveStageImportService
         return $normalized;
     }
 
-    public function preview(array $rows): array
+    public function preview(array $rows, ?RegistrationCategory $category = null): array
     {
+        $stage = $category instanceof RegistrationCategory ? $this->firstStage($category) : null;
+        $groupSize = max(1, (int) ($stage?->group_size ?? 1));
+        $ringNumbers = collect($rows)
+            ->flatMap(fn (array $row): array => $this->splitRingNumbers((string) ($row['ring_number'] ?? '')))
+            ->filter()
+            ->unique()
+            ->values();
         $members = Member::query()
             ->whereIn('loft_number', collect($rows)->pluck('loft_number')->filter()->unique())
             ->get()
             ->keyBy('loft_number');
         $pigeons = Pigeon::query()
-            ->whereIn('ring_number', collect($rows)->pluck('ring_number')->filter()->unique())
+            ->whereIn('ring_number', $ringNumbers)
             ->get()
             ->keyBy('ring_number');
-        $seenSelectedRings = [];
+        $seenSelectedGroups = [];
+        $selectedRingUsage = [];
         $rowsPreview = [];
 
         foreach ($rows as $row) {
-            $errors = $this->validateRow($row);
+            $rowRingNumbers = $this->splitRingNumbers($row['ring_number']);
+            $errors = $this->validateRow($row, $rowRingNumbers, $groupSize);
             $selected = $this->isSelectedMarker($row['stage_marker']);
             $member = $members->get($row['loft_number']);
-            $pigeon = $pigeons->get($row['ring_number']);
 
             if ($row['stage_marker'] !== '' && ! $selected && ! $this->isUnselectedMarker($row['stage_marker'])) {
                 $errors[] = '阶段标记只能为 ✓、√、1、是、yes、空值、×、x、0、否、no';
             }
 
-            if ($selected && $row['ring_number'] !== '' && isset($seenSelectedRings[$row['ring_number']])) {
-                $errors[] = '本次文件内已报名足环重复';
+            if ($selected && $rowRingNumbers !== []) {
+                $groupSignature = $this->groupSignatureFromRingNumbers($rowRingNumbers);
+                if (isset($seenSelectedGroups[$row['loft_number']][$groupSignature])) {
+                    $errors[] = '本次文件内相同足环组重复';
+                }
+
+                $rowUsage = array_count_values($rowRingNumbers);
+                foreach ($rowUsage as $ringNumber => $usage) {
+                    if ($usage > 1) {
+                        $errors[] = '同一组内足环号码不能重复';
+                        break;
+                    }
+
+                    if ($stage?->max_usage_per_pigeon !== null && (($selectedRingUsage[$row['loft_number']][$ringNumber] ?? 0) + 1) > (int) $stage->max_usage_per_pigeon) {
+                        $errors[] = "足环 {$ringNumber} 超过每足环最大使用次数";
+                    }
+                }
             }
 
-            if ($selected && $pigeon instanceof Pigeon && $member instanceof Member && $pigeon->member_id !== $member->id) {
-                $errors[] = '足环号码已属于其他会员棚号';
+            if ($selected) {
+                foreach ($rowRingNumbers as $ringNumber) {
+                    $pigeon = $pigeons->get($ringNumber);
+                    if ($pigeon instanceof Pigeon && $member instanceof Member && $pigeon->member_id !== $member->id) {
+                        $errors[] = "足环 {$ringNumber} 已属于其他会员棚号";
+                    }
+
+                    if ($pigeon instanceof Pigeon && ! ($member instanceof Member) && $pigeon->loft_number !== $row['loft_number']) {
+                        $errors[] = "足环 {$ringNumber} 已属于其他会员棚号";
+                    }
+                }
             }
 
-            if ($selected && $pigeon instanceof Pigeon && ! ($member instanceof Member) && $pigeon->loft_number !== $row['loft_number']) {
-                $errors[] = '足环号码已属于其他会员棚号';
-            }
-
-            if ($selected && $row['ring_number'] !== '') {
-                $seenSelectedRings[$row['ring_number']] = true;
+            if ($selected && $errors === [] && $rowRingNumbers !== []) {
+                $seenSelectedGroups[$row['loft_number']][$this->groupSignatureFromRingNumbers($rowRingNumbers)] = true;
+                foreach ($rowRingNumbers as $ringNumber) {
+                    $selectedRingUsage[$row['loft_number']][$ringNumber] = ($selectedRingUsage[$row['loft_number']][$ringNumber] ?? 0) + 1;
+                }
             }
 
             $rowsPreview[] = [
@@ -129,13 +160,14 @@ class ProgressiveStageImportService
                     'loft_number' => $row['loft_number'],
                     'participant_name' => $row['participant_name'],
                     'ring_number' => $row['ring_number'],
+                    'ring_numbers' => $rowRingNumbers,
                     'stage_marker' => $row['stage_marker'],
                 ],
                 'is_selected' => $selected,
                 'member_id' => $member?->id,
                 'system_participant_name' => $member?->participant_name,
                 'will_create_member' => ! $member && $row['loft_number'] !== '',
-                'will_create_pigeon' => $selected && ! $pigeon && $row['ring_number'] !== '',
+                'will_create_pigeon' => $selected ? collect($rowRingNumbers)->filter(fn (string $ringNumber): bool => ! $pigeons->has($ringNumber))->count() : 0,
                 'errors' => array_values(array_unique($errors)),
             ];
         }
@@ -150,7 +182,7 @@ class ProgressiveStageImportService
             'failed_rows' => $failedRows->count(),
             'duplicate_rows' => $failedRows->filter(fn (array $row): bool => collect($row['errors'])->contains(fn (string $error): bool => str_contains($error, '重复')))->count(),
             'create_member_rows' => collect($rowsPreview)->where('is_selected', true)->where('errors', [])->where('will_create_member', true)->pluck('data.loft_number')->unique()->count(),
-            'create_pigeon_rows' => collect($rowsPreview)->where('is_selected', true)->where('errors', [])->where('will_create_pigeon', true)->count(),
+            'create_pigeon_rows' => collect($rowsPreview)->where('is_selected', true)->where('errors', [])->sum('will_create_pigeon'),
             'rows' => $rowsPreview,
         ];
     }
@@ -201,7 +233,7 @@ class ProgressiveStageImportService
     private function commitRows(RegistrationCategory $category, string $fileName, array $rows, ?int $adminId): ImportBatch
     {
         $stage = $this->firstStage($category);
-        $preview = $this->preview($rows);
+        $preview = $this->preview($rows, $category);
 
         return DB::transaction(function () use ($category, $stage, $fileName, $adminId, $preview): ImportBatch {
             $batch = ImportBatch::query()->create([
@@ -218,6 +250,7 @@ class ProgressiveStageImportService
             $memberCache = [];
             $pigeonCache = [];
             $entryRows = [];
+            $nextGroupIndexByMember = [];
             $affectedMemberIds = ProgressiveStageEntry::query()
                 ->where('registration_category_id', $category->id)
                 ->where('race_project_id', $stage->id)
@@ -250,50 +283,64 @@ class ProgressiveStageImportService
                 }
                 $memberCache[$member->loft_number] = $member;
 
-                $pigeon = $pigeonCache[$data['ring_number']] ?? Pigeon::query()->firstOrNew(['ring_number' => $data['ring_number']]);
-                if (! $pigeon->exists) {
-                    $pigeon->forceFill([
-                        'member_id' => $member->id,
-                        'loft_number' => $member->loft_number,
-                        'participant_name' => $member->participant_name,
-                        'import_batch_id' => $batch->id,
-                        'status' => 'normal',
-                    ]);
-                    $pigeon->save();
+                $groupPigeons = [];
+                foreach ($data['ring_numbers'] as $ringNumber) {
+                    $pigeon = $pigeonCache[$ringNumber] ?? Pigeon::query()->firstOrNew(['ring_number' => $ringNumber]);
+                    if (! $pigeon->exists) {
+                        $pigeon->forceFill([
+                            'member_id' => $member->id,
+                            'loft_number' => $member->loft_number,
+                            'participant_name' => $member->participant_name,
+                            'import_batch_id' => $batch->id,
+                            'status' => 'normal',
+                        ]);
+                        $pigeon->save();
+                    }
+                    $pigeonCache[$pigeon->ring_number] = $pigeon;
+                    $groupPigeons[] = $pigeon;
                 }
-                $pigeonCache[$pigeon->ring_number] = $pigeon;
-                $affectedMemberIds[] = $member->id;
 
-                $entryRows[] = [
-                    'registration_id' => null,
-                    'race_id' => $category->race_id,
-                    'registration_category_id' => $category->id,
-                    'race_project_id' => $stage->id,
-                    'member_id' => $member->id,
-                    'pigeon_id' => $pigeon->id,
-                    'loft_number_snapshot' => $member->loft_number,
-                    'participant_name_snapshot' => $member->participant_name,
-                    'ring_number_snapshot' => $pigeon->ring_number,
-                    'project_name_snapshot' => $stage->name,
-                    'price_cent_snapshot' => $stage->price_cent,
-                    'status' => RegistrationStatus::Confirmed->value,
-                    'source' => ProgressiveStageEntry::SOURCE_IMPORT,
-                    'submitted_at' => now(),
-                    'confirmed_at' => now(),
-                    'confirmed_by' => $adminId,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                $affectedMemberIds[] = $member->id;
+                $groupIndex = $nextGroupIndexByMember[$member->id] ?? 1;
+                $nextGroupIndexByMember[$member->id] = $groupIndex + 1;
+                $groupKey = $this->groupSignatureFromPigeonIds(collect($groupPigeons)->pluck('id')->all());
+
+                foreach ($groupPigeons as $order => $pigeon) {
+                    $entryRows[] = [
+                        'registration_id' => null,
+                        'race_id' => $category->race_id,
+                        'registration_category_id' => $category->id,
+                        'race_project_id' => $stage->id,
+                        'member_id' => $member->id,
+                        'group_key' => $groupKey,
+                        'group_index' => $groupIndex,
+                        'group_size_snapshot' => $stage->group_size,
+                        'pigeon_id' => $pigeon->id,
+                        'pigeon_sort_order' => $order + 1,
+                        'loft_number_snapshot' => $member->loft_number,
+                        'participant_name_snapshot' => $member->participant_name,
+                        'ring_number_snapshot' => $pigeon->ring_number,
+                        'project_name_snapshot' => $stage->name,
+                        'price_cent_snapshot' => $stage->price_cent,
+                        'status' => RegistrationStatus::Confirmed->value,
+                        'source' => ProgressiveStageEntry::SOURCE_IMPORT,
+                        'submitted_at' => now(),
+                        'confirmed_at' => now(),
+                        'confirmed_by' => $adminId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
                 $success++;
 
                 if (count($entryRows) >= self::INSERT_CHUNK_SIZE) {
-                    $this->upsertEntries($entryRows);
+                    $this->insertEntries($entryRows);
                     $entryRows = [];
                 }
             }
 
             if ($entryRows !== []) {
-                $this->upsertEntries($entryRows);
+                $this->insertEntries($entryRows);
             }
 
             $failed = collect($preview['rows'])->reject(fn (array $row): bool => $row['errors'] === [])->values()->all();
@@ -319,16 +366,12 @@ class ProgressiveStageImportService
         });
     }
 
-    private function upsertEntries(array $rows): void
+    private function insertEntries(array $rows): void
     {
-        ProgressiveStageEntry::query()->upsert(
-            $rows,
-            ['registration_category_id', 'race_project_id', 'member_id', 'pigeon_id'],
-            ['registration_id', 'loft_number_snapshot', 'participant_name_snapshot', 'ring_number_snapshot', 'project_name_snapshot', 'price_cent_snapshot', 'status', 'source', 'submitted_at', 'confirmed_at', 'confirmed_by', 'updated_at']
-        );
+        ProgressiveStageEntry::query()->insert($rows);
     }
 
-    private function validateRow(array $row): array
+    private function validateRow(array $row, array $ringNumbers, int $groupSize): array
     {
         $errors = [];
         if ($row['loft_number'] === '') {
@@ -340,8 +383,35 @@ class ProgressiveStageImportService
         if ($row['ring_number'] === '') {
             $errors[] = '足环号码不能为空';
         }
+        if ($row['ring_number'] !== '' && count($ringNumbers) !== $groupSize) {
+            $errors[] = "该阶段项目必须填写 {$groupSize} 羽足环";
+        }
 
         return $errors;
+    }
+
+    private function splitRingNumbers(string $value): array
+    {
+        return collect(preg_split('/[，,]+/u', $value) ?: [])
+            ->map(fn (string $ringNumber): string => trim($ringNumber))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function groupSignatureFromRingNumbers(array $ringNumbers): string
+    {
+        sort($ringNumbers, SORT_NATURAL);
+
+        return implode('|', $ringNumbers);
+    }
+
+    private function groupSignatureFromPigeonIds(array $pigeonIds): string
+    {
+        $ids = array_map('intval', $pigeonIds);
+        sort($ids, SORT_NUMERIC);
+
+        return implode(':', $ids);
     }
 
     private function isSelectedMarker(string $value): bool

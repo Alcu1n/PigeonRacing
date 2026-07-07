@@ -58,7 +58,7 @@ class ImportFirstStage extends Page
 
         try {
             $rows = $service->rowsFromSpreadsheet($this->upload->getRealPath(), $this->category());
-            $preview = $service->preview($rows);
+            $preview = $service->preview($rows, $this->category());
             $this->previewToken = $service->storeRowsForConfirmation($rows);
             $this->preview = $service->browserPreview([...$preview, 'token' => $this->previewToken]);
             $this->fileName = $this->upload->getClientOriginalName();
@@ -99,7 +99,7 @@ class ImportFirstStage extends Page
     {
         $stage = $service->firstStage($this->category());
 
-        return Excel::download(new ProgressiveStageImportTemplateExport($stage->name), "递进第一阶段导入模板-{$this->category()->name}.xlsx");
+        return Excel::download(new ProgressiveStageImportTemplateExport($stage->name, (int) $stage->group_size), "递进第一阶段导入模板-{$this->category()->name}.xlsx");
     }
 
     public function downloadErrorReport(): ?BinaryFileResponse

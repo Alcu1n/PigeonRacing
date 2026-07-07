@@ -45,7 +45,7 @@ export interface HistoryProgressiveGroup {
   stage_project_id: number
   stage_project_name: string
   price_cent: number
-  rings: Array<{ ring_number: string; status: string }>
+  groups: Array<{ group_key?: string; group_index: number; rings: string[]; status: string }>
   count: number
   amount_cent: number
 }
@@ -156,13 +156,20 @@ function buildProgressiveGroups(entries: ExistingProgressiveEntry[]): HistoryPro
       stage_project_id: entry.stage_project_id,
       stage_project_name: entry.stage_project_name,
       price_cent: entry.price_cent,
-      rings: [],
+      groups: [],
       count: 0,
       amount_cent: 0,
     }
 
-    group.rings.push({ ring_number: entry.ring_number, status: entry.status })
-    group.count = group.rings.length
+    const groupKey = entry.group_key ?? String(entry.pigeon_id)
+    let stageGroup = group.groups.find((item) => item.group_key === groupKey)
+    if (!stageGroup) {
+      stageGroup = { group_key: groupKey, group_index: entry.group_index ?? group.groups.length + 1, rings: [], status: entry.status }
+      group.groups.push(stageGroup)
+    }
+    stageGroup.rings.push(entry.ring_number)
+    stageGroup.status = stageGroup.status === entry.status ? stageGroup.status : 'pending_confirmation'
+    group.count = group.groups.length
     group.amount_cent = group.count * group.price_cent
     groups.set(key, group)
   }
@@ -170,7 +177,9 @@ function buildProgressiveGroups(entries: ExistingProgressiveEntry[]): HistoryPro
   return [...groups.values()]
     .map((group) => ({
       ...group,
-      rings: group.rings.sort((left, right) => left.ring_number.localeCompare(right.ring_number)),
+      groups: group.groups
+        .map((item) => ({ ...item, rings: item.rings }))
+        .sort((left, right) => left.group_index - right.group_index),
     }))
     .sort((left, right) => left.stage_project_id - right.stage_project_id)
 }

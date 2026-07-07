@@ -7,6 +7,7 @@
 
 namespace App\Services;
 
+use App\Enums\RegistrationStatus;
 use App\Models\Registration;
 use App\Models\RegistrationEntry;
 use App\Models\ProgressiveStageEntry;
@@ -145,20 +146,33 @@ class RegistrationDetailMatrixService
                         /** @var ProgressiveStageEntry $first */
                         $first = $projectEntries->first();
 
+                        $groups = $projectEntries
+                            ->groupBy(fn (ProgressiveStageEntry $entry): string => $entry->group_key ?: (string) $entry->pigeon_id)
+                            ->map(function (Collection $group): array {
+                                $first = $group->sortBy('pigeon_sort_order')->first();
+
+                                return [
+                                    'group_index' => (int) $first->group_index,
+                                    'rings' => $group
+                                        ->sortBy('pigeon_sort_order')
+                                        ->pluck('ring_number_snapshot')
+                                        ->filter()
+                                        ->values()
+                                        ->all(),
+                                    'status' => $group->every(fn (ProgressiveStageEntry $entry): bool => $entry->status === $first->status) ? $first->status->value : RegistrationStatus::PendingConfirmation->value,
+                                ];
+                            })
+                            ->sortBy('group_index')
+                            ->values();
+
                         return [
                             'project_id' => $first->race_project_id,
                             'project_name' => $first->project_name_snapshot,
                             'price_cent' => (int) $first->price_cent_snapshot,
-                            'rings' => $projectEntries
-                                ->sortBy('ring_number_snapshot')
-                                ->map(fn (ProgressiveStageEntry $entry): array => [
-                                    'ring_number' => $entry->ring_number_snapshot,
-                                    'status' => $entry->status->value,
-                                ])
-                                ->values()
-                                ->all(),
-                            'count' => $projectEntries->count(),
-                            'amount_cent' => $projectEntries->sum('price_cent_snapshot'),
+                            'group_size' => (int) $first->group_size_snapshot,
+                            'groups' => $groups->all(),
+                            'count' => $groups->count(),
+                            'amount_cent' => $groups->count() * (int) $first->price_cent_snapshot,
                         ];
                     })
                     ->values()

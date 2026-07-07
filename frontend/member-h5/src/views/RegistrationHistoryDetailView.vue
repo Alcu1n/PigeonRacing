@@ -113,17 +113,17 @@ onMounted(async () => {
       <section class="profile-card history-card">
         <div class="history-card-head">
           <h2>递进阶段</h2>
-          <span>{{ matrix.progressive.reduce((sum, group) => sum + group.count, 0) }} 羽</span>
+          <span>{{ matrix.progressive.reduce((sum, group) => sum + group.count, 0) }} 组</span>
         </div>
         <p v-if="matrix.progressive.length === 0" class="empty-note">暂无递进阶段报名</p>
         <article v-for="group in matrix.progressive" :key="group.category_id + '-' + group.stage_project_id" class="history-multi-block">
           <header>
             <strong>{{ group.category_name }} · {{ group.stage_project_name }}</strong>
-            <span>{{ group.count }} 羽 / {{ yuan(group.amount_cent) }}</span>
+            <span>{{ group.count }} 组 / {{ yuan(group.amount_cent) }}</span>
           </header>
-          <div v-for="ring in group.rings" :key="ring.ring_number" class="history-group-row">
-            <b>{{ ring.status === 'confirmed' ? '已确认' : '未确认' }}</b>
-            <span>{{ ring.ring_number }}</span>
+          <div v-for="item in group.groups" :key="item.group_index" class="history-group-row">
+            <b>{{ item.status === 'confirmed' ? '已确认' : '未确认' }}</b>
+            <span>{{ item.rings.join(' / ') }}</span>
           </div>
         </article>
       </section>

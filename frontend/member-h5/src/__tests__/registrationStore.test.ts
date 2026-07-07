@@ -169,18 +169,18 @@ describe('registration store', () => {
       id: 10,
       name: '站站赛',
       sort_order: 1,
-      current_stage: { id: 30, name: '平阳 1.5K', price_cent: 150000, stage_order: 2, sort_order: 3 },
+      current_stage: { id: 30, name: '平阳 1.5K', price_cent: 150000, group_size: 1, stage_order: 2, sort_order: 3 },
       eligible_pigeons: [{ id: 101, ring_number: 'CHN-2026-03-000101' }],
       selected_pigeon_ids: [],
       status: null,
     }]
     store.load(payload)
 
-    store.toggleProgressivePigeon(10, 101)
-    store.toggleProgressivePigeon(10, 102)
+    store.toggleProgressiveGroup(10, '101')
+    store.toggleProgressiveGroup(10, '102')
 
-    expect(store.progressiveSelections[10]).toEqual([101])
-    expect(store.submitProgressiveEntries).toEqual([{ category_id: 10, stage_project_id: 30, pigeon_ids: [101] }])
+    expect(store.progressiveSelections[10]).toEqual([{ group_key: '101', pigeon_ids: [101] }])
+    expect(store.submitProgressiveEntries).toEqual([{ category_id: 10, stage_project_id: 30, groups: [{ pigeon_ids: [101] }] }])
     expect(store.progressiveAmountCent).toBe(150000)
     expect(store.totalAmountCent).toBe(150000)
   })
@@ -192,7 +192,7 @@ describe('registration store', () => {
       id: 10,
       name: '站站赛',
       sort_order: 1,
-      current_stage: { id: 30, name: '平阳 1.5K', price_cent: 150000, stage_order: 2, sort_order: 3 },
+      current_stage: { id: 30, name: '平阳 1.5K', price_cent: 150000, group_size: 1, stage_order: 2, sort_order: 3 },
       eligible_pigeons: [{ id: 101, ring_number: 'CHN-2026-03-000101' }],
       selected_pigeon_ids: [101],
       status: 'pending_confirmation',
@@ -200,8 +200,48 @@ describe('registration store', () => {
 
     store.load(payload)
 
-    expect(store.progressiveSelections[10]).toEqual([101])
-    expect(store.submitProgressiveEntries).toEqual([{ category_id: 10, stage_project_id: 30, pigeon_ids: [101] }])
+    expect(store.progressiveSelections[10]).toEqual([{ group_key: '101', pigeon_ids: [101] }])
+    expect(store.submitProgressiveEntries).toEqual([{ category_id: 10, stage_project_id: 30, groups: [{ pigeon_ids: [101] }] }])
+  })
+
+  it('submits and restores progressive multi-pigeon groups', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.progressive_categories = [{
+      id: 10,
+      name: '站站赛',
+      sort_order: 1,
+      current_stage: { id: 30, name: '丽水 1K', price_cent: 100000, group_size: 3, stage_order: 2, sort_order: 3 },
+      eligible_groups: [{
+        group_key: '101:102:103',
+        group_index: 1,
+        pigeon_ids: [101, 102, 103],
+        pigeons: [
+          { id: 101, ring_number: 'CHN-2026-03-000101', sort_order: 1 },
+          { id: 102, ring_number: 'CHN-2026-03-000102', sort_order: 2 },
+          { id: 103, ring_number: 'CHN-2026-03-000103', sort_order: 3 },
+        ],
+      }],
+      eligible_pigeons: [],
+      selected_groups: [{
+        group_key: '101:102:103',
+        group_index: 1,
+        pigeon_ids: [101, 102, 103],
+        pigeons: [
+          { id: 101, ring_number: 'CHN-2026-03-000101', sort_order: 1 },
+          { id: 102, ring_number: 'CHN-2026-03-000102', sort_order: 2 },
+          { id: 103, ring_number: 'CHN-2026-03-000103', sort_order: 3 },
+        ],
+      }],
+      selected_pigeon_ids: [],
+      status: 'pending_confirmation',
+    }]
+
+    store.load(payload)
+
+    expect(store.progressiveSelections[10]).toEqual([{ group_key: '101:102:103', pigeon_ids: [101, 102, 103] }])
+    expect(store.submitProgressiveEntries).toEqual([{ category_id: 10, stage_project_id: 30, groups: [{ pigeon_ids: [101, 102, 103] }] }])
+    expect(store.progressiveAmountCent).toBe(100000)
   })
 
   it('drops stale local draft when config version changes', () => {

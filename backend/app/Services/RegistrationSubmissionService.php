@@ -196,27 +196,50 @@ class RegistrationSubmissionService
                 throw new RegistrationRuleException('progressive_stage_not_current', "类别 {$category->name} 当前阶段配置无效。");
             }
 
-            $pigeonIds = array_values(array_unique(array_map('intval', $entry['pigeon_ids'] ?? [])));
-            if ($pigeonIds === []) {
-                throw new RegistrationRuleException('empty_entries', "类别 {$category->name} 请至少选择一羽。");
+            $groups = $this->normalizeProgressiveGroups($entry);
+            if ($groups === []) {
+                throw new RegistrationRuleException('empty_entries', "类别 {$category->name} 请至少选择一组。");
             }
 
-            $entryPigeons = [];
-            foreach ($pigeonIds as $pigeonId) {
-                $pigeon = $pigeons->get($pigeonId);
-                if (! $pigeon instanceof Pigeon) {
-                    throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前会员或不可报名的足环。', 403);
+            $normalizedGroups = [];
+            $groupSignatures = [];
+            $pigeonUsage = [];
+            foreach ($groups as $groupIndex => $pigeonIds) {
+                if (count($pigeonIds) !== (int) $project->group_size) {
+                    throw new RegistrationRuleException('group_size_mismatch', "项目 {$project->name} 必须选择 {$project->group_size} 羽。");
                 }
-                $entryPigeons[] = $pigeon;
+
+                $groupKey = $this->groupSignature($pigeonIds);
+                if (isset($groupSignatures[$groupKey])) {
+                    throw new RegistrationRuleException('duplicate_group', "项目 {$project->name} 已存在相同足环组合。");
+                }
+                $groupSignatures[$groupKey] = true;
+
+                $entryPigeons = [];
+                foreach ($pigeonIds as $pigeonId) {
+                    $pigeon = $pigeons->get($pigeonId);
+                    if (! $pigeon instanceof Pigeon) {
+                        throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前会员或不可报名的足环。', 403);
+                    }
+                    $entryPigeons[] = $pigeon;
+                    $pigeonUsage[$pigeonId] = ($pigeonUsage[$pigeonId] ?? 0) + 1;
+                }
+
+                $normalizedGroups[] = [
+                    'pigeons' => $entryPigeons,
+                    'group_key' => $groupKey,
+                    'group_index' => $groupIndex + 1,
+                ];
             }
 
-            $this->assertProgressiveEligibility($member, $category, $project, $pigeonIds);
+            $this->assertProgressiveLimits($project, count($normalizedGroups), $pigeonUsage);
+            $this->assertProgressiveEligibility($member, $category, $project, collect($normalizedGroups)->pluck('group_key')->all());
 
-            $totalAmount += count($entryPigeons) * $project->price_cent;
+            $totalAmount += count($normalizedGroups) * $project->price_cent;
             $normalized[] = [
                 'category' => $category,
                 'project' => $project,
-                'pigeons' => $entryPigeons,
+                'groups' => $normalizedGroups,
             ];
         }
 
@@ -264,14 +287,45 @@ class RegistrationSubmissionService
     private function flattenProgressivePigeonIds(array $entries): array
     {
         return collect($entries)
-            ->flatMap(fn (array $entry): array => $entry['pigeon_ids'] ?? [])
+            ->flatMap(fn (array $entry): array => collect($this->normalizeProgressiveGroups($entry))->flatten()->all())
             ->map(fn ($id): int => (int) $id)
             ->unique()
             ->values()
             ->all();
     }
 
-    private function assertProgressiveEligibility(Member $member, RegistrationCategory $category, RaceProject $project, array $pigeonIds): void
+    private function normalizeProgressiveGroups(array $entry): array
+    {
+        if (isset($entry['groups']) && is_array($entry['groups'])) {
+            return collect($entry['groups'])
+                ->map(fn (array $group): array => array_values(array_unique(array_map('intval', $group['pigeon_ids'] ?? []))))
+                ->filter(fn (array $pigeonIds): bool => $pigeonIds !== [])
+                ->values()
+                ->all();
+        }
+
+        $pigeonIds = array_values(array_unique(array_map('intval', $entry['pigeon_ids'] ?? [])));
+
+        return collect($pigeonIds)
+            ->map(fn (int $pigeonId): array => [$pigeonId])
+            ->values()
+            ->all();
+    }
+
+    private function assertProgressiveLimits(RaceProject $project, int $groupCount, array $pigeonUsage): void
+    {
+        if ($project->max_entries_per_member !== null && $groupCount > $project->max_entries_per_member) {
+            throw new RegistrationRuleException('project_entry_limit_exceeded', "项目 {$project->name} 已超过每会员报名上限。");
+        }
+
+        foreach ($pigeonUsage as $usage) {
+            if ($project->max_usage_per_pigeon !== null && $usage > $project->max_usage_per_pigeon) {
+                throw new RegistrationRuleException('pigeon_usage_limit_exceeded', "项目 {$project->name} 已超过每只足环最大使用次数。");
+            }
+        }
+    }
+
+    private function assertProgressiveEligibility(Member $member, RegistrationCategory $category, RaceProject $project, array $groupKeys): void
     {
         if ((int) $project->stage_order <= 1) {
             return;
@@ -289,14 +343,15 @@ class RegistrationSubmissionService
             ->where('registration_category_id', $category->id)
             ->where('race_project_id', $previousProject->id)
             ->where('status', RegistrationStatus::Confirmed->value)
-            ->whereIn('pigeon_id', $pigeonIds)
-            ->pluck('pigeon_id')
-            ->map(fn ($id): int => (int) $id)
+            ->get()
+            ->groupBy(fn (ProgressiveStageEntry $entry): string => $entry->group_key ?: (string) $entry->pigeon_id)
+            ->map(fn (Collection $group): string => $this->groupSignature($group->pluck('pigeon_id')->map(fn ($id): int => (int) $id)->all()))
+            ->values()
             ->all();
 
-        $missing = array_values(array_diff($pigeonIds, $eligible));
+        $missing = array_values(array_diff($groupKeys, $eligible));
         if ($missing !== []) {
-            throw new RegistrationRuleException('progressive_pigeon_not_eligible', "类别 {$category->name} 只能选择上一阶段已确认足环。");
+            throw new RegistrationRuleException('progressive_pigeon_not_eligible', "类别 {$category->name} 只能选择上一阶段已确认足环组。");
         }
     }
 
@@ -348,14 +403,18 @@ class RegistrationSubmissionService
             $category = $entry['category'];
             /** @var RaceProject $project */
             $project = $entry['project'];
-            $pigeonIds = collect($entry['pigeons'])->pluck('id')->map(fn ($id): int => (int) $id)->sort()->values()->all();
+            $selectedGroupKeys = collect($entry['groups'])->pluck('group_key')->sort()->values()->all();
             $existing = ProgressiveStageEntry::query()
                 ->where('member_id', $registration->member_id)
                 ->where('registration_category_id', $category->id)
                 ->where('race_project_id', $project->id)
                 ->get();
-            $existingIds = $existing->pluck('pigeon_id')->map(fn ($id): int => (int) $id)->sort()->values()->all();
-            $keepConfirmed = $existingIds === $pigeonIds
+            $existingGroupKeys = $existing
+                ->groupBy(fn (ProgressiveStageEntry $row): string => $row->group_key ?: (string) $row->pigeon_id)
+                ->map(fn (Collection $group): string => $this->groupSignature($group->pluck('pigeon_id')->map(fn ($id): int => (int) $id)->all()))
+                ->sort()
+                ->values();
+            $keepConfirmed = $existingGroupKeys->all() === $selectedGroupKeys
                 && $existing->isNotEmpty()
                 && $existing->every(fn (ProgressiveStageEntry $row): bool => $row->status === RegistrationStatus::Confirmed);
             $status = $keepConfirmed || ! $race->require_admin_confirm
@@ -370,26 +429,32 @@ class RegistrationSubmissionService
                 ->where('race_project_id', $project->id)
                 ->delete();
 
-            foreach ($entry['pigeons'] as $pigeon) {
-                /** @var Pigeon $pigeon */
-                ProgressiveStageEntry::query()->create([
-                    'registration_id' => $registration->id,
-                    'race_id' => $registration->race_id,
-                    'registration_category_id' => $category->id,
-                    'race_project_id' => $project->id,
-                    'member_id' => $registration->member_id,
-                    'pigeon_id' => $pigeon->id,
-                    'loft_number_snapshot' => $pigeon->loft_number,
-                    'participant_name_snapshot' => $pigeon->participant_name,
-                    'ring_number_snapshot' => $pigeon->ring_number,
-                    'project_name_snapshot' => $project->name,
-                    'price_cent_snapshot' => $project->price_cent,
-                    'status' => $status->value,
-                    'source' => ProgressiveStageEntry::SOURCE_MEMBER,
-                    'submitted_at' => now(),
-                    'confirmed_at' => $confirmedAt,
-                    'confirmed_by' => $confirmedBy,
-                ]);
+            foreach ($entry['groups'] as $groupIndex => $group) {
+                foreach ($group['pigeons'] as $order => $pigeon) {
+                    /** @var Pigeon $pigeon */
+                    ProgressiveStageEntry::query()->create([
+                        'registration_id' => $registration->id,
+                        'race_id' => $registration->race_id,
+                        'registration_category_id' => $category->id,
+                        'race_project_id' => $project->id,
+                        'member_id' => $registration->member_id,
+                        'group_key' => $group['group_key'],
+                        'group_index' => $groupIndex + 1,
+                        'group_size_snapshot' => $project->group_size,
+                        'pigeon_id' => $pigeon->id,
+                        'pigeon_sort_order' => $order + 1,
+                        'loft_number_snapshot' => $pigeon->loft_number,
+                        'participant_name_snapshot' => $pigeon->participant_name,
+                        'ring_number_snapshot' => $pigeon->ring_number,
+                        'project_name_snapshot' => $project->name,
+                        'price_cent_snapshot' => $project->price_cent,
+                        'status' => $status->value,
+                        'source' => ProgressiveStageEntry::SOURCE_MEMBER,
+                        'submitted_at' => now(),
+                        'confirmed_at' => $confirmedAt,
+                        'confirmed_by' => $confirmedBy,
+                    ]);
+                }
             }
         }
     }
