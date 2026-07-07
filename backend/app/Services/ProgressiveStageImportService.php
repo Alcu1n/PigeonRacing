@@ -213,7 +213,18 @@ class ProgressiveStageImportService
             $memberCache = [];
             $pigeonCache = [];
             $entryRows = [];
-            $affectedMemberIds = [];
+            $affectedMemberIds = ProgressiveStageEntry::query()
+                ->where('registration_category_id', $category->id)
+                ->where('race_project_id', $stage->id)
+                ->where('source', ProgressiveStageEntry::SOURCE_IMPORT)
+                ->pluck('member_id')
+                ->all();
+
+            ProgressiveStageEntry::query()
+                ->where('registration_category_id', $category->id)
+                ->where('race_project_id', $stage->id)
+                ->where('source', ProgressiveStageEntry::SOURCE_IMPORT)
+                ->delete();
 
             foreach ($preview['rows'] as $row) {
                 if (! $row['is_selected'] || $row['errors'] !== []) {

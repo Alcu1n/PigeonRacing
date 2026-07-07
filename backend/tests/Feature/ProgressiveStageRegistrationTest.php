@@ -68,6 +68,44 @@ class ProgressiveStageRegistrationTest extends TestCase
         $this->assertDatabaseMissing('progressive_stage_entries', ['ring_number_snapshot' => '2026-13-000003']);
     }
 
+    public function test_first_stage_reimport_replaces_previous_import_baseline(): void
+    {
+        [, $category, $stage] = $this->progressiveFixtures();
+        $service = app(ProgressiveStageImportService::class);
+        $firstRows = $service->rowsFromSpreadsheet($this->makeSheet([
+            ['序号', '会员棚号', '会员参赛名', '足环号码', $stage->name],
+            [1, 'A001', '张三鸽舍', '2026-13-000101', '✓'],
+            [2, 'A001', '张三鸽舍', '2026-13-000102', '✓'],
+        ]), $category);
+        $service->commitStoredPreview($category, 'first.xlsx', $service->storeRowsForConfirmation($firstRows), null);
+
+        $secondRows = $service->rowsFromSpreadsheet($this->makeSheet([
+            ['序号', '会员棚号', '会员参赛名', '足环号码', $stage->name],
+            [1, 'A001', '张三鸽舍', '2026-13-000102', '✓'],
+            [2, 'A001', '张三鸽舍', '2026-13-000103', '✓'],
+        ]), $category);
+        $batch = $service->commitStoredPreview($category, 'second.xlsx', $service->storeRowsForConfirmation($secondRows), null);
+
+        $this->assertSame(2, $batch->success_rows);
+        $this->assertDatabaseMissing('progressive_stage_entries', [
+            'race_project_id' => $stage->id,
+            'ring_number_snapshot' => '2026-13-000101',
+            'source' => ProgressiveStageEntry::SOURCE_IMPORT,
+        ]);
+        $this->assertDatabaseHas('progressive_stage_entries', [
+            'race_project_id' => $stage->id,
+            'ring_number_snapshot' => '2026-13-000102',
+            'source' => ProgressiveStageEntry::SOURCE_IMPORT,
+            'status' => RegistrationStatus::Confirmed->value,
+        ]);
+        $this->assertDatabaseHas('progressive_stage_entries', [
+            'race_project_id' => $stage->id,
+            'ring_number_snapshot' => '2026-13-000103',
+            'source' => ProgressiveStageEntry::SOURCE_IMPORT,
+            'status' => RegistrationStatus::Confirmed->value,
+        ]);
+    }
+
     public function test_current_stage_submission_requires_previous_stage_confirmed_pigeon(): void
     {
         [$race, $category, $firstStage, $secondStage] = $this->progressiveFixtures(withSecondStage: true);
