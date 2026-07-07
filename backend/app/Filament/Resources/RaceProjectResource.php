@@ -9,6 +9,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\RaceProjectResource\Pages;
 use App\Models\RaceProject;
+use App\Models\RegistrationCategory;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -31,8 +32,28 @@ class RaceProjectResource extends Resource
     {
         return $schema->components([
             Select::make('race_id')->label('赛事')->relationship('race', 'name')->required(),
+            Select::make('project_type')
+                ->label('项目类型')
+                ->options([
+                    RaceProject::TYPE_STANDARD => '普通项目（单羽/多羽）',
+                    RaceProject::TYPE_PROGRESSIVE_STAGE => '递进阶段项目',
+                ])
+                ->default(RaceProject::TYPE_STANDARD)
+                ->required(),
+            Select::make('registration_category_id')
+                ->label('所属递进类别')
+                ->options(fn (): array => RegistrationCategory::query()->with('race')->orderByDesc('id')->get()->mapWithKeys(
+                    fn (RegistrationCategory $category): array => [$category->id => ($category->race?->name ? $category->race->name.' · ' : '').$category->name]
+                )->all())
+                ->searchable()
+                ->helperText('仅项目类型为“递进阶段项目”时选择。'),
+            TextInput::make('stage_order')
+                ->label('阶段顺序')
+                ->numeric()
+                ->minValue(1)
+                ->helperText('递进阶段项目按此顺序判断上一阶段资格。第一阶段填 1。'),
             TextInput::make('name')->label('项目名称')->required()->maxLength(128),
-            TextInput::make('group_size')->label('项目羽数')->helperText('1 显示在单羽矩阵；大于 1 显示为多羽组合。')->numeric()->minValue(1)->required(),
+            TextInput::make('group_size')->label('项目羽数')->helperText('普通项目：1 显示在单羽矩阵，大于 1 显示为多羽组合；递进阶段项目保存时固定为 1。')->numeric()->minValue(1)->required(),
             TextInput::make('price_cent')
                 ->label('报名金额（元）')
                 ->numeric()
@@ -53,7 +74,13 @@ class RaceProjectResource extends Resource
     {
         return $table->columns([
             TextColumn::make('race.name')->label('赛事')->searchable(),
+            TextColumn::make('project_type')
+                ->label('类型')
+                ->formatStateUsing(fn (?string $state): string => $state === RaceProject::TYPE_PROGRESSIVE_STAGE ? '递进阶段' : '普通项目')
+                ->badge(),
+            TextColumn::make('registrationCategory.name')->label('递进类别')->placeholder('-'),
             TextColumn::make('name')->label('项目')->searchable(),
+            TextColumn::make('stage_order')->label('阶段')->placeholder('-'),
             TextColumn::make('group_size')->label('羽数'),
             TextColumn::make('price_cent')->label('金额（元）')->formatStateUsing(fn (?int $state): string => self::yuanFromCent($state ?? 0)),
             IconColumn::make('is_enabled')->label('启用')->boolean(),

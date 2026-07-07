@@ -18,6 +18,6 @@ class ViewRegistration extends ViewRecord
     {
         parent::mount($record);
 
-        $this->record->loadMissing(['race', 'member', 'entries.pigeons']);
+        $this->record->loadMissing(['race', 'member', 'entries.pigeons', 'progressiveStageEntries.category']);
     }
 }

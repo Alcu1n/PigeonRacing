@@ -162,6 +162,48 @@ describe('registration store', () => {
     expect(store.totalAmountCent).toBe(25000)
   })
 
+  it('submits progressive current-stage selections with amount', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.progressive_categories = [{
+      id: 10,
+      name: '站站赛',
+      sort_order: 1,
+      current_stage: { id: 30, name: '平阳 1.5K', price_cent: 150000, stage_order: 2, sort_order: 3 },
+      eligible_pigeons: [{ id: 101, ring_number: 'CHN-2026-03-000101' }],
+      selected_pigeon_ids: [],
+      status: null,
+    }]
+    store.load(payload)
+
+    store.toggleProgressivePigeon(10, 101)
+    store.toggleProgressivePigeon(10, 102)
+
+    expect(store.progressiveSelections[10]).toEqual([101])
+    expect(store.submitProgressiveEntries).toEqual([{ category_id: 10, stage_project_id: 30, pigeon_ids: [101] }])
+    expect(store.progressiveAmountCent).toBe(150000)
+    expect(store.totalAmountCent).toBe(150000)
+  })
+
+  it('restores progressive current-stage selections from bootstrap', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.progressive_categories = [{
+      id: 10,
+      name: '站站赛',
+      sort_order: 1,
+      current_stage: { id: 30, name: '平阳 1.5K', price_cent: 150000, stage_order: 2, sort_order: 3 },
+      eligible_pigeons: [{ id: 101, ring_number: 'CHN-2026-03-000101' }],
+      selected_pigeon_ids: [101],
+      status: 'pending_confirmation',
+    }]
+
+    store.load(payload)
+
+    expect(store.progressiveSelections[10]).toEqual([101])
+    expect(store.submitProgressiveEntries).toEqual([{ category_id: 10, stage_project_id: 30, pigeon_ids: [101] }])
+  })
+
   it('drops stale local draft when config version changes', () => {
     const store = useRegistrationStore()
     store.load(bootstrap())

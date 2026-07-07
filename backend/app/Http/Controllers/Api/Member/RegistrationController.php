@@ -25,7 +25,7 @@ class RegistrationController extends Controller
         $member = auth('member')->user();
 
         $registrations = $member->registrations()
-            ->with(['race', 'entries'])
+            ->with(['race', 'entries', 'progressiveStageEntries'])
             ->orderByDesc('submitted_at')
             ->orderByDesc('id')
             ->get()
@@ -44,6 +44,7 @@ class RegistrationController extends Controller
                 'multi_group_count' => $registration->entries
                     ->where('group_size_snapshot', '>', 1)
                     ->count(),
+                'progressive_count' => $registration->progressiveStageEntries->count(),
             ])
             ->values();
 
@@ -62,7 +63,8 @@ class RegistrationController extends Controller
                 $race,
                 (int) $payload['config_version'],
                 $payload['idempotency_key'],
-                $payload['entries']
+                $payload['entries'] ?? [],
+                $payload['progressive_entries'] ?? [],
             );
         } catch (RegistrationRuleException $exception) {
             return response()->json([
@@ -83,7 +85,7 @@ class RegistrationController extends Controller
             return response()->json(['error_code' => 'registration_not_found', 'message' => '报名记录不存在。'], 404);
         }
 
-        $registration->load(['race', 'entries.pigeons']);
+        $registration->load(['race', 'entries.pigeons', 'progressiveStageEntries.category']);
 
         return response()->json([
             ...$cache->serializeRegistration($registration),

@@ -1,11 +1,11 @@
 // [IN]: Bootstrap payload and local member registration actions / 初始化数据与会员本地报名动作
-// [OUT]: Database-prioritized matrix restore, runtime reset, drafts, repeat-aware groups, summaries, and submit payload / 数据库优先矩阵恢复、运行时重置、草稿、支持重复规则的组合、汇总与提交数据
+// [OUT]: Database-prioritized matrix restore, progressive stages, drafts, repeat-aware groups, summaries, and submit payload / 数据库优先矩阵恢复、递进阶段、草稿、支持重复规则的组合、汇总与提交数据
 // [POS]: Frontend registration state machine / 前端报名状态机
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import type { BootstrapPayload, ExistingRegistration, Pigeon, RaceProject, RegistrationEntryPayload } from '../types/domain'
+import type { BootstrapPayload, ExistingRegistration, Pigeon, ProgressiveCategory, ProgressiveRegistrationEntryPayload, RaceProject, RegistrationEntryPayload } from '../types/domain'
 
 export interface MultiGroup {
   id: string
@@ -19,25 +19,34 @@ interface DraftPayload {
   configVersion: number
   singleMatrix: Record<number, Record<number, boolean>>
   multiGroups: MultiGroup[]
+  progressiveSelections: Record<number, number[]>
   updatedAt: string
 }
 
 export const useRegistrationStore = defineStore('registration', () => {
   const bootstrap = ref<BootstrapPayload | null>(null)
-  const activeTab = ref<'single' | 'multi' | 'detail'>('single')
+  const activeTab = ref<string>('single')
   const searchQuery = ref('')
   const selectedMultiProjectId = ref<number | null>(null)
   const pendingMultiPigeonIds = ref<number[]>([])
   const singleMatrix = ref<Record<number, Record<number, boolean>>>({})
   const multiGroups = ref<MultiGroup[]>([])
+  const progressiveSelections = ref<Record<number, number[]>>({})
 
   const race = computed(() => bootstrap.value?.race ?? null)
   const member = computed(() => bootstrap.value?.member ?? null)
   const projects = computed(() => bootstrap.value?.projects ?? [])
   const pigeons = computed(() => bootstrap.value?.pigeons ?? [])
+  const progressiveCategories = computed(() => bootstrap.value?.progressive_categories ?? [])
   const singleProjects = computed(() => projects.value.filter((project) => project.group_size === 1))
   const multiProjects = computed(() => projects.value.filter((project) => project.group_size > 1))
   const selectedMultiProject = computed(() => multiProjects.value.find((project) => project.id === selectedMultiProjectId.value) ?? null)
+  const activeProgressiveCategory = computed(() => {
+    const categoryId = progressiveCategoryIdFromTab(activeTab.value)
+    if (categoryId === null) return null
+
+    return progressiveCategories.value.find((category) => category.id === categoryId) ?? null
+  })
 
   const filteredPigeons = computed(() => {
     const query = searchQuery.value.trim().toLowerCase()
@@ -61,6 +70,15 @@ export const useRegistrationStore = defineStore('registration', () => {
     project_id: group.project_id,
     pigeon_ids: [...group.pigeon_ids],
   })))
+
+  const progressiveEntries = computed<ProgressiveRegistrationEntryPayload[]>(() => progressiveCategories.value
+    .filter((category) => category.current_stage)
+    .map((category) => ({
+      category_id: category.id,
+      stage_project_id: category.current_stage!.id,
+      pigeon_ids: progressiveSelections.value[category.id] ?? [],
+    }))
+    .filter((entry) => entry.pigeon_ids.length > 0))
 
   const selectedMultiProjectUsage = computed<Record<number, number>>(() => {
     const project = selectedMultiProject.value
@@ -90,11 +108,17 @@ export const useRegistrationStore = defineStore('registration', () => {
   })
 
   const submitEntries = computed<RegistrationEntryPayload[]>(() => [...singleEntries.value, ...multiEntries.value])
+  const submitProgressiveEntries = computed<ProgressiveRegistrationEntryPayload[]>(() => progressiveEntries.value)
 
   const singleAmountCent = computed(() => singleEntries.value.reduce((sum, entry) => sum + priceFor(entry.project_id), 0))
   const multiAmountCent = computed(() => multiEntries.value.reduce((sum, entry) => sum + priceFor(entry.project_id), 0))
-  const totalAmountCent = computed(() => singleAmountCent.value + multiAmountCent.value)
-  const selectedCount = computed(() => submitEntries.value.length)
+  const progressiveAmountCent = computed(() => progressiveEntries.value.reduce((sum, entry) => {
+    const category = categoryById(entry.category_id)
+
+    return sum + entry.pigeon_ids.length * (category.current_stage?.price_cent ?? 0)
+  }, 0))
+  const totalAmountCent = computed(() => singleAmountCent.value + multiAmountCent.value + progressiveAmountCent.value)
+  const selectedCount = computed(() => submitEntries.value.length + progressiveEntries.value.reduce((sum, entry) => sum + entry.pigeon_ids.length, 0))
 
   const singleProjectStats = computed(() => singleProjects.value.map((project) => {
     const count = singleEntries.value.filter((entry) => entry.project_id === project.id).length
@@ -105,8 +129,11 @@ export const useRegistrationStore = defineStore('registration', () => {
     bootstrap.value = payload
     singleMatrix.value = {}
     multiGroups.value = []
+    progressiveSelections.value = {}
     selectedMultiProjectId.value = multiProjects.value[0]?.id ?? null
+    activeTab.value = defaultTab()
     hydrateExisting(payload.existing_registration)
+    hydrateProgressiveCategories()
     restoreDraftIfFresh(payload.existing_registration)
   }
 
@@ -118,6 +145,16 @@ export const useRegistrationStore = defineStore('registration', () => {
     pendingMultiPigeonIds.value = []
     singleMatrix.value = {}
     multiGroups.value = []
+    progressiveSelections.value = {}
+  }
+
+  function defaultTab(): string {
+    if (singleProjects.value.length > 0) return 'single'
+    if (multiProjects.value.length > 0) return 'multi'
+    const firstProgressive = progressiveCategories.value[0]
+    if (firstProgressive) return progressiveTabId(firstProgressive.id)
+
+    return 'detail'
   }
 
   function toggleSingle(pigeonId: number, projectId: number): void {
@@ -183,6 +220,36 @@ export const useRegistrationStore = defineStore('registration', () => {
     saveDraft()
   }
 
+  function progressiveTabId(categoryId: number): string {
+    return `progressive:${categoryId}`
+  }
+
+  function progressiveCategoryIdFromTab(tab: string): number | null {
+    if (!tab.startsWith('progressive:')) return null
+    const id = Number(tab.slice('progressive:'.length))
+
+    return Number.isFinite(id) ? id : null
+  }
+
+  function toggleProgressivePigeon(categoryId: number, pigeonId: number): void {
+    const category = categoryById(categoryId)
+    if (!category.current_stage || !canUseProgressivePigeon(category, pigeonId)) return
+
+    const selected = progressiveSelections.value[categoryId] ?? []
+    progressiveSelections.value[categoryId] = selected.includes(pigeonId)
+      ? selected.filter((id) => id !== pigeonId)
+      : [...selected, pigeonId]
+    saveDraft()
+  }
+
+  function isProgressivePigeonSelected(categoryId: number, pigeonId: number): boolean {
+    return (progressiveSelections.value[categoryId] ?? []).includes(pigeonId)
+  }
+
+  function progressiveCategoryById(categoryId: number): ProgressiveCategory {
+    return categoryById(categoryId)
+  }
+
   function priceFor(projectId: number): number {
     return requireProject(projectId).price_cent
   }
@@ -201,6 +268,17 @@ export const useRegistrationStore = defineStore('registration', () => {
     const project = projects.value.find((candidate) => candidate.id === projectId)
     if (!project) throw new Error(`Unknown project ${projectId}`)
     return project
+  }
+
+  function categoryById(categoryId: number): ProgressiveCategory {
+    const category = progressiveCategories.value.find((candidate) => candidate.id === categoryId)
+    if (!category) throw new Error(`Unknown progressive category ${categoryId}`)
+
+    return category
+  }
+
+  function canUseProgressivePigeon(category: ProgressiveCategory, pigeonId: number): boolean {
+    return category.eligible_pigeons.some((pigeon) => pigeon.id === pigeonId)
   }
 
   function hasProjectPigeonOverlap(projectId: number, pigeonIds: number[]): boolean {
@@ -247,6 +325,12 @@ export const useRegistrationStore = defineStore('registration', () => {
     }
   }
 
+  function hydrateProgressiveCategories(): void {
+    for (const category of progressiveCategories.value) {
+      progressiveSelections.value[category.id] = [...category.selected_pigeon_ids]
+    }
+  }
+
   function draftKey(): string | null {
     if (!race.value || !member.value) return null
     return `pigeon-registration-draft:${race.value.id}:${member.value.id}`
@@ -261,6 +345,7 @@ export const useRegistrationStore = defineStore('registration', () => {
       configVersion: race.value.config_version,
       singleMatrix: singleMatrix.value,
       multiGroups: multiGroups.value,
+      progressiveSelections: progressiveSelections.value,
       updatedAt: new Date().toISOString(),
     }
     localStorage.setItem(key, JSON.stringify(payload))
@@ -286,6 +371,7 @@ export const useRegistrationStore = defineStore('registration', () => {
     }
     singleMatrix.value = draft.singleMatrix
     multiGroups.value = draft.multiGroups
+    progressiveSelections.value = draft.progressiveSelections ?? progressiveSelections.value
   }
 
   function parseDraft(raw: string): DraftPayload | null {
@@ -320,22 +406,28 @@ export const useRegistrationStore = defineStore('registration', () => {
     pendingMultiPigeonIds,
     singleMatrix,
     multiGroups,
+    progressiveSelections,
     race,
     member,
     projects,
     pigeons,
+    progressiveCategories,
     singleProjects,
     multiProjects,
     selectedMultiProject,
+    activeProgressiveCategory,
     filteredPigeons,
     singleEntries,
     multiEntries,
+    progressiveEntries,
     selectedMultiProjectUsage,
     selectedMultiProjectGroupCount,
     canConfirmMultiGroup,
     submitEntries,
+    submitProgressiveEntries,
     singleAmountCent,
     multiAmountCent,
+    progressiveAmountCent,
     totalAmountCent,
     selectedCount,
     singleProjectStats,
@@ -349,6 +441,10 @@ export const useRegistrationStore = defineStore('registration', () => {
     confirmMultiGroup,
     canUsePigeonInSelectedProject,
     deleteMultiGroup,
+    progressiveTabId,
+    toggleProgressivePigeon,
+    isProgressivePigeonSelected,
+    progressiveCategoryById,
     priceFor,
     projectName,
     pigeonById,

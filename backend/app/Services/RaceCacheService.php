@@ -7,8 +7,12 @@
 
 namespace App\Services;
 
+use App\Enums\RegistrationStatus;
 use App\Models\Member;
+use App\Models\ProgressiveStageEntry;
 use App\Models\Race;
+use App\Models\RaceProject;
+use App\Models\RegistrationCategory;
 use Illuminate\Support\Facades\Cache;
 
 class RaceCacheService
@@ -75,6 +79,7 @@ class RaceCacheService
             now()->addMinutes(15),
             fn () => $race->projects()
                 ->where('is_enabled', true)
+                ->where('project_type', RaceProject::TYPE_STANDARD)
                 ->orderBy('sort_order')
                 ->get(['id', 'race_id', 'name', 'group_size', 'price_cent', 'description', 'sort_order', 'is_enabled', 'allow_repeat_pigeon_in_project', 'max_entries_per_member', 'max_usage_per_pigeon'])
                 ->values()
@@ -114,6 +119,7 @@ class RaceCacheService
             ],
             'projects' => $projects,
             'pigeons' => $pigeons,
+            'progressive_categories' => $this->progressiveCategories($race, $member, $pigeons),
             'existing_registration' => $existing ? $this->serializeRegistration($existing) : null,
         ];
     }
@@ -138,7 +144,100 @@ class RaceCacheService
                     'sort_order' => $pigeon->sort_order,
                 ])->values(),
             ])->values(),
+            'progressive_entries' => $registration->progressiveStageEntries->map(fn (ProgressiveStageEntry $entry): array => [
+                'category_id' => $entry->registration_category_id,
+                'category_name' => $entry->category?->name,
+                'stage_project_id' => $entry->race_project_id,
+                'stage_project_name' => $entry->project_name_snapshot,
+                'pigeon_id' => $entry->pigeon_id,
+                'ring_number' => $entry->ring_number_snapshot,
+                'price_cent' => $entry->price_cent_snapshot,
+                'status' => $entry->status->value,
+                'submitted_at' => optional($entry->submitted_at)->toDateTimeString(),
+            ])->values(),
         ];
+    }
+
+    private function progressiveCategories(Race $race, Member $member, $pigeons): array
+    {
+        $pigeonsById = $pigeons->keyBy('id');
+
+        return RegistrationCategory::query()
+            ->with(['currentStage', 'stageProjects'])
+            ->where('race_id', $race->id)
+            ->where('type', RegistrationCategory::TYPE_PROGRESSIVE)
+            ->where('is_enabled', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get()
+            ->map(function (RegistrationCategory $category) use ($member, $pigeons, $pigeonsById): array {
+                $currentStage = $category->currentStage;
+                $eligiblePigeons = collect();
+                $selected = collect();
+                $selectedStatus = null;
+
+                if ($currentStage instanceof RaceProject && $currentStage->is_enabled && $currentStage->isProgressiveStage()) {
+                    $eligiblePigeons = $this->eligibleProgressivePigeons($category, $currentStage, $member, $pigeons, $pigeonsById);
+                    $selected = ProgressiveStageEntry::query()
+                        ->where('member_id', $member->id)
+                        ->where('registration_category_id', $category->id)
+                        ->where('race_project_id', $currentStage->id)
+                        ->get();
+                    $selectedStatus = $selected->isEmpty()
+                        ? null
+                        : ($selected->every(fn (ProgressiveStageEntry $entry): bool => $entry->status === RegistrationStatus::Confirmed)
+                            ? RegistrationStatus::Confirmed->value
+                            : RegistrationStatus::PendingConfirmation->value);
+                }
+
+                return [
+                    'id' => $category->id,
+                    'name' => $category->name,
+                    'sort_order' => $category->sort_order,
+                    'current_stage' => $currentStage instanceof RaceProject ? [
+                        'id' => $currentStage->id,
+                        'name' => $currentStage->name,
+                        'price_cent' => $currentStage->price_cent,
+                        'stage_order' => $currentStage->stage_order,
+                        'sort_order' => $currentStage->sort_order,
+                    ] : null,
+                    'eligible_pigeons' => $eligiblePigeons->values()->all(),
+                    'selected_pigeon_ids' => $selected->pluck('pigeon_id')->map(fn ($id): int => (int) $id)->values()->all(),
+                    'status' => $selectedStatus,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function eligibleProgressivePigeons(RegistrationCategory $category, RaceProject $currentStage, Member $member, $pigeons, $pigeonsById)
+    {
+        if ((int) $currentStage->stage_order <= 1) {
+            return $pigeons->map(fn ($pigeon): array => [
+                'id' => $pigeon->id,
+                'ring_number' => $pigeon->ring_number,
+            ]);
+        }
+
+        $previousStage = $category->stageProjects
+            ->first(fn (RaceProject $project): bool => (int) $project->stage_order === (int) $currentStage->stage_order - 1);
+
+        if (! $previousStage instanceof RaceProject) {
+            return collect();
+        }
+
+        return ProgressiveStageEntry::query()
+            ->where('member_id', $member->id)
+            ->where('registration_category_id', $category->id)
+            ->where('race_project_id', $previousStage->id)
+            ->where('status', RegistrationStatus::Confirmed->value)
+            ->orderBy('ring_number_snapshot')
+            ->get()
+            ->filter(fn (ProgressiveStageEntry $entry): bool => $pigeonsById->has($entry->pigeon_id))
+            ->map(fn (ProgressiveStageEntry $entry): array => [
+                'id' => $entry->pigeon_id,
+                'ring_number' => $pigeonsById->get($entry->pigeon_id)->ring_number,
+            ]);
     }
 
     private function raceConfigKey(int $raceId, ?int $configVersion = null): string

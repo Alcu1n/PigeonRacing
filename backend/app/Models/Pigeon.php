@@ -10,6 +10,7 @@ namespace App\Models;
 use App\Services\RaceCacheService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pigeon extends Model
 {
@@ -24,6 +25,11 @@ class Pigeon extends Model
     public function member(): BelongsTo
     {
         return $this->belongsTo(Member::class);
+    }
+
+    public function progressiveStageEntries(): HasMany
+    {
+        return $this->hasMany(ProgressiveStageEntry::class);
     }
 
     private function forgetOwnerCaches(): void

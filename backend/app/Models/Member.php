@@ -39,4 +39,9 @@ class Member extends Authenticatable
     {
         return $this->hasMany(Registration::class);
     }
+
+    public function progressiveStageEntries(): HasMany
+    {
+        return $this->hasMany(ProgressiveStageEntry::class);
+    }
 }

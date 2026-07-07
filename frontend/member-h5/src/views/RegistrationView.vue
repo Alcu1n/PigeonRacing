@@ -1,5 +1,5 @@
 <!-- [IN]: Race id route param and backend bootstrap API / 赛事 ID 路由参数与后端初始化 API -->
-<!-- [OUT]: Ultra-compact race header with return action plus local single, multi, detail, and submit workflow / 带返回动作的超紧凑赛事头部与本地单羽、多羽、明细和提交流程 -->
+<!-- [OUT]: Ultra-compact race header with dynamic standard, progressive, detail, and submit workflow / 带动态普通、递进、明细与提交流程的超紧凑赛事头部 -->
 <!-- [POS]: Frontend core registration screen / 前端核心报名页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -15,6 +15,7 @@ import { demoBootstrap } from '../utils/demoBootstrap'
 import AmountBar from '../components/AmountBar.vue'
 import SingleMatrix from '../components/SingleMatrix.vue'
 import MultiGroupBuilder from '../components/MultiGroupBuilder.vue'
+import ProgressiveStageMatrix from '../components/ProgressiveStageMatrix.vue'
 import SelectedDetail from '../components/SelectedDetail.vue'
 import MemberTopActions from '../components/MemberTopActions.vue'
 
@@ -37,10 +38,10 @@ onMounted(async () => {
 })
 
 async function confirmSubmit(): Promise<void> {
-  if (!store.race || store.submitEntries.length === 0) return
+  if (!store.race || (store.submitEntries.length === 0 && store.submitProgressiveEntries.length === 0)) return
   await showDialog({
     title: '确认提交报名',
-    message: `共 ${store.selectedCount} 注，总金额 ${yuan(store.totalAmountCent)}。提交后以后台校验金额为准。`,
+    message: `共 ${store.selectedCount} 项，总金额 ${yuan(store.totalAmountCent)}。提交后以后台校验金额为准。`,
     showCancelButton: true,
     confirmButtonText: '确认提交',
   })
@@ -51,6 +52,7 @@ async function confirmSubmit(): Promise<void> {
       config_version: store.race.config_version,
       idempotency_key: createIdempotencyKey(),
       entries: store.submitEntries,
+      progressive_entries: store.submitProgressiveEntries,
     })
     showToast('报名提交成功')
     await router.push(`/registrations/${response.data.id}`)
@@ -82,8 +84,16 @@ async function confirmSubmit(): Promise<void> {
       </header>
 
       <nav class="tabs">
-        <button :class="{ active: store.activeTab === 'single' }" @click="store.activeTab = 'single'">单羽组</button>
-        <button :class="{ active: store.activeTab === 'multi' }" @click="store.activeTab = 'multi'">多羽组</button>
+        <button v-if="store.singleProjects.length" :class="{ active: store.activeTab === 'single' }" @click="store.activeTab = 'single'">单羽组</button>
+        <button v-if="store.multiProjects.length" :class="{ active: store.activeTab === 'multi' }" @click="store.activeTab = 'multi'">多羽组</button>
+        <button
+          v-for="category in store.progressiveCategories"
+          :key="category.id"
+          :class="{ active: store.activeTab === store.progressiveTabId(category.id) }"
+          @click="store.activeTab = store.progressiveTabId(category.id)"
+        >
+          {{ category.name }}
+        </button>
         <button :class="{ active: store.activeTab === 'detail' }" @click="store.activeTab = 'detail'">已选明细</button>
       </nav>
 
@@ -93,6 +103,7 @@ async function confirmSubmit(): Promise<void> {
 
       <SingleMatrix v-if="store.activeTab === 'single'" />
       <MultiGroupBuilder v-else-if="store.activeTab === 'multi'" />
+      <ProgressiveStageMatrix v-else-if="store.activeProgressiveCategory" />
       <SelectedDetail v-else />
 
       <AmountBar

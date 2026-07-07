@@ -1,6 +1,6 @@
 <?php
 // [IN]: Registration snapshot entries, pigeon snapshots, and project sort rows / 报名项目快照、足环快照与项目排序行
-// [OUT]: Ring-first single-pigeon matrix and multi-pigeon group tables / 足环优先的单羽矩阵与多羽组表格
+// [OUT]: Ring-first single matrix, multi groups, and progressive stage tables / 足环优先单羽矩阵、多羽组与递进阶段表格
 // [POS]: Backend registration detail view-shaping service / 后端报名详情展示整形服务
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -9,6 +9,7 @@ namespace App\Services;
 
 use App\Models\Registration;
 use App\Models\RegistrationEntry;
+use App\Models\ProgressiveStageEntry;
 use App\Models\RaceProject;
 use Illuminate\Support\Collection;
 
@@ -16,7 +17,7 @@ class RegistrationDetailMatrixService
 {
     public function matrix(Registration $registration): array
     {
-        $registration->loadMissing(['entries.pigeons']);
+        $registration->loadMissing(['entries.pigeons', 'progressiveStageEntries.category']);
 
         $entries = $registration->entries
             ->sortBy([
@@ -29,6 +30,7 @@ class RegistrationDetailMatrixService
         return [
             'single' => $this->singleMatrix($entries->where('group_size_snapshot', 1)->values()),
             'multi' => $this->multiGroups($entries->where('group_size_snapshot', '>', 1)->values()),
+            'progressive' => $this->progressiveGroups($registration->progressiveStageEntries),
         ];
     }
 
@@ -129,6 +131,48 @@ class RegistrationDetailMatrixService
             ->pluck('ring_number_snapshot')
             ->filter()
             ->values();
+    }
+
+    private function progressiveGroups(Collection $entries): array
+    {
+        return $entries
+            ->groupBy('registration_category_id')
+            ->map(function (Collection $categoryEntries): array {
+                $first = $categoryEntries->first();
+                $projects = $categoryEntries
+                    ->groupBy('race_project_id')
+                    ->map(function (Collection $projectEntries): array {
+                        /** @var ProgressiveStageEntry $first */
+                        $first = $projectEntries->first();
+
+                        return [
+                            'project_id' => $first->race_project_id,
+                            'project_name' => $first->project_name_snapshot,
+                            'price_cent' => (int) $first->price_cent_snapshot,
+                            'rings' => $projectEntries
+                                ->sortBy('ring_number_snapshot')
+                                ->map(fn (ProgressiveStageEntry $entry): array => [
+                                    'ring_number' => $entry->ring_number_snapshot,
+                                    'status' => $entry->status->value,
+                                ])
+                                ->values()
+                                ->all(),
+                            'count' => $projectEntries->count(),
+                            'amount_cent' => $projectEntries->sum('price_cent_snapshot'),
+                        ];
+                    })
+                    ->values()
+                    ->all();
+
+                return [
+                    'category_name' => $first->category?->name ?? '递进报名',
+                    'projects' => $projects,
+                    'total_count' => collect($projects)->sum('count'),
+                    'total_amount_cent' => collect($projects)->sum('amount_cent'),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     private function projectSortOrders(Collection $entries): array

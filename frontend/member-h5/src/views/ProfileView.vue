@@ -128,7 +128,7 @@ async function updatePassword(): Promise<void> {
                 {{ registrationStatusText(item.status) }}
               </b>
             </span>
-            <small>{{ yuan(item.total_amount_cent) }} · 单羽 {{ item.single_count }} 项 · 多羽 {{ item.multi_group_count }} 组</small>
+            <small>{{ yuan(item.total_amount_cent) }} · 单羽 {{ item.single_count }} 项 · 多羽 {{ item.multi_group_count }} 组 · 递进 {{ item.progressive_count ?? 0 }} 羽</small>
           </button>
         </div>
       </section>

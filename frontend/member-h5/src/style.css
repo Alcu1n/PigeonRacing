@@ -1359,13 +1359,14 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 }
 
 .tabs {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
   margin: 6px 0;
 }
 
 .tabs button, .project-switcher button {
+  flex: 1 1 calc(33.333% - 6px);
   min-height: 32px;
   border-radius: 8px;
   background: linear-gradient(180deg, #fff, #f6faf8);
@@ -1432,6 +1433,13 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   grid-template-columns: 34px 66px repeat(var(--project-count), 44px);
 }
 
+.progressive-grid {
+  width: 100%;
+  min-width: 100%;
+  display: grid;
+  grid-template-columns: 88px minmax(128px, 1fr);
+}
+
 .header-row {
   position: sticky;
   top: 0;
@@ -1463,6 +1471,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .sticky-select-cell { left: 0; }
 .sticky-ring-cell { left: 34px; }
 
+.progressive-grid .sticky-ring-cell { left: 0; }
+
 .header-row .sticky-select-cell,
 .header-row .sticky-ring-cell { background: var(--green-dark); z-index: 5; }
 .body-row .sticky-select-cell,
@@ -1489,6 +1499,13 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   max-width: 100%;
 }
 
+.project-head small {
+  display: block;
+  opacity: .86;
+  font-size: 9px;
+  line-height: 1;
+}
+
 .select-all-button {
   background: inherit;
   color: var(--green-dark);
@@ -1506,6 +1523,51 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   font-size: 12px;
   line-height: 1;
   font-weight: 900;
+}
+
+.progressive-panel {
+  display: grid;
+  gap: 6px;
+}
+
+.progressive-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff, #f5fbf8);
+}
+
+.progressive-current div {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.progressive-current strong {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.15;
+}
+
+.progressive-current span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.progressive-current b {
+  color: var(--danger);
+  font-size: 18px;
+  line-height: 1;
+  text-align: right;
+}
+
+.progressive-matrix-wrap {
+  width: 100%;
 }
 
 .select-all-button.selected span {

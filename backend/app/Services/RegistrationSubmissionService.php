@@ -10,8 +10,10 @@ namespace App\Services;
 use App\Enums\RegistrationStatus;
 use App\Models\Member;
 use App\Models\Pigeon;
+use App\Models\ProgressiveStageEntry;
 use App\Models\Race;
 use App\Models\RaceProject;
+use App\Models\RegistrationCategory;
 use App\Models\Registration;
 use App\Models\RegistrationEntry;
 use App\Models\RegistrationEntryPigeon;
@@ -22,13 +24,13 @@ class RegistrationSubmissionService
 {
     public function __construct(private readonly RaceCacheService $cache) {}
 
-    public function submit(Member $member, Race $race, int $configVersion, string $idempotencyKey, array $entries): Registration
+    public function submit(Member $member, Race $race, int $configVersion, string $idempotencyKey, array $entries, array $progressiveEntries = []): Registration
     {
         $existingSameRequest = Registration::query()
             ->where('member_id', $member->id)
             ->where('race_id', $race->id)
             ->where('idempotency_key', $idempotencyKey)
-            ->with(['entries.pigeons'])
+            ->with(['entries.pigeons', 'progressiveStageEntries'])
             ->first();
 
         if ($existingSameRequest) {
@@ -41,6 +43,7 @@ class RegistrationSubmissionService
 
         $projects = $race->projects()
             ->where('is_enabled', true)
+            ->where('project_type', RaceProject::TYPE_STANDARD)
             ->get()
             ->keyBy('id');
         $pigeons = $member->pigeons()
@@ -48,9 +51,14 @@ class RegistrationSubmissionService
             ->whereIn('id', $this->flattenPigeonIds($entries))
             ->get()
             ->keyBy('id');
-        $validated = $this->validateEntries($entries, $projects, $pigeons);
+        $standardValidated = $this->validateEntries($entries, $projects, $pigeons, true);
+        $progressiveValidated = $this->validateProgressiveEntries($member, $race, $progressiveEntries);
 
-        return DB::transaction(function () use ($member, $race, $idempotencyKey, $validated): Registration {
+        if ($standardValidated['entries'] === [] && $progressiveValidated['entries'] === []) {
+            throw new RegistrationRuleException('empty_entries', '请至少选择一项报名项目。');
+        }
+
+        return DB::transaction(function () use ($member, $race, $idempotencyKey, $standardValidated, $progressiveValidated): Registration {
             $registration = Registration::query()
                 ->where('race_id', $race->id)
                 ->where('member_id', $member->id)
@@ -72,23 +80,28 @@ class RegistrationSubmissionService
             ]);
 
             $registration->fill([
-                'total_amount_cent' => $validated['total_amount_cent'],
+                'total_amount_cent' => $standardValidated['total_amount_cent'] + $progressiveValidated['total_amount_cent'],
                 'status' => $race->require_admin_confirm ? RegistrationStatus::PendingConfirmation : RegistrationStatus::Submitted,
                 'idempotency_key' => $idempotencyKey,
                 'submitted_at' => now(),
             ])->save();
 
             $registration->entries()->delete();
-            $this->writeSnapshots($registration, $validated['entries']);
+            $this->writeSnapshots($registration, $standardValidated['entries']);
+            $this->writeProgressiveSnapshots($registration, $progressiveValidated['entries'], $race);
             $this->cache->forgetBootstrap($race, $member);
 
-            return $registration->fresh(['entries.pigeons']);
+            return $registration->fresh(['entries.pigeons', 'progressiveStageEntries']);
         });
     }
 
-    public function validateEntries(array $entries, Collection $projects, Collection $pigeons): array
+    public function validateEntries(array $entries, Collection $projects, Collection $pigeons, bool $allowEmpty = false): array
     {
         if ($entries === []) {
+            if ($allowEmpty) {
+                return ['entries' => [], 'total_amount_cent' => 0];
+            }
+
             throw new RegistrationRuleException('empty_entries', '请至少选择一项报名项目。');
         }
 
@@ -140,6 +153,76 @@ class RegistrationSubmissionService
         return ['entries' => $normalized, 'total_amount_cent' => $totalAmount];
     }
 
+    public function validateProgressiveEntries(Member $member, Race $race, array $entries): array
+    {
+        if ($entries === []) {
+            return ['entries' => [], 'total_amount_cent' => 0];
+        }
+
+        $categories = RegistrationCategory::query()
+            ->with(['currentStage', 'stageProjects'])
+            ->where('race_id', $race->id)
+            ->where('type', RegistrationCategory::TYPE_PROGRESSIVE)
+            ->where('is_enabled', true)
+            ->whereIn('id', collect($entries)->pluck('category_id')->map(fn ($id): int => (int) $id)->filter()->unique())
+            ->get()
+            ->keyBy('id');
+
+        $pigeons = $member->pigeons()
+            ->where('status', 'normal')
+            ->whereIn('id', $this->flattenProgressivePigeonIds($entries))
+            ->get()
+            ->keyBy('id');
+
+        $normalized = [];
+        $totalAmount = 0;
+
+        foreach ($entries as $entry) {
+            $category = $categories->get((int) ($entry['category_id'] ?? 0));
+            if (! $category instanceof RegistrationCategory) {
+                throw new RegistrationRuleException('progressive_category_disabled', '递进报名类别不存在或已停用。');
+            }
+
+            $project = $category->currentStage;
+            if (! $project instanceof RaceProject) {
+                throw new RegistrationRuleException('progressive_stage_not_configured', "类别 {$category->name} 尚未配置当前开放阶段。");
+            }
+
+            if ((int) ($entry['stage_project_id'] ?? 0) !== $project->id) {
+                throw new RegistrationRuleException('progressive_stage_not_current', "类别 {$category->name} 当前只能报名 {$project->name}。");
+            }
+
+            if (! $project->is_enabled || $project->race_id !== $race->id || $project->registration_category_id !== $category->id || ! $project->isProgressiveStage()) {
+                throw new RegistrationRuleException('progressive_stage_not_current', "类别 {$category->name} 当前阶段配置无效。");
+            }
+
+            $pigeonIds = array_values(array_unique(array_map('intval', $entry['pigeon_ids'] ?? [])));
+            if ($pigeonIds === []) {
+                throw new RegistrationRuleException('empty_entries', "类别 {$category->name} 请至少选择一羽。");
+            }
+
+            $entryPigeons = [];
+            foreach ($pigeonIds as $pigeonId) {
+                $pigeon = $pigeons->get($pigeonId);
+                if (! $pigeon instanceof Pigeon) {
+                    throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前会员或不可报名的足环。', 403);
+                }
+                $entryPigeons[] = $pigeon;
+            }
+
+            $this->assertProgressiveEligibility($member, $category, $project, $pigeonIds);
+
+            $totalAmount += count($entryPigeons) * $project->price_cent;
+            $normalized[] = [
+                'category' => $category,
+                'project' => $project,
+                'pigeons' => $entryPigeons,
+            ];
+        }
+
+        return ['entries' => $normalized, 'total_amount_cent' => $totalAmount];
+    }
+
     private function assertRaceCanAccept(Race $race, int $configVersion): void
     {
         if (! $race->isOpenForRegistration()) {
@@ -176,6 +259,45 @@ class RegistrationSubmissionService
             ->unique()
             ->values()
             ->all();
+    }
+
+    private function flattenProgressivePigeonIds(array $entries): array
+    {
+        return collect($entries)
+            ->flatMap(fn (array $entry): array => $entry['pigeon_ids'] ?? [])
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function assertProgressiveEligibility(Member $member, RegistrationCategory $category, RaceProject $project, array $pigeonIds): void
+    {
+        if ((int) $project->stage_order <= 1) {
+            return;
+        }
+
+        $previousProject = $category->stageProjects
+            ->first(fn (RaceProject $candidate): bool => (int) $candidate->stage_order === (int) $project->stage_order - 1);
+
+        if (! $previousProject instanceof RaceProject) {
+            throw new RegistrationRuleException('previous_stage_not_confirmed', "类别 {$category->name} 缺少上一阶段确认数据。");
+        }
+
+        $eligible = ProgressiveStageEntry::query()
+            ->where('member_id', $member->id)
+            ->where('registration_category_id', $category->id)
+            ->where('race_project_id', $previousProject->id)
+            ->where('status', RegistrationStatus::Confirmed->value)
+            ->whereIn('pigeon_id', $pigeonIds)
+            ->pluck('pigeon_id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
+
+        $missing = array_values(array_diff($pigeonIds, $eligible));
+        if ($missing !== []) {
+            throw new RegistrationRuleException('progressive_pigeon_not_eligible', "类别 {$category->name} 只能选择上一阶段已确认足环。");
+        }
     }
 
     private function groupSignature(array $pigeonIds): string
@@ -216,6 +338,59 @@ class RegistrationSubmissionService
             ])->all();
 
             RegistrationEntryPigeon::query()->insert($pigeonRows);
+        }
+    }
+
+    private function writeProgressiveSnapshots(Registration $registration, array $entries, Race $race): void
+    {
+        foreach ($entries as $entry) {
+            /** @var RegistrationCategory $category */
+            $category = $entry['category'];
+            /** @var RaceProject $project */
+            $project = $entry['project'];
+            $pigeonIds = collect($entry['pigeons'])->pluck('id')->map(fn ($id): int => (int) $id)->sort()->values()->all();
+            $existing = ProgressiveStageEntry::query()
+                ->where('member_id', $registration->member_id)
+                ->where('registration_category_id', $category->id)
+                ->where('race_project_id', $project->id)
+                ->get();
+            $existingIds = $existing->pluck('pigeon_id')->map(fn ($id): int => (int) $id)->sort()->values()->all();
+            $keepConfirmed = $existingIds === $pigeonIds
+                && $existing->isNotEmpty()
+                && $existing->every(fn (ProgressiveStageEntry $row): bool => $row->status === RegistrationStatus::Confirmed);
+            $status = $keepConfirmed || ! $race->require_admin_confirm
+                ? RegistrationStatus::Confirmed
+                : RegistrationStatus::PendingConfirmation;
+            $confirmedAt = $status === RegistrationStatus::Confirmed ? ($existing->first()?->confirmed_at ?? now()) : null;
+            $confirmedBy = $status === RegistrationStatus::Confirmed ? $existing->first()?->confirmed_by : null;
+
+            ProgressiveStageEntry::query()
+                ->where('member_id', $registration->member_id)
+                ->where('registration_category_id', $category->id)
+                ->where('race_project_id', $project->id)
+                ->delete();
+
+            foreach ($entry['pigeons'] as $pigeon) {
+                /** @var Pigeon $pigeon */
+                ProgressiveStageEntry::query()->create([
+                    'registration_id' => $registration->id,
+                    'race_id' => $registration->race_id,
+                    'registration_category_id' => $category->id,
+                    'race_project_id' => $project->id,
+                    'member_id' => $registration->member_id,
+                    'pigeon_id' => $pigeon->id,
+                    'loft_number_snapshot' => $pigeon->loft_number,
+                    'participant_name_snapshot' => $pigeon->participant_name,
+                    'ring_number_snapshot' => $pigeon->ring_number,
+                    'project_name_snapshot' => $project->name,
+                    'price_cent_snapshot' => $project->price_cent,
+                    'status' => $status->value,
+                    'source' => ProgressiveStageEntry::SOURCE_MEMBER,
+                    'submitted_at' => now(),
+                    'confirmed_at' => $confirmedAt,
+                    'confirmed_by' => $confirmedBy,
+                ]);
+            }
         }
     }
 }
