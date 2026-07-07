@@ -31,9 +31,14 @@ class ProgressiveStageImportService
 
     public function firstStage(RegistrationCategory $category): RaceProject
     {
-        $stage = $category->stageProjects()->orderBy('stage_order')->orderBy('sort_order')->first();
+        $stage = $category->stageProjects()
+            ->where('stage_order', 1)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->first();
+
         if (! $stage instanceof RaceProject) {
-            throw ValidationException::withMessages(['upload' => '请先为该类别配置第一阶段项目。']);
+            throw ValidationException::withMessages(['upload' => '请先为该类别配置阶段顺序为 1 的第一阶段项目。']);
         }
 
         return $stage;

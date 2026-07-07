@@ -10,6 +10,7 @@ namespace App\Filament\Resources;
 use App\Exports\ProgressiveStageImportTemplateExport;
 use App\Filament\Resources\RegistrationCategoryResource\Pages;
 use App\Models\RegistrationCategory;
+use App\Services\ProgressiveStageImportService;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
@@ -64,8 +65,7 @@ class RegistrationCategoryResource extends Resource
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
                 ->action(function (RegistrationCategory $record) {
-                    $stage = $record->stageProjects()->first();
-                    abort_unless($stage, 404, '请先为该类别配置第一阶段项目。');
+                    $stage = app(ProgressiveStageImportService::class)->firstStage($record);
 
                     return Excel::download(new ProgressiveStageImportTemplateExport($stage->name), "递进第一阶段导入模板-{$record->name}.xlsx");
                 }),

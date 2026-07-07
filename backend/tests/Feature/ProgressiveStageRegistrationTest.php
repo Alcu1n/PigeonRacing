@@ -106,6 +106,22 @@ class ProgressiveStageRegistrationTest extends TestCase
         ]);
     }
 
+    public function test_first_stage_import_uses_stage_order_one_even_when_current_stage_is_second(): void
+    {
+        [, $category, $firstStage, $secondStage] = $this->progressiveFixtures(withSecondStage: true);
+        $this->assertSame($secondStage->id, $category->current_stage_project_id);
+
+        $service = app(ProgressiveStageImportService::class);
+        $rows = $service->rowsFromSpreadsheet($this->makeSheet([
+            ['序号', '会员棚号', '会员参赛名', '足环号码', $firstStage->name],
+            [1, 'A001', '张三鸽舍', '2026-13-000201', '✓'],
+        ]), $category);
+        $preview = $service->preview($rows);
+
+        $this->assertSame('福安 1.5K', $service->firstStage($category)->name);
+        $this->assertSame(1, $preview['valid_rows']);
+    }
+
     public function test_current_stage_submission_requires_previous_stage_confirmed_pigeon(): void
     {
         [$race, $category, $firstStage, $secondStage] = $this->progressiveFixtures(withSecondStage: true);
