@@ -1,5 +1,5 @@
 {{-- [IN]: Registration detail matrix from RegistrationDetailMatrixService / 来自 RegistrationDetailMatrixService 的报名详情矩阵 --}}
-{{-- [OUT]: Dense ring-first single-pigeon matrix and multi-pigeon group tables / 高密度足环优先单羽矩阵与多羽组表格 --}}
+{{-- [OUT]: Dense ring-first single matrix, multi groups, and progressive stage details / 高密度足环优先单羽矩阵、多羽组与递进阶段明细 --}}
 {{-- [POS]: Backend admin registration detail matrix view / 后端后台报名详情矩阵视图 --}}
 {{-- Protocol: When updating me, sync this header + parent folder's .folder.md --}}
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
@@ -9,6 +9,7 @@
 
     $single = $matrix['single'];
     $multi = $matrix['multi'];
+    $progressive = $matrix['progressive'] ?? [];
 @endphp
 
 <style>
@@ -248,6 +249,54 @@
                                         @endfor
                                         <td>{{ RegistrationSummaryService::formatYuan($project['price_cent']) }}</td>
                                     </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endforeach
+        @endif
+    </section>
+
+    <section class="registration-detail-panel">
+        <div class="registration-detail-heading">
+            <div class="registration-detail-title">递进阶段明细</div>
+            <div class="registration-detail-meta">
+                {{ collect($progressive)->sum('total_count') }} 羽 / {{ RegistrationSummaryService::formatYuan(collect($progressive)->sum('total_amount_cent')) }} 元
+            </div>
+        </div>
+
+        @if ($progressive === [])
+            <div class="registration-detail-subpanel registration-detail-empty">暂无递进阶段报名。</div>
+        @else
+            @foreach ($progressive as $category)
+                <div class="registration-detail-subpanel">
+                    <div class="registration-detail-project-title">
+                        <strong>{{ $category['category_name'] }}</strong>
+                        <span class="registration-detail-meta">
+                            {{ $category['total_count'] }} 羽 / {{ RegistrationSummaryService::formatYuan($category['total_amount_cent']) }} 元
+                        </span>
+                    </div>
+                    <div class="registration-detail-scroll">
+                        <table class="registration-detail-table">
+                            <thead>
+                                <tr>
+                                    <th>阶段项目</th>
+                                    <th>足环号</th>
+                                    <th>状态</th>
+                                    <th>金额（元）</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($category['projects'] as $project)
+                                    @foreach ($project['rings'] as $ring)
+                                        <tr>
+                                            <td>{{ $project['project_name'] }}</td>
+                                            <td class="registration-detail-ring">{{ $ring['ring_number'] }}</td>
+                                            <td>{{ $ring['status'] === 'confirmed' ? '已确认' : '未确认' }}</td>
+                                            <td>{{ RegistrationSummaryService::formatYuan($project['price_cent']) }}</td>
+                                        </tr>
+                                    @endforeach
                                 @endforeach
                             </tbody>
                         </table>

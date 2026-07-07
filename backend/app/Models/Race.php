@@ -42,6 +42,11 @@ class Race extends Model
         return $this->hasMany(RaceProject::class);
     }
 
+    public function registrationCategories(): HasMany
+    {
+        return $this->hasMany(RegistrationCategory::class);
+    }
+
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);

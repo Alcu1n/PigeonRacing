@@ -1,9 +1,9 @@
 // [IN]: Existing registration snapshot / 已存在报名快照
-// [OUT]: Read-only single and multi registration history matrices / 只读单羽与多羽报名历史矩阵
+// [OUT]: Read-only single, multi, and progressive registration history matrices / 只读单羽、多羽与递进报名历史矩阵
 // [POS]: Frontend registration history shaping helper / 前端报名历史整形辅助函数
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
-import type { ExistingRegistration, ExistingRegistrationEntry } from '../types/domain'
+import type { ExistingProgressiveEntry, ExistingRegistration, ExistingRegistrationEntry } from '../types/domain'
 
 export interface HistorySingleProject {
   id: number
@@ -36,6 +36,18 @@ export interface HistoryMatrix {
     total_amount_cent: number
   }
   multi: HistoryMultiProject[]
+  progressive: HistoryProgressiveGroup[]
+}
+
+export interface HistoryProgressiveGroup {
+  category_id: number
+  category_name: string
+  stage_project_id: number
+  stage_project_name: string
+  price_cent: number
+  rings: Array<{ ring_number: string; status: string }>
+  count: number
+  amount_cent: number
 }
 
 export function buildRegistrationHistoryMatrix(registration: ExistingRegistration): HistoryMatrix {
@@ -43,6 +55,7 @@ export function buildRegistrationHistoryMatrix(registration: ExistingRegistratio
   const singleProjects = buildSingleProjects(singleEntries)
   const singleRows = buildSingleRows(singleEntries, singleProjects)
   const multi = buildMultiProjects(registration.entries.filter((entry) => entry.group_size > 1))
+  const progressive = buildProgressiveGroups(registration.progressive_entries ?? [])
 
   return {
     single: {
@@ -52,6 +65,7 @@ export function buildRegistrationHistoryMatrix(registration: ExistingRegistratio
       total_amount_cent: singleRows.reduce((sum, row) => sum + row.amount_cent, 0),
     },
     multi,
+    progressive,
   }
 }
 
@@ -129,4 +143,34 @@ function buildMultiProjects(entries: ExistingRegistrationEntry[]): HistoryMultiP
       groups: project.groups.sort((left, right) => left.group_index - right.group_index),
     }))
     .sort((left, right) => left.project_id - right.project_id)
+}
+
+function buildProgressiveGroups(entries: ExistingProgressiveEntry[]): HistoryProgressiveGroup[] {
+  const groups = new Map<string, HistoryProgressiveGroup>()
+
+  for (const entry of entries) {
+    const key = `${entry.category_id}:${entry.stage_project_id}`
+    const group = groups.get(key) ?? {
+      category_id: entry.category_id,
+      category_name: entry.category_name ?? '递进报名',
+      stage_project_id: entry.stage_project_id,
+      stage_project_name: entry.stage_project_name,
+      price_cent: entry.price_cent,
+      rings: [],
+      count: 0,
+      amount_cent: 0,
+    }
+
+    group.rings.push({ ring_number: entry.ring_number, status: entry.status })
+    group.count = group.rings.length
+    group.amount_cent = group.count * group.price_cent
+    groups.set(key, group)
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      ...group,
+      rings: group.rings.sort((left, right) => left.ring_number.localeCompare(right.ring_number)),
+    }))
+    .sort((left, right) => left.stage_project_id - right.stage_project_id)
 }

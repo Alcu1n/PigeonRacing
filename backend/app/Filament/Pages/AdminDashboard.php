@@ -11,6 +11,7 @@ use App\Filament\Resources\MemberResource;
 use App\Filament\Resources\PigeonResource;
 use App\Filament\Resources\RaceProjectResource;
 use App\Filament\Resources\RaceResource;
+use App\Filament\Resources\RegistrationCategoryResource;
 use App\Filament\Resources\RegistrationResource;
 use App\Filament\Resources\InformationPostResource;
 use Filament\Pages\Dashboard;
@@ -44,10 +45,17 @@ class AdminDashboard extends Dashboard
             ],
             [
                 "label" => "报名项目",
-                "description" => "配置单羽、多羽组、金额、规则",
+                "description" => "配置单羽、多羽组、阶段项目、金额、规则",
                 "icon" => "heroicon-o-squares-2x2",
                 "href" => RaceProjectResource::getUrl("index"),
                 "accent" => "oklch(0.78 0.13 92)",
+            ],
+            [
+                "label" => "递进报名类别",
+                "description" => "配置站站赛、月月赛与当前开放阶段",
+                "icon" => "heroicon-o-arrow-path-rounded-square",
+                "href" => RegistrationCategoryResource::getUrl("index"),
+                "accent" => "oklch(0.74 0.15 128)",
             ],
             [
                 "label" => "赛事管理",

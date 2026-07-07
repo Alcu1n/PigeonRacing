@@ -12,9 +12,11 @@ use App\Enums\RegistrationStatus;
 use App\Exports\RegistrationMatrixExport;
 use App\Models\Member;
 use App\Models\Pigeon;
+use App\Models\ProgressiveStageEntry;
 use App\Models\Race;
 use App\Models\RaceProject;
 use App\Models\Registration;
+use App\Models\RegistrationCategory;
 use App\Models\RegistrationEntry;
 use App\Models\RegistrationEntryPigeon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,6 +53,51 @@ class RegistrationMatrixExportTest extends TestCase
 
         $this->assertSame([
             [1, 'A001', '张三鸽舍', '', '', '2026-13-000002，2026-13-000003'],
+        ], $export->collection()->values()->all());
+    }
+
+    public function test_it_exports_progressive_import_rows_without_registration_master_record(): void
+    {
+        [$race,, , $pigeons] = $this->fixtures(false);
+        $category = RegistrationCategory::query()->create([
+            'race_id' => $race->id,
+            'name' => '站站赛',
+            'sort_order' => 1,
+            'is_enabled' => true,
+        ]);
+        $stage = RaceProject::query()->create([
+            'race_id' => $race->id,
+            'project_type' => RaceProject::TYPE_PROGRESSIVE_STAGE,
+            'registration_category_id' => $category->id,
+            'stage_order' => 1,
+            'name' => '福安 1.5K',
+            'group_size' => 1,
+            'price_cent' => 150000,
+            'sort_order' => 3,
+            'is_enabled' => true,
+        ]);
+        ProgressiveStageEntry::query()->create([
+            'race_id' => $race->id,
+            'registration_category_id' => $category->id,
+            'race_project_id' => $stage->id,
+            'member_id' => $pigeons[1]->member_id,
+            'pigeon_id' => $pigeons[1]->id,
+            'loft_number_snapshot' => 'A001',
+            'participant_name_snapshot' => '张三鸽舍',
+            'ring_number_snapshot' => $pigeons[1]->ring_number,
+            'project_name_snapshot' => $stage->name,
+            'price_cent_snapshot' => $stage->price_cent,
+            'status' => RegistrationStatus::Confirmed,
+            'source' => ProgressiveStageEntry::SOURCE_IMPORT,
+            'submitted_at' => now(),
+            'confirmed_at' => now(),
+        ]);
+
+        $export = new RegistrationMatrixExport($race->id);
+
+        $this->assertSame(['序号', '会员棚号', '会员参赛名', '足环号码', '单羽 50', '双羽组 200', '福安 1.5K'], $export->headings());
+        $this->assertSame([
+            [1, 'A001', '张三鸽舍', $pigeons[1]->ring_number, '', '', '✓'],
         ], $export->collection()->values()->all());
     }
 

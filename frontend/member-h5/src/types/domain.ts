@@ -25,6 +25,9 @@ export interface Race {
 export interface RaceProject {
   id: number
   race_id: number
+  project_type?: 'standard' | 'progressive_stage'
+  registration_category_id?: number | null
+  stage_order?: number | null
   name: string
   group_size: number
   price_cent: number
@@ -51,6 +54,12 @@ export interface RegistrationEntryPayload {
   pigeon_ids: number[]
 }
 
+export interface ProgressiveRegistrationEntryPayload {
+  category_id: number
+  stage_project_id: number
+  pigeon_ids: number[]
+}
+
 export interface ExistingRegistrationEntry {
   project_id: number
   project_name: string
@@ -69,6 +78,19 @@ export interface ExistingRegistration {
   total_amount_cent: number
   submitted_at: string
   entries: ExistingRegistrationEntry[]
+  progressive_entries?: ExistingProgressiveEntry[]
+}
+
+export interface ExistingProgressiveEntry {
+  category_id: number
+  category_name?: string | null
+  stage_project_id: number
+  stage_project_name: string
+  pigeon_id: number
+  ring_number: string
+  price_cent: number
+  status: string
+  submitted_at?: string | null
 }
 
 export interface RegistrationHistoryItem {
@@ -81,6 +103,23 @@ export interface RegistrationHistoryItem {
   submitted_at: string
   single_count: number
   multi_group_count: number
+  progressive_count?: number
+}
+
+export interface ProgressiveCategory {
+  id: number
+  name: string
+  sort_order: number
+  current_stage: {
+    id: number
+    name: string
+    price_cent: number
+    stage_order?: number | null
+    sort_order: number
+  } | null
+  eligible_pigeons: Pigeon[]
+  selected_pigeon_ids: number[]
+  status?: string | null
 }
 
 export type InformationCategory = 'rules' | 'results' | 'notice'
@@ -104,6 +143,7 @@ export interface BootstrapPayload {
   member: Member
   projects: RaceProject[]
   pigeons: Pigeon[]
+  progressive_categories?: ProgressiveCategory[]
   existing_registration: ExistingRegistration | null
 }
 

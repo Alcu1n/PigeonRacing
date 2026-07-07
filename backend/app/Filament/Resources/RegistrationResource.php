@@ -10,6 +10,7 @@ namespace App\Filament\Resources;
 use App\Enums\RegistrationStatus;
 use App\Filament\Resources\RegistrationResource\Pages;
 use App\Models\Registration;
+use App\Services\RaceCacheService;
 use App\Services\RegistrationDetailMatrixService;
 use Filament\Actions\Action;
 use Filament\Actions\ViewAction;
@@ -114,6 +115,15 @@ class RegistrationResource extends Resource
             'confirmed_at' => now(),
             'confirmed_by' => auth()->id(),
         ])->save();
+
+        $record->progressiveStageEntries()->update([
+            'status' => RegistrationStatus::Confirmed->value,
+            'confirmed_at' => now(),
+            'confirmed_by' => auth()->id(),
+        ]);
+
+        $record->loadMissing(['race', 'member']);
+        app(RaceCacheService::class)->forgetBootstrap($record->race, $record->member);
     }
 
     private static function formatYuan(?int $cent): string

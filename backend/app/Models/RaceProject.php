@@ -13,8 +13,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RaceProject extends Model
 {
+    public const TYPE_STANDARD = 'standard';
+    public const TYPE_PROGRESSIVE_STAGE = 'progressive_stage';
+
     protected $fillable = [
         'race_id',
+        'project_type',
+        'registration_category_id',
+        'stage_order',
         'name',
         'group_size',
         'price_cent',
@@ -36,6 +42,23 @@ class RaceProject extends Model
 
     protected static function booted(): void
     {
+        static::saving(function (RaceProject $project): void {
+            $project->project_type ??= self::TYPE_STANDARD;
+
+            if ($project->project_type === self::TYPE_PROGRESSIVE_STAGE) {
+                $project->group_size = 1;
+                if ($project->registration_category_id) {
+                    $categoryRaceId = RegistrationCategory::query()->whereKey($project->registration_category_id)->value('race_id');
+                    if ($categoryRaceId) {
+                        $project->race_id = (int) $categoryRaceId;
+                    }
+                }
+            } else {
+                $project->registration_category_id = null;
+                $project->stage_order = null;
+            }
+        });
+
         static::saved(fn (RaceProject $project) => $project->refreshRaceConfig());
         static::deleted(fn (RaceProject $project) => $project->refreshRaceConfig());
     }
@@ -45,9 +68,19 @@ class RaceProject extends Model
         return $this->belongsTo(Race::class);
     }
 
+    public function registrationCategory(): BelongsTo
+    {
+        return $this->belongsTo(RegistrationCategory::class);
+    }
+
     public function isSingle(): bool
     {
         return $this->group_size === 1;
+    }
+
+    public function isProgressiveStage(): bool
+    {
+        return $this->project_type === self::TYPE_PROGRESSIVE_STAGE;
     }
 
     private function refreshRaceConfig(): void

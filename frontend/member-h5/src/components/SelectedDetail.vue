@@ -1,5 +1,5 @@
 <!-- [IN]: Registration store selected entries / 报名 Store 已选报名项目 -->
-<!-- [OUT]: Grouped single and multi detail preview / 分组单羽与多羽明细预览 -->
+<!-- [OUT]: Grouped single, multi, and progressive detail preview / 分组单羽、多羽与递进阶段明细预览 -->
 <!-- [POS]: Frontend selected detail component / 前端已选明细组件 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -14,6 +14,11 @@ const singleGroups = computed(() => store.singleProjects.map((project) => {
   const entries = store.singleEntries.filter((entry) => entry.project_id === project.id)
   return { project, entries }
 }).filter((group) => group.entries.length > 0))
+
+const progressiveGroups = computed(() => store.progressiveCategories.map((category) => {
+  const pigeonIds = store.progressiveSelections[category.id] ?? []
+  return { category, pigeonIds }
+}).filter((group) => group.pigeonIds.length > 0))
 </script>
 
 <template>
@@ -37,6 +42,16 @@ const singleGroups = computed(() => store.singleProjects.map((project) => {
           <span>{{ group.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
         </div>
       </template>
+    </article>
+
+    <article v-for="group in progressiveGroups" :key="group.category.id" class="detail-block">
+      <h3>{{ group.category.name }} · {{ group.category.current_stage?.name }}</h3>
+      <p>共 {{ group.pigeonIds.length }} 羽，小计 {{ yuan(group.pigeonIds.length * (group.category.current_stage?.price_cent ?? 0)) }}</p>
+      <ul>
+        <li v-for="pigeonId in group.pigeonIds.slice(0, 12)" :key="group.category.id + '-' + pigeonId">
+          {{ store.pigeonById(pigeonId).ring_number }}
+        </li>
+      </ul>
     </article>
 
     <p v-if="store.selectedCount === 0" class="empty-note">尚未选择报名项目</p>

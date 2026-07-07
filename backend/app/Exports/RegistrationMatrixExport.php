@@ -1,6 +1,6 @@
 <?php
 // [IN]: Race registrations with project and pigeon snapshots / 含项目与足环快照的赛事报名
-// [OUT]: Styled matrix export with race summary, single rows, and unique multi-group rows / 带赛事摘要、单羽行与唯一多羽组合行的样式化矩阵导出
+// [OUT]: Styled matrix export with race summary, single rows, unique multi-group rows, and progressive rows / 带赛事摘要、单羽行、唯一多羽组合行与递进行的样式化矩阵导出
 // [POS]: Backend registration Excel export / 后端报名 Excel 导出
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -8,6 +8,7 @@
 namespace App\Exports;
 
 use App\Models\Race;
+use App\Models\ProgressiveStageEntry;
 use App\Models\RegistrationEntry;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -54,12 +55,14 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
     public function collection(): Collection
     {
         $rows = [];
+        $exportedProgressiveEntryIds = [];
 
         $registrations = $this->race->registrations()
             ->with([
                 'member',
                 'entries' => fn ($query) => $query->orderBy('group_index')->orderBy('id'),
                 'entries.pigeons' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
+                'progressiveStageEntries' => fn ($query) => $query->orderBy('race_project_id')->orderBy('ring_number_snapshot'),
             ])
             ->orderBy('submitted_at')
             ->orderBy('id')
@@ -97,8 +100,42 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
                 }
             }
 
+            foreach ($registration->progressiveStageEntries as $entry) {
+                $exportedProgressiveEntryIds[] = $entry->id;
+                $key = "{$registration->id}:progressive:{$entry->race_project_id}:{$entry->pigeon_id}";
+                $singleRows[$key] ??= $this->rowTemplate(
+                    $member?->loft_number ?? '',
+                    $member?->participant_name ?? '',
+                    $entry->ring_number_snapshot,
+                );
+                $singleRows[$key]['projects'][$entry->race_project_id] = '✓';
+            }
+
             array_push($rows, ...array_values($singleRows), ...$multiRows);
         }
+
+        $orphanProgressiveRows = [];
+        $orphanProgressiveEntries = ProgressiveStageEntry::query()
+            ->with(['member'])
+            ->where('race_id', $this->race->id)
+            ->when($exportedProgressiveEntryIds !== [], fn ($query) => $query->whereNotIn('id', $exportedProgressiveEntryIds))
+            ->orderBy('loft_number_snapshot')
+            ->orderBy('ring_number_snapshot')
+            ->orderBy('race_project_id')
+            ->get();
+
+        foreach ($orphanProgressiveEntries as $entry) {
+            $member = $entry->member;
+            $key = "progressive-orphan:{$entry->member_id}:{$entry->pigeon_id}";
+            $orphanProgressiveRows[$key] ??= $this->rowTemplate(
+                $member?->loft_number ?? $entry->loft_number_snapshot,
+                $member?->participant_name ?? $entry->participant_name_snapshot,
+                $entry->ring_number_snapshot,
+            );
+            $orphanProgressiveRows[$key]['projects'][$entry->race_project_id] = '✓';
+        }
+
+        array_push($rows, ...array_values($orphanProgressiveRows));
 
         return collect($rows)->values()->map(function (array $row, int $index): array {
             return [
@@ -203,14 +240,19 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
 
     private function projectSummaryText(): string
     {
-        $counts = RegistrationEntry::query()
+        $standardCounts = RegistrationEntry::query()
             ->whereHas('registration', fn ($query) => $query->where('race_id', $this->race->id))
+            ->selectRaw('race_project_id, count(*) as total')
+            ->groupBy('race_project_id')
+            ->pluck('total', 'race_project_id');
+        $progressiveCounts = ProgressiveStageEntry::query()
+            ->where('race_id', $this->race->id)
             ->selectRaw('race_project_id, count(*) as total')
             ->groupBy('race_project_id')
             ->pluck('total', 'race_project_id');
 
         return $this->projects
-            ->map(fn ($project): string => $project->name.'：'.((int) ($counts[$project->id] ?? 0)))
+            ->map(fn ($project): string => $project->name.'：'.((int) ($standardCounts[$project->id] ?? 0) + (int) ($progressiveCounts[$project->id] ?? 0)))
             ->implode('，');
     }
 

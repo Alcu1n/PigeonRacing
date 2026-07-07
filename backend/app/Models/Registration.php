@@ -51,6 +51,11 @@ class Registration extends Model
         return $this->hasMany(RegistrationEntry::class);
     }
 
+    public function progressiveStageEntries(): HasMany
+    {
+        return $this->hasMany(ProgressiveStageEntry::class);
+    }
+
     public static function statusLabel(RegistrationStatus|string|null $status): string
     {
         return self::normalizeStatus($status) === RegistrationStatus::Confirmed ? '已确认' : '未确认';
