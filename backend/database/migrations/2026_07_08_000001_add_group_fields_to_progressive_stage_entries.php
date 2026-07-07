@@ -14,6 +14,13 @@ return new class extends Migration {
     public function up(): void
     {
         Schema::table('progressive_stage_entries', function (Blueprint $table): void {
+            $table->index('registration_category_id', 'progressive_stage_category_safe_index');
+            $table->index('race_project_id', 'progressive_stage_project_safe_index');
+            $table->index('member_id', 'progressive_stage_member_safe_index');
+            $table->index('pigeon_id', 'progressive_stage_pigeon_safe_index');
+        });
+
+        Schema::table('progressive_stage_entries', function (Blueprint $table): void {
             $table->dropUnique('progressive_stage_member_pigeon_unique');
             $table->string('group_key', 64)->nullable()->after('member_id');
             $table->unsignedInteger('group_index')->default(1)->after('group_key');
@@ -43,6 +50,13 @@ return new class extends Migration {
             $table->dropIndex('progressive_stage_group_index');
             $table->dropColumn(['group_key', 'group_index', 'group_size_snapshot', 'pigeon_sort_order']);
             $table->unique(['registration_category_id', 'race_project_id', 'member_id', 'pigeon_id'], 'progressive_stage_member_pigeon_unique');
+        });
+
+        Schema::table('progressive_stage_entries', function (Blueprint $table): void {
+            $table->dropIndex('progressive_stage_category_safe_index');
+            $table->dropIndex('progressive_stage_project_safe_index');
+            $table->dropIndex('progressive_stage_member_safe_index');
+            $table->dropIndex('progressive_stage_pigeon_safe_index');
         });
     }
 };
