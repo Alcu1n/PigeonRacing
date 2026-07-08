@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member and public information API HTTP requests / 会员与公开信息发布 API HTTP 请求
-// [OUT]: No-store member-guard responses and published information JSON / no-store member guard 响应与已发布信息 JSON
+// [OUT]: No-store member-guard responses, published information JSON, and race detail publication JSON / no-store member guard 响应、已发布信息 JSON 与赛事明细发布 JSON
 // [POS]: Backend API route map / 后端 API 路由地图
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -28,6 +28,7 @@ Route::middleware(['web', NoStoreMemberApiResponse::class])->prefix('member')->g
         Route::get('/profile', [ProfileController::class, 'show']);
         Route::post('/password', [ProfileController::class, 'updatePassword']);
         Route::get('/races', [RaceController::class, 'index']);
+        Route::get('/races/{race}/published-details', [RaceController::class, 'publishedDetails']);
         Route::get('/races/{race}/bootstrap', [RaceController::class, 'bootstrap']);
         Route::get('/registrations', [RegistrationController::class, 'index']);
         Route::post('/races/{race}/registrations', [RegistrationController::class, 'store']);

@@ -1,5 +1,5 @@
 // [IN]: Backend API JSON contracts / 后端 API JSON 契约
-// [OUT]: Frontend domain TypeScript types, localized registration status helpers, and information contracts / 前端领域 TypeScript 类型、本地化报名状态辅助函数与信息发布契约
+// [OUT]: Frontend domain TypeScript types, localized registration status helpers, information contracts, and published race details / 前端领域 TypeScript 类型、本地化报名状态辅助函数、信息发布契约与已发布赛事明细
 // [POS]: Frontend shared domain contract / 前端共享领域契约
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -20,7 +20,11 @@ export interface Race {
   status: string
   config_version: number
   allow_member_edit?: boolean
+  has_published_details?: boolean
+  registration_details_scope?: PublishedRaceDetailsScope
 }
+
+export type PublishedRaceDetailsScope = 'confirmed_only' | 'all_submitted'
 
 export interface RaceProject {
   id: number
@@ -151,6 +155,50 @@ export interface InformationPostListItem {
 
 export interface InformationPostDetail extends InformationPostListItem {
   content_html: string
+}
+
+export interface PublishedRaceDetails {
+  race: {
+    id: number
+    name: string
+    registration_end_at: string
+  }
+  published_at?: string | null
+  scope: PublishedRaceDetailsScope
+  scope_label: string
+  single: {
+    projects: Array<{ id: number; name: string; sort_order: number }>
+    rows: Array<{
+      loft_number: string
+      participant_name: string
+      ring_number: string
+      selected_projects: Record<string, string>
+    }>
+  }
+  multi: Array<{
+    project_id: number
+    project_name: string
+    group_size: number
+    groups: PublishedRaceDetailsGroup[]
+  }>
+  progressive: Array<{
+    category_id: number
+    category_name: string
+    stages: Array<{
+      stage_project_id: number
+      stage_project_name: string
+      group_size: number
+      groups: PublishedRaceDetailsGroup[]
+    }>
+  }>
+}
+
+export interface PublishedRaceDetailsGroup {
+  loft_number: string
+  participant_name: string
+  group_index: number
+  status: string
+  rings: string[]
 }
 
 export interface BootstrapPayload {

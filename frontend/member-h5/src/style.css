@@ -1,5 +1,5 @@
 /* [IN]: Member H5 markup and design tokens / 会员 H5 标记与设计令牌 */
-/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, public information pages, localized status pills, compact amount bar, highlighted race list, paint-stable matrix selection, history detail, and compact matrix / 居中 Logo 登录页脚、公开信息页、本地化状态标签、紧凑金额栏、突出赛事列表、稳定绘制的矩阵选中态、历史详情与紧凑矩阵移动端 UI 样式 */
+/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, public information pages, localized status pills, compact amount bar, highlighted race list, published details, paint-stable matrix selection, history detail, and compact matrix / 居中 Logo 登录页脚、公开信息页、本地化状态标签、紧凑金额栏、突出赛事列表、已发布明细、稳定绘制的矩阵选中态、历史详情与紧凑矩阵移动端 UI 样式 */
 /* [POS]: Frontend global stylesheet / 前端全局样式 */
 /* Protocol: When updating me, sync this header + parent folder's .folder.md */
 /* 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md */
@@ -1022,6 +1022,296 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   color: #fff;
   opacity: 1;
   box-shadow: 0 12px 24px rgba(186, 45, 45, .2);
+}
+
+.race-detail-action {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 8px;
+  border-color: #a7d4bf;
+  color: var(--green-dark);
+  background: #f4fbf7;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.published-details-page {
+  background:
+    linear-gradient(180deg, rgba(11, 122, 75, .07), rgba(245, 247, 246, 0) 150px),
+    var(--bg);
+}
+
+.compact-detail-header {
+  padding: 8px 2px 2px;
+}
+
+.compact-detail-header h1 {
+  font-size: 24px;
+}
+
+.compact-detail-header p {
+  max-width: 210px;
+  overflow: hidden;
+  color: #48645a;
+  font-size: 13px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.published-summary-card,
+.published-card {
+  background: var(--surface);
+  border: 1px solid #cfe0d7;
+  border-radius: 8px;
+  box-shadow: 0 12px 28px rgba(13, 43, 30, .07);
+}
+
+.published-summary-card {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.published-summary-card div {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 9px 8px;
+  background: #f9fcfa;
+}
+
+.published-summary-card span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.published-summary-card strong {
+  overflow: hidden;
+  color: #18382c;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.published-tabs {
+  margin-top: 10px;
+}
+
+.published-search {
+  width: 100%;
+  min-height: 38px;
+  margin: 4px 0 10px;
+  padding: 0 12px;
+  border: 1px solid #cbded4;
+  border-radius: 8px;
+  background: #fff;
+  color: #19372c;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.published-card {
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.published-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--border);
+  background: #f8fbf9;
+}
+
+.published-card-head h2 {
+  margin: 0;
+  color: #123529;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.published-card-head span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.published-table-wrap {
+  overflow-x: auto;
+}
+
+.published-single-grid {
+  display: grid;
+  grid-template-columns: 132px repeat(var(--published-project-count), minmax(58px, 1fr));
+  min-width: max-content;
+}
+
+.published-header-row {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.published-sticky-cell,
+.published-project-head,
+.published-check-cell {
+  min-height: 42px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  font-size: 12px;
+  font-weight: 900;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.published-sticky-cell {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  justify-content: flex-start;
+  background: #fff;
+  box-shadow: 1px 0 0 var(--border);
+}
+
+.published-header-row .published-sticky-cell,
+.published-project-head {
+  background: #0b7046;
+  color: #fff;
+}
+
+.identity-cell {
+  display: grid;
+  justify-items: start;
+  gap: 1px;
+  text-align: left;
+}
+
+.identity-cell b,
+.identity-cell span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity-cell b {
+  color: #0b7046;
+  font-size: 12px;
+}
+
+.identity-cell span {
+  color: #52685e;
+  font-size: 11px;
+}
+
+.identity-cell strong {
+  color: #0a5135;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+}
+
+.published-check-cell {
+  background: #fbfdfc;
+}
+
+.published-check-cell .registration-status-pill {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+
+.empty-check {
+  color: #7a8a83;
+  font-size: 15px;
+}
+
+.published-group-block {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.published-group-block:first-of-type {
+  border-top: 0;
+}
+
+.published-group-block header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.published-group-block header strong {
+  color: #14372a;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.published-group-block header span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.published-group-table {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.published-group-row {
+  display: grid;
+  grid-template-columns: 72px 92px minmax(160px, 1fr) 72px;
+  min-width: 420px;
+  border-top: 1px solid var(--border);
+}
+
+.published-group-row:first-child {
+  border-top: 0;
+}
+
+.published-group-row > * {
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 6px;
+  border-left: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.published-group-row > *:first-child {
+  border-left: 0;
+}
+
+.published-group-header {
+  background: #eef6f1;
+}
+
+.published-group-header b {
+  color: #234b3d;
+  font-weight: 900;
+}
+
+.ring-lines {
+  white-space: pre-line;
+  color: #0d3f2c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 }
 
 .profile-page {

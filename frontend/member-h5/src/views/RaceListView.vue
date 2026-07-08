@@ -1,5 +1,5 @@
 <!-- [IN]: Authenticated member session and visible race API / 已鉴权会员会话与可见赛事 API -->
-<!-- [OUT]: Highlighted race list with deadline-aware actions and registration entry navigation / 带截止状态动作的突出赛事列表与报名入口导航 -->
+<!-- [OUT]: Highlighted race list with deadline-aware actions, registration entry navigation, and published detail access / 带截止状态动作、报名入口与已发布明细入口的突出赛事列表 -->
 <!-- [POS]: Frontend race list screen / 前端赛事列表页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -69,6 +69,13 @@ function raceEndTime(value: string): string {
               @click="router.push(`/races/${race.id}/register`)"
             >
               {{ isRaceEnded(race) ? '已结束' : '进入报名' }}
+            </button>
+            <button
+              v-if="race.has_published_details"
+              class="secondary-action race-detail-action"
+              @click="router.push(`/races/${race.id}/details`)"
+            >
+              报名明细
             </button>
           </div>
         </div>
