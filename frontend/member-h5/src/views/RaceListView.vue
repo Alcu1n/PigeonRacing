@@ -72,7 +72,7 @@ function raceEndTime(value: string): string {
             </button>
             <button
               v-if="race.has_published_details"
-              class="secondary-action race-detail-action"
+              class="race-detail-action"
               @click="router.push(`/races/${race.id}/details`)"
             >
               报名明细
