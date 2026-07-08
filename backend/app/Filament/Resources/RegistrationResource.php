@@ -1,6 +1,6 @@
 <?php
 // [IN]: Registration model records, snapshot matrix service, and confirmation action / 报名模型记录、快照矩阵服务与确认动作
-// [OUT]: Filament registration review table, edit entry, localized status badges, and dense detail matrix / 带编辑入口、本地化状态徽标与高密度详情矩阵的 Filament 报名审核表格
+// [OUT]: Filament registration review table, bulk confirm, edit entry, localized status badges, and dense detail matrix / 带批量确认、编辑入口、本地化状态徽标与高密度详情矩阵的 Filament 报名审核表格
 // [POS]: Backend admin registration resource / 后端后台报名资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -13,6 +13,7 @@ use App\Models\Registration;
 use App\Services\RaceCacheService;
 use App\Services\RegistrationDetailMatrixService;
 use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Resources\Resource;
@@ -21,6 +22,7 @@ use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
 
 class RegistrationResource extends Resource
 {
@@ -97,6 +99,14 @@ class RegistrationResource extends Resource
                 ->label('修改报名数据')
                 ->icon('heroicon-o-pencil-square')
                 ->url(fn (Registration $record): string => self::getUrl('edit-data', ['record' => $record])),
+        ])->bulkActions([
+            BulkAction::make('confirmSelected')
+                ->label('确认报名')
+                ->icon('heroicon-o-check-circle')
+                ->color('success')
+                ->requiresConfirmation()
+                ->action(fn (Collection $records) => self::confirmRegistrations($records))
+                ->successNotificationTitle('已批量确认报名'),
         ]);
     }
 
@@ -111,24 +121,36 @@ class RegistrationResource extends Resource
 
     private static function confirmRegistration(Registration $record): void
     {
-        if ($record->status === RegistrationStatus::Confirmed) {
-            return;
+        self::confirmRegistrations(collect([$record]));
+    }
+
+    public static function confirmRegistrations(iterable $records): int
+    {
+        $confirmed = 0;
+
+        foreach ($records as $record) {
+            if (! $record instanceof Registration || $record->status === RegistrationStatus::Confirmed) {
+                continue;
+            }
+
+            $record->forceFill([
+                'status' => RegistrationStatus::Confirmed,
+                'confirmed_at' => now(),
+                'confirmed_by' => auth()->id(),
+            ])->save();
+
+            $record->progressiveStageEntries()->update([
+                'status' => RegistrationStatus::Confirmed->value,
+                'confirmed_at' => now(),
+                'confirmed_by' => auth()->id(),
+            ]);
+
+            $record->loadMissing(['race', 'member']);
+            app(RaceCacheService::class)->forgetBootstrap($record->race, $record->member);
+            $confirmed++;
         }
 
-        $record->forceFill([
-            'status' => RegistrationStatus::Confirmed,
-            'confirmed_at' => now(),
-            'confirmed_by' => auth()->id(),
-        ])->save();
-
-        $record->progressiveStageEntries()->update([
-            'status' => RegistrationStatus::Confirmed->value,
-            'confirmed_at' => now(),
-            'confirmed_by' => auth()->id(),
-        ]);
-
-        $record->loadMissing(['race', 'member']);
-        app(RaceCacheService::class)->forgetBootstrap($record->race, $record->member);
+        return $confirmed;
     }
 
     private static function formatYuan(?int $cent): string

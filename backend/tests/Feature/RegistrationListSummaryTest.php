@@ -9,9 +9,14 @@ namespace Tests\Feature;
 
 use App\Enums\RaceStatus;
 use App\Enums\RegistrationStatus;
+use App\Filament\Resources\RegistrationResource;
 use App\Models\Member;
+use App\Models\Pigeon;
+use App\Models\ProgressiveStageEntry;
 use App\Models\Race;
+use App\Models\RaceProject;
 use App\Models\Registration;
+use App\Models\RegistrationCategory;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -52,7 +57,38 @@ class RegistrationListSummaryTest extends TestCase
             ->assertSee('2 棚');
     }
 
-    private function registration(Race $race, string $loftNumber, RegistrationStatus $status, int $amountCent): void
+    public function test_admin_can_confirm_multiple_registrations_at_once(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'email' => 'admin-bulk-confirm@example.com',
+            'password' => 'password',
+        ]);
+        $race = Race::query()->create([
+            'name' => '测试赛事',
+            'registration_start_at' => now()->subDay(),
+            'registration_end_at' => now()->addDay(),
+            'status' => RaceStatus::Published,
+            'is_visible' => true,
+        ]);
+        $pending = $this->registration($race, 'A101', RegistrationStatus::PendingConfirmation, 5000);
+        $confirmed = $this->registration($race, 'A102', RegistrationStatus::Confirmed, 6000);
+        $this->progressiveEntry($race, $pending, RegistrationStatus::PendingConfirmation);
+
+        $this->actingAs($admin);
+        $count = RegistrationResource::confirmRegistrations(collect([$pending, $confirmed]));
+
+        $this->assertSame(1, $count);
+        $this->assertSame(RegistrationStatus::Confirmed, $pending->fresh()->status);
+        $this->assertSame(RegistrationStatus::Confirmed, $confirmed->fresh()->status);
+        $this->assertDatabaseHas('progressive_stage_entries', [
+            'registration_id' => $pending->id,
+            'status' => RegistrationStatus::Confirmed->value,
+            'confirmed_by' => $admin->id,
+        ]);
+    }
+
+    private function registration(Race $race, string $loftNumber, RegistrationStatus $status, int $amountCent): Registration
     {
         $member = Member::query()->create([
             'phone' => null,
@@ -62,7 +98,7 @@ class RegistrationListSummaryTest extends TestCase
             'status' => 'enabled',
         ]);
 
-        Registration::query()->create([
+        return Registration::query()->create([
             'registration_no' => 'REG-'.$loftNumber,
             'race_id' => $race->id,
             'member_id' => $member->id,
@@ -71,6 +107,54 @@ class RegistrationListSummaryTest extends TestCase
             'idempotency_key' => (string) Str::uuid(),
             'submitted_at' => now(),
             'confirmed_at' => $status === RegistrationStatus::Confirmed ? now() : null,
+        ]);
+    }
+
+    private function progressiveEntry(Race $race, Registration $registration, RegistrationStatus $status): void
+    {
+        $category = RegistrationCategory::query()->create([
+            'race_id' => $race->id,
+            'name' => '站站赛',
+            'is_enabled' => true,
+        ]);
+        $project = RaceProject::query()->create([
+            'race_id' => $race->id,
+            'project_type' => RaceProject::TYPE_PROGRESSIVE_STAGE,
+            'registration_category_id' => $category->id,
+            'stage_order' => 1,
+            'name' => '第一阶段',
+            'group_size' => 1,
+            'price_cent' => 1000,
+            'sort_order' => 1,
+            'is_enabled' => true,
+        ]);
+        $pigeon = Pigeon::query()->create([
+            'member_id' => $registration->member_id,
+            'loft_number' => $registration->member->loft_number,
+            'participant_name' => $registration->member->participant_name,
+            'ring_number' => '2026-13-999999',
+            'status' => 'normal',
+        ]);
+
+        ProgressiveStageEntry::query()->create([
+            'registration_id' => $registration->id,
+            'race_id' => $race->id,
+            'registration_category_id' => $category->id,
+            'race_project_id' => $project->id,
+            'member_id' => $registration->member_id,
+            'group_key' => (string) $pigeon->id,
+            'group_index' => 1,
+            'group_size_snapshot' => 1,
+            'pigeon_id' => $pigeon->id,
+            'pigeon_sort_order' => 1,
+            'loft_number_snapshot' => $registration->member->loft_number,
+            'participant_name_snapshot' => $registration->member->participant_name,
+            'ring_number_snapshot' => $pigeon->ring_number,
+            'project_name_snapshot' => $project->name,
+            'price_cent_snapshot' => $project->price_cent,
+            'status' => $status,
+            'source' => ProgressiveStageEntry::SOURCE_MEMBER,
+            'submitted_at' => now(),
         ]);
     }
 }
