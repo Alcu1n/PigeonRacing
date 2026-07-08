@@ -1,6 +1,6 @@
 <?php
 // [IN]: Progressive registration category records / 递进报名类别记录
-// [OUT]: Filament category management with current stage, import entry, and template download / 带当前阶段、导入入口与模板下载的 Filament 类别管理
+// [OUT]: Filament category management with current stage, import entry, stage data management, and template download / 带当前阶段、导入入口、阶段数据管理与模板下载的 Filament 类别管理
 // [POS]: Backend admin progressive category resource / 后端后台递进类别资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -69,6 +69,10 @@ class RegistrationCategoryResource extends Resource
 
                     return Excel::download(new ProgressiveStageImportTemplateExport($stage->name, (int) $stage->group_size), "递进第一阶段导入模板-{$record->name}.xlsx");
                 }),
+            Action::make('manageStageData')
+                ->label('阶段数据管理')
+                ->icon('heroicon-o-table-cells')
+                ->url(fn (RegistrationCategory $record): string => self::getUrl('stage-data', ['record' => $record->getKey()])),
             EditAction::make(),
             DeleteAction::make(),
         ]);
@@ -81,6 +85,7 @@ class RegistrationCategoryResource extends Resource
             'create' => Pages\CreateRegistrationCategory::route('/create'),
             'edit' => Pages\EditRegistrationCategory::route('/{record}/edit'),
             'import-first-stage' => Pages\ImportFirstStage::route('/{record}/import-first-stage'),
+            'stage-data' => Pages\ManageStageData::route('/{record}/stage-data'),
         ];
     }
 }

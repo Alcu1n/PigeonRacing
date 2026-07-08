@@ -1,6 +1,6 @@
 <?php
 // [IN]: Registration model records, snapshot matrix service, and confirmation action / 报名模型记录、快照矩阵服务与确认动作
-// [OUT]: Filament registration review table with localized status badges and dense detail matrix / 带本地化状态徽标的 Filament 报名审核表格与高密度详情矩阵
+// [OUT]: Filament registration review table, edit entry, localized status badges, and dense detail matrix / 带编辑入口、本地化状态徽标与高密度详情矩阵的 Filament 报名审核表格
 // [POS]: Backend admin registration resource / 后端后台报名资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -93,6 +93,10 @@ class RegistrationResource extends Resource
             TextColumn::make('submitted_at')->label('提交时间')->dateTime(),
         ])->recordActions([
             ViewAction::make(),
+            Action::make('editRegistrationData')
+                ->label('修改报名数据')
+                ->icon('heroicon-o-pencil-square')
+                ->url(fn (Registration $record): string => self::getUrl('edit-data', ['record' => $record])),
         ]);
     }
 
@@ -101,6 +105,7 @@ class RegistrationResource extends Resource
         return [
             'index' => Pages\ListRegistrations::route('/'),
             'view' => Pages\ViewRegistration::route('/{record}'),
+            'edit-data' => Pages\EditRegistrationData::route('/{record}/edit-data'),
         ];
     }
 

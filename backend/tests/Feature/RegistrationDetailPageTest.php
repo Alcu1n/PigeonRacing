@@ -52,6 +52,24 @@ class RegistrationDetailPageTest extends TestCase
             ->assertSee('2026-13-000002');
     }
 
+    public function test_admin_can_open_registration_data_edit_page(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'email' => 'admin-edit-registration@example.com',
+            'password' => 'password',
+        ]);
+        $registration = $this->registrationWithEntries();
+
+        $this->actingAs($admin)
+            ->get(RegistrationResource::getUrl('edit-data', ['record' => $registration]))
+            ->assertOk()
+            ->assertSee('修改报名数据')
+            ->assertSee('单羽组')
+            ->assertSee('多羽组')
+            ->assertSee('保存修改');
+    }
+
     private function registrationWithEntries(): Registration
     {
         $member = Member::query()->create([

@@ -8,6 +8,7 @@
 namespace App\Filament\Resources\RegistrationResource\Pages;
 
 use App\Filament\Resources\RegistrationResource;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\ViewRecord;
 
 class ViewRegistration extends ViewRecord
@@ -19,5 +20,15 @@ class ViewRegistration extends ViewRecord
         parent::mount($record);
 
         $this->record->loadMissing(['race', 'member', 'entries.pigeons', 'progressiveStageEntries.category']);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            Action::make('editRegistrationData')
+                ->label('修改报名数据')
+                ->icon('heroicon-o-pencil-square')
+                ->url(fn (): string => RegistrationResource::getUrl('edit-data', ['record' => $this->record])),
+        ];
     }
 }
