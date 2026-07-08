@@ -120,6 +120,32 @@ class PublishedRaceDetailsApiTest extends TestCase
             ->assertJsonPath('single.rows.0.selected_projects.'.$single->id, RegistrationStatus::PendingConfirmation->value);
     }
 
+    public function test_progressive_details_only_return_current_open_stage(): void
+    {
+        $member = $this->member('A001');
+        $race = $this->race(['registration_details_published_at' => now()]);
+        $registration = $this->registration($member, $race, RegistrationStatus::Confirmed);
+        $category = RegistrationCategory::query()->create([
+            'race_id' => $race->id,
+            'name' => '站站赛',
+            'type' => RegistrationCategory::TYPE_PROGRESSIVE,
+            'is_enabled' => true,
+        ]);
+        $firstStage = $this->progressiveProject($race, $category, '第一阶段', 1);
+        $secondStage = $this->progressiveProject($race, $category, '第二阶段', 2);
+        $category->forceFill(['current_stage_project_id' => $secondStage->id])->save();
+        $pigeons = $this->pigeons($member, ['2026-13-000006', '2026-13-000007']);
+        $this->progressiveEntryForProject($race, $registration, $category, $firstStage, $pigeons[0], RegistrationStatus::Confirmed);
+        $this->progressiveEntryForProject($race, $registration, $category, $secondStage, $pigeons[1], RegistrationStatus::Confirmed);
+
+        $this->actingAs($member, 'member')
+            ->getJson("/api/member/races/{$race->id}/published-details")
+            ->assertOk()
+            ->assertJsonCount(1, 'progressive.0.stages')
+            ->assertJsonPath('progressive.0.stages.0.stage_project_name', '第二阶段')
+            ->assertJsonPath('progressive.0.stages.0.groups.0.rings.0', '2026-13-000007');
+    }
+
     private function member(string $loftNumber): Member
     {
         return Member::query()->create([
@@ -223,7 +249,34 @@ class PublishedRaceDetailsApiTest extends TestCase
                 'is_enabled' => true,
             ],
         );
+        $category->forceFill(['current_stage_project_id' => $project->id])->save();
 
+        $this->progressiveEntryForProject($race, $registration, $category, $project, $pigeon, $status);
+    }
+
+    private function progressiveProject(Race $race, RegistrationCategory $category, string $name, int $stageOrder): RaceProject
+    {
+        return RaceProject::query()->create([
+            'race_id' => $race->id,
+            'project_type' => RaceProject::TYPE_PROGRESSIVE_STAGE,
+            'registration_category_id' => $category->id,
+            'stage_order' => $stageOrder,
+            'name' => $name,
+            'group_size' => 1,
+            'price_cent' => 1000,
+            'sort_order' => $stageOrder,
+            'is_enabled' => true,
+        ]);
+    }
+
+    private function progressiveEntryForProject(
+        Race $race,
+        Registration $registration,
+        RegistrationCategory $category,
+        RaceProject $project,
+        Pigeon $pigeon,
+        RegistrationStatus $status,
+    ): void {
         ProgressiveStageEntry::query()->create([
             'registration_id' => $registration->id,
             'race_id' => $race->id,

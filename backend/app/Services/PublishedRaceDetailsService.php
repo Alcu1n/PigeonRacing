@@ -1,6 +1,6 @@
 <?php
 // [IN]: Race registrations, standard entries, progressive stage entries, and publication scope / 赛事报名、普通明细、递进阶段明细与发布范围
-// [OUT]: Race-level read-only registration detail matrices for member H5 / 会员端整场只读报名明细矩阵
+// [OUT]: Race-level read-only registration detail matrices with current progressive stages for member H5 / 会员端整场只读报名明细矩阵与当前递进阶段
 // [POS]: Backend published race details read-model service / 后端已发布赛事明细读模型服务
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -63,7 +63,7 @@ class PublishedRaceDetailsService
     private function progressiveEntries(Race $race): Collection
     {
         return ProgressiveStageEntry::query()
-            ->with(['member', 'category', 'project'])
+            ->with(['member', 'category.currentStage', 'project'])
             ->where('race_id', $race->id)
             ->when(
                 $race->registration_details_scope !== Race::DETAILS_SCOPE_ALL_SUBMITTED,
@@ -172,14 +172,26 @@ class PublishedRaceDetailsService
     {
         return $entries
             ->groupBy('registration_category_id')
-            ->map(function (Collection $categoryEntries): array {
+            ->map(function (Collection $categoryEntries): ?array {
                 /** @var ProgressiveStageEntry $firstCategory */
                 $firstCategory = $categoryEntries->first();
+                $currentStageId = (int) ($firstCategory->category?->current_stage_project_id ?? 0);
+                if ($currentStageId <= 0) {
+                    return null;
+                }
+
+                $currentStageEntries = $categoryEntries
+                    ->where('race_project_id', $currentStageId)
+                    ->values();
+
+                if ($currentStageEntries->isEmpty()) {
+                    return null;
+                }
 
                 return [
                     'category_id' => $firstCategory->registration_category_id,
                     'category_name' => $firstCategory->category?->name ?? '递进报名',
-                    'stages' => $categoryEntries
+                    'stages' => $currentStageEntries
                         ->groupBy('race_project_id')
                         ->map(function (Collection $stageEntries): array {
                             /** @var ProgressiveStageEntry $firstStage */
@@ -219,6 +231,7 @@ class PublishedRaceDetailsService
                         ->all(),
                 ];
             })
+            ->filter()
             ->values()
             ->all();
     }
