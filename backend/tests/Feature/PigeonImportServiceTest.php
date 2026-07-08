@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Pigeon import service, spreadsheet files, and database / 足环导入服务、电子表格文件与数据库
 // [OUT]: Import preview, server-side confirmation cache, and commit behavior assertions / 导入预览、服务端确认缓存与确认行为断言
 // [POS]: Backend pigeon import feature test / 后端足环导入功能测试
@@ -9,6 +10,7 @@ namespace Tests\Feature;
 
 use App\Models\Member;
 use App\Models\Pigeon;
+use App\Models\PigeonLibrary;
 use App\Services\PigeonImportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
@@ -51,6 +53,7 @@ class PigeonImportServiceTest extends TestCase
 
     public function test_it_reports_empty_duplicate_and_existing_ring_errors(): void
     {
+        $library = PigeonLibrary::query()->create(['name' => '测试足环库', 'is_enabled' => true]);
         $member = Member::query()->create([
             'phone' => '13900000001',
             'password' => 'password',
@@ -59,6 +62,7 @@ class PigeonImportServiceTest extends TestCase
             'status' => 'enabled',
         ]);
         Pigeon::query()->create([
+            'pigeon_library_id' => $library->id,
             'member_id' => $member->id,
             'loft_number' => 'A001',
             'participant_name' => '旧名',
@@ -71,12 +75,47 @@ class PigeonImportServiceTest extends TestCase
             ['line' => 3, 'sequence' => '2', 'loft_number' => 'A001', 'participant_name' => '新名', 'ring_number' => '2026-13-000002'],
             ['line' => 4, 'sequence' => '3', 'loft_number' => 'A001', 'participant_name' => '新名', 'ring_number' => '2026-13-000002'],
             ['line' => 5, 'sequence' => '4', 'loft_number' => '', 'participant_name' => '', 'ring_number' => ''],
-        ]);
+        ], $library);
 
         $this->assertSame(1, $preview['valid_rows']);
         $this->assertSame(3, $preview['failed_rows']);
         $this->assertSame(2, $preview['duplicate_rows']);
         $this->assertSame(1, $preview['update_member_name_rows']);
+    }
+
+    public function test_same_ring_number_can_exist_in_different_libraries_but_not_same_library(): void
+    {
+        $firstLibrary = PigeonLibrary::query()->create(['name' => '一关足环库', 'is_enabled' => true]);
+        $secondLibrary = PigeonLibrary::query()->create(['name' => '二关足环库', 'is_enabled' => true]);
+        $member = Member::query()->create([
+            'phone' => '13900000003',
+            'password' => 'password',
+            'loft_number' => 'A003',
+            'participant_name' => '跨库会员',
+            'status' => 'enabled',
+        ]);
+        Pigeon::query()->create([
+            'pigeon_library_id' => $firstLibrary->id,
+            'member_id' => $member->id,
+            'loft_number' => 'A003',
+            'participant_name' => '跨库会员',
+            'ring_number' => '2026-13-000088',
+            'status' => 'normal',
+        ]);
+
+        $rows = [
+            ['line' => 2, 'sequence' => '1', 'loft_number' => 'A003', 'participant_name' => '跨库会员', 'ring_number' => '2026-13-000088'],
+        ];
+
+        $sameLibraryPreview = app(PigeonImportService::class)->preview($rows, $firstLibrary);
+        $otherLibraryPreview = app(PigeonImportService::class)->preview($rows, $secondLibrary);
+        $batch = app(PigeonImportService::class)->commit('second-library.xlsx', $otherLibraryPreview, null, $secondLibrary);
+
+        $this->assertSame(0, $sameLibraryPreview['valid_rows']);
+        $this->assertSame(1, $sameLibraryPreview['failed_rows']);
+        $this->assertSame(1, $otherLibraryPreview['valid_rows']);
+        $this->assertSame(1, $batch->success_rows);
+        $this->assertSame(2, Pigeon::query()->where('ring_number', '2026-13-000088')->count());
     }
 
     public function test_it_updates_existing_member_name_from_excel(): void
@@ -128,7 +167,7 @@ class PigeonImportServiceTest extends TestCase
 
     private function makeSheet(array $rows): string
     {
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
         $sheet = $spreadsheet->getActiveSheet();
         $sheet->fromArray($rows);
 

@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Race project configuration rows and cache service / 赛事项目配置行与缓存服务
 // [OUT]: Project rule data with race config invalidation / 带赛事配置失效的项目规则数据
 // [POS]: Backend configurable registration project model / 后端可配置报名项目模型
@@ -14,10 +15,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class RaceProject extends Model
 {
     public const TYPE_STANDARD = 'standard';
+
     public const TYPE_PROGRESSIVE_STAGE = 'progressive_stage';
 
     protected $fillable = [
         'race_id',
+        'pigeon_library_id',
         'project_type',
         'registration_category_id',
         'stage_order',
@@ -44,6 +47,7 @@ class RaceProject extends Model
     {
         static::saving(function (RaceProject $project): void {
             $project->project_type ??= self::TYPE_STANDARD;
+            $project->pigeon_library_id ??= PigeonLibrary::default()->id;
 
             if ($project->project_type === self::TYPE_PROGRESSIVE_STAGE) {
                 if ($project->registration_category_id) {
@@ -70,6 +74,11 @@ class RaceProject extends Model
     public function registrationCategory(): BelongsTo
     {
         return $this->belongsTo(RegistrationCategory::class);
+    }
+
+    public function pigeonLibrary(): BelongsTo
+    {
+        return $this->belongsTo(PigeonLibrary::class, 'pigeon_library_id');
     }
 
     public function isSingle(): bool

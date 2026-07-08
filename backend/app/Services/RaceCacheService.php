@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Race, project, member, and pigeon read models / 赛事、项目、会员与足环读取模型
 // [OUT]: Versioned cached bootstrap payloads and race/member invalidation hooks / 带版本的已缓存初始化数据与赛事/会员失效钩子
 // [POS]: Backend read-cache coordinator / 后端读取缓存协调器
@@ -9,6 +10,7 @@ namespace App\Services;
 
 use App\Enums\RegistrationStatus;
 use App\Models\Member;
+use App\Models\Pigeon;
 use App\Models\ProgressiveStageEntry;
 use App\Models\Race;
 use App\Models\RaceProject;
@@ -49,6 +51,17 @@ class RaceCacheService
             });
     }
 
+    public function forgetAllRaceCaches(): void
+    {
+        Race::query()
+            ->pluck('id')
+            ->each(fn (int $raceId) => $this->forgetRaceById($raceId));
+
+        Member::query()
+            ->pluck('id')
+            ->each(fn (int $memberId) => Cache::forget($this->memberPigeonsKey($memberId)));
+    }
+
     public function forgetMemberPigeons(Member $member): void
     {
         $this->forgetMemberPigeonsById($member->id);
@@ -81,19 +94,30 @@ class RaceCacheService
                 ->where('is_enabled', true)
                 ->where('project_type', RaceProject::TYPE_STANDARD)
                 ->orderBy('sort_order')
-                ->get(['id', 'race_id', 'name', 'group_size', 'price_cent', 'description', 'sort_order', 'is_enabled', 'allow_repeat_pigeon_in_project', 'max_entries_per_member', 'max_usage_per_pigeon'])
+                ->get(['id', 'race_id', 'pigeon_library_id', 'name', 'group_size', 'price_cent', 'description', 'sort_order', 'is_enabled', 'allow_repeat_pigeon_in_project', 'max_entries_per_member', 'max_usage_per_pigeon'])
                 ->values()
         );
 
-        $pigeons = Cache::remember(
-            $this->memberPigeonsKey($member->id),
-            now()->addMinutes(10),
-            fn () => $member->pigeons()
-                ->where('status', 'normal')
-                ->orderBy('ring_number')
-                ->get(['id', 'ring_number'])
-                ->values()
-        );
+        $progressiveCategories = RegistrationCategory::query()
+            ->with(['currentStage', 'stageProjects'])
+            ->where('race_id', $race->id)
+            ->where('type', RegistrationCategory::TYPE_PROGRESSIVE)
+            ->where('is_enabled', true)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+        $libraryIds = $projects
+            ->pluck('pigeon_library_id')
+            ->merge($progressiveCategories->pluck('currentStage.pigeon_library_id'))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $pigeons = $this->memberPigeonQuery($member, $libraryIds->all())
+            ->where('status', 'normal')
+            ->orderBy('ring_number')
+            ->get(['id', 'pigeon_library_id', 'ring_number'])
+            ->values();
 
         $existing = $member->registrations()
             ->with(['entries.pigeons', 'progressiveStageEntries.category'])
@@ -119,7 +143,8 @@ class RaceCacheService
             ],
             'projects' => $projects,
             'pigeons' => $pigeons,
-            'progressive_categories' => $this->progressiveCategories($race, $member, $pigeons),
+            'pigeon_libraries' => $this->libraryGroups($pigeons),
+            'progressive_categories' => $this->progressiveCategories($race, $member, $pigeons, $progressiveCategories),
             'existing_registration' => $existing ? $this->serializeRegistration($existing) : null,
         ];
     }
@@ -162,18 +187,11 @@ class RaceCacheService
         ];
     }
 
-    private function progressiveCategories(Race $race, Member $member, $pigeons): array
+    private function progressiveCategories(Race $race, Member $member, $pigeons, $categories): array
     {
         $pigeonsById = $pigeons->keyBy('id');
 
-        return RegistrationCategory::query()
-            ->with(['currentStage', 'stageProjects'])
-            ->where('race_id', $race->id)
-            ->where('type', RegistrationCategory::TYPE_PROGRESSIVE)
-            ->where('is_enabled', true)
-            ->orderBy('sort_order')
-            ->orderBy('id')
-            ->get()
+        return $categories
             ->map(function (RegistrationCategory $category) use ($member, $pigeons, $pigeonsById): array {
                 $currentStage = $category->currentStage;
                 $eligibleGroups = collect();
@@ -203,6 +221,7 @@ class RaceCacheService
                         'name' => $currentStage->name,
                         'price_cent' => $currentStage->price_cent,
                         'group_size' => $currentStage->group_size,
+                        'pigeon_library_id' => $currentStage->pigeon_library_id,
                         'stage_order' => $currentStage->stage_order,
                         'sort_order' => $currentStage->sort_order,
                     ] : null,
@@ -223,12 +242,15 @@ class RaceCacheService
 
     private function eligibleProgressiveGroups(RegistrationCategory $category, RaceProject $currentStage, Member $member, $pigeons, $pigeonsById)
     {
+        $stagePigeons = $this->filterPigeonsByLibrary($pigeons, $currentStage->pigeon_library_id);
+        $stagePigeonsById = $stagePigeons->keyBy('id');
+
         if ((int) $currentStage->stage_order <= 1) {
             if ((int) $currentStage->group_size > 1) {
-                return $this->confirmedProgressiveGroups($member, $category, $currentStage, $pigeonsById);
+                return $this->confirmedProgressiveGroups($member, $category, $currentStage, $stagePigeonsById);
             }
 
-            return $pigeons->map(fn ($pigeon, int $index): array => [
+            return $stagePigeons->map(fn ($pigeon, int $index): array => [
                 'group_key' => (string) $pigeon->id,
                 'group_index' => $index + 1,
                 'pigeon_ids' => [(int) $pigeon->id],
@@ -247,7 +269,57 @@ class RaceCacheService
             return collect();
         }
 
-        return $this->confirmedProgressiveGroups($member, $category, $previousStage, $pigeonsById);
+        return $this->confirmedProgressiveGroups($member, $category, $previousStage, $stagePigeonsById);
+    }
+
+    private function memberPigeonQuery(Member $member, array $libraryIds)
+    {
+        $query = $member->pigeons();
+
+        if ($libraryIds !== []) {
+            $query->whereIn('pigeon_library_id', $libraryIds);
+        }
+
+        return $query;
+    }
+
+    private function filterPigeonsByLibrary($pigeons, ?int $libraryId)
+    {
+        if ($libraryId === null) {
+            return $pigeons;
+        }
+
+        return $pigeons
+            ->filter(fn (Pigeon $pigeon): bool => (int) $pigeon->pigeon_library_id === $libraryId)
+            ->values();
+    }
+
+    private function libraryGroups($pigeons): array
+    {
+        return $pigeons
+            ->loadMissing('library')
+            ->groupBy('pigeon_library_id')
+            ->map(function ($libraryPigeons): array {
+                $library = $libraryPigeons->first()->library;
+
+                return [
+                    'id' => (int) $library->id,
+                    'name' => $library->name,
+                    'pigeon_count' => $libraryPigeons->count(),
+                    'pigeons' => $libraryPigeons
+                        ->sortBy('ring_number')
+                        ->map(fn (Pigeon $pigeon): array => [
+                            'id' => (int) $pigeon->id,
+                            'pigeon_library_id' => (int) $pigeon->pigeon_library_id,
+                            'ring_number' => $pigeon->ring_number,
+                        ])
+                        ->values()
+                        ->all(),
+                ];
+            })
+            ->sortBy('name')
+            ->values()
+            ->all();
     }
 
     private function confirmedProgressiveGroups(Member $member, RegistrationCategory $category, RaceProject $stage, $pigeonsById)
@@ -261,7 +333,7 @@ class RaceCacheService
                 ->orderBy('group_index')
                 ->orderBy('pigeon_sort_order')
                 ->get()
-            ->filter(fn (ProgressiveStageEntry $entry): bool => $pigeonsById->has($entry->pigeon_id))
+                ->filter(fn (ProgressiveStageEntry $entry): bool => $pigeonsById->has($entry->pigeon_id))
         );
     }
 

@@ -19,16 +19,27 @@ export function demoBootstrap(): BootstrapPayload {
     },
     member: { id: 1, loft_number: 'A001', participant_name: '张三鸽舍', must_change_password: false },
     projects: [
-      { id: 1, race_id: 1, name: '单羽 50 元', group_size: 1, price_cent: 5000, sort_order: 1, is_enabled: true, allow_repeat_pigeon_in_project: false },
-      { id: 2, race_id: 1, name: '单羽 100 元', group_size: 1, price_cent: 10000, sort_order: 2, is_enabled: true, allow_repeat_pigeon_in_project: false },
-      { id: 3, race_id: 1, name: '单羽 200 元', group_size: 1, price_cent: 20000, sort_order: 3, is_enabled: true, allow_repeat_pigeon_in_project: false },
-      { id: 4, race_id: 1, name: '双羽组 200 元', group_size: 2, price_cent: 20000, sort_order: 4, is_enabled: true, allow_repeat_pigeon_in_project: false },
-      { id: 5, race_id: 1, name: '三羽组 300 元', group_size: 3, price_cent: 30000, sort_order: 5, is_enabled: true, allow_repeat_pigeon_in_project: false },
+      { id: 1, race_id: 1, pigeon_library_id: 1, name: '单羽 50 元', group_size: 1, price_cent: 5000, sort_order: 1, is_enabled: true, allow_repeat_pigeon_in_project: false },
+      { id: 2, race_id: 1, pigeon_library_id: 1, name: '单羽 100 元', group_size: 1, price_cent: 10000, sort_order: 2, is_enabled: true, allow_repeat_pigeon_in_project: false },
+      { id: 3, race_id: 1, pigeon_library_id: 1, name: '单羽 200 元', group_size: 1, price_cent: 20000, sort_order: 3, is_enabled: true, allow_repeat_pigeon_in_project: false },
+      { id: 4, race_id: 1, pigeon_library_id: 1, name: '双羽组 200 元', group_size: 2, price_cent: 20000, sort_order: 4, is_enabled: true, allow_repeat_pigeon_in_project: false },
+      { id: 5, race_id: 1, pigeon_library_id: 1, name: '三羽组 300 元', group_size: 3, price_cent: 30000, sort_order: 5, is_enabled: true, allow_repeat_pigeon_in_project: false },
     ],
     pigeons: Array.from({ length: 18 }, (_, index) => ({
       id: 101 + index,
+      pigeon_library_id: 1,
       ring_number: `CHN-2026-03-${String(index + 1).padStart(6, '0')}`,
     })),
+    pigeon_libraries: [{
+      id: 1,
+      name: '默认足环库',
+      pigeon_count: 18,
+      pigeons: Array.from({ length: 18 }, (_, index) => ({
+        id: 101 + index,
+        pigeon_library_id: 1,
+        ring_number: `CHN-2026-03-${String(index + 1).padStart(6, '0')}`,
+      })),
+    }],
     existing_registration: null,
   }
 }

@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Imported pigeon ring rows / 已导入足环行
 // [OUT]: Member-owned pigeon identity and cache invalidation events / 会员所属足环身份与缓存失效事件
 // [POS]: Backend pigeon ring model / 后端足环模型
@@ -14,12 +15,21 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Pigeon extends Model
 {
-    protected $fillable = ['member_id', 'loft_number', 'participant_name', 'ring_number', 'import_batch_id', 'status'];
+    protected $fillable = ['pigeon_library_id', 'member_id', 'loft_number', 'participant_name', 'ring_number', 'import_batch_id', 'status'];
 
     protected static function booted(): void
     {
+        static::saving(function (Pigeon $pigeon): void {
+            $pigeon->pigeon_library_id ??= PigeonLibrary::default()->id;
+        });
+
         static::saved(fn (Pigeon $pigeon) => $pigeon->forgetOwnerCaches());
         static::deleted(fn (Pigeon $pigeon) => $pigeon->forgetOwnerCaches());
+    }
+
+    public function library(): BelongsTo
+    {
+        return $this->belongsTo(PigeonLibrary::class, 'pigeon_library_id');
     }
 
     public function member(): BelongsTo

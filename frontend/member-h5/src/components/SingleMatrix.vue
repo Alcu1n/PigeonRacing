@@ -64,6 +64,7 @@ function projectHeadLines(name: string): [string, string] {
           type="button"
           class="matrix-toggle"
           :class="{ selected: singleMatrix[pigeon.id]?.[project.id] }"
+          :disabled="!store.isSingleProjectAvailable(pigeon.id, project.id)"
           @click="store.toggleSingle(pigeon.id, project.id)"
         >
           <img v-if="singleMatrix[pigeon.id]?.[project.id]" class="matrix-selected-icon" :src="starIcon" alt="" aria-hidden="true" />

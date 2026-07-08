@@ -1397,6 +1397,29 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   list-style: none;
 }
 
+.profile-library-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.profile-library-tabs button {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  color: var(--muted);
+  font-weight: 900;
+}
+
+.profile-library-tabs button.active {
+  border-color: var(--green);
+  background: #e8f6ee;
+  color: var(--green-dark);
+}
+
 .profile-pigeon-list li {
   padding: 9px 10px;
   border-radius: 7px;
@@ -1921,6 +1944,12 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   background: #dff5e8;
   color: var(--green-dark);
   font-weight: 900;
+}
+
+.matrix-toggle:disabled {
+  background: #f3f4f6;
+  color: #cbd5e1;
+  cursor: not-allowed;
 }
 
 .matrix-toggle.selected::after {

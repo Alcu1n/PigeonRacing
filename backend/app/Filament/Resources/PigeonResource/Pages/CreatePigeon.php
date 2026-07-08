@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: PigeonResource form data, Member/Pigeon models, and DB transaction / PigeonResource 表单数据、会员/足环模型与数据库事务
 // [OUT]: Filament pigeon create page with single and range creation / 支持单个与范围创建的 Filament 足环创建页面
 // [POS]: Backend admin pigeon create route / 后端后台足环创建路由
@@ -27,7 +28,7 @@ class CreatePigeon extends CreateRecord
         unset($baseData['ring_number']);
 
         return DB::transaction(function () use ($baseData, $ringNumbers): Model {
-            $this->guardUniqueRings($ringNumbers);
+            $this->guardUniqueRings($ringNumbers, (int) $baseData['pigeon_library_id']);
 
             $firstRecord = null;
 
@@ -45,6 +46,7 @@ class CreatePigeon extends CreateRecord
     protected function preserveFormDataWhenCreatingAnother(array $data): array
     {
         return [
+            'pigeon_library_id' => $data['pigeon_library_id'] ?? null,
             'member_id' => $data['member_id'] ?? null,
             'loft_number' => $data['loft_number'] ?? null,
             'participant_name' => $data['participant_name'] ?? null,
@@ -124,9 +126,10 @@ class CreatePigeon extends CreateRecord
         return [$matches[1], (int) $matches[2], strlen($matches[2])];
     }
 
-    private function guardUniqueRings(array $ringNumbers): void
+    private function guardUniqueRings(array $ringNumbers, int $libraryId): void
     {
         $existing = Pigeon::query()
+            ->where('pigeon_library_id', $libraryId)
             ->whereIn('ring_number', $ringNumbers)
             ->pluck('ring_number')
             ->all();

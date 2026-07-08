@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Excel import job result rows / Excel 导入任务结果行
 // [OUT]: Import counters and error report path / 导入计数与错误报告路径
 // [POS]: Backend Excel import batch model / 后端 Excel 导入批次模型
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 class ImportBatch extends Model
 {
     protected $fillable = [
+        'pigeon_library_id',
         'file_name',
         'total_rows',
         'success_rows',

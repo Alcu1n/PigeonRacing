@@ -49,6 +49,24 @@ describe('registration store', () => {
     expect(store.submitEntries).toEqual([])
   })
 
+  it('selects only available single projects for a pigeon library', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.projects.splice(1, 0, { id: 3, race_id: 1, pigeon_library_id: 2, name: '二关单羽', group_size: 1, price_cent: 8000, sort_order: 2, is_enabled: true, allow_repeat_pigeon_in_project: false })
+    payload.pigeon_libraries = [
+      { id: 1, name: '一关库', pigeon_count: 2, pigeons: payload.pigeons.filter((pigeon) => pigeon.pigeon_library_id === 1) },
+      { id: 2, name: '二关库', pigeon_count: 1, pigeons: payload.pigeons.filter((pigeon) => pigeon.pigeon_library_id === 2) },
+    ]
+    store.load(payload)
+
+    expect(store.isSingleProjectAvailable(101, 1)).toBe(true)
+    expect(store.isSingleProjectAvailable(101, 3)).toBe(false)
+
+    store.toggleSingleRowAll(101)
+
+    expect(store.submitEntries).toEqual([{ project_id: 1, pigeon_ids: [101] }])
+  })
+
   it('creates multi group only when enough pigeons are selected', () => {
     const store = useRegistrationStore()
     store.load(bootstrap())
@@ -62,6 +80,18 @@ describe('registration store', () => {
     expect(store.multiGroups).toHaveLength(1)
     expect(store.multiEntries).toEqual([{ project_id: 2, pigeon_ids: [101, 102] }])
     expect(store.selectedMultiProjectGroupCount).toBe(1)
+  })
+
+  it('filters multi pigeons by the selected project library', () => {
+    const store = useRegistrationStore()
+    const payload = bootstrap()
+    payload.projects[1].pigeon_library_id = 2
+    store.load(payload)
+    store.activeTab = 'multi'
+    store.setMultiProject(2)
+
+    expect(store.filteredPigeons.map((pigeon) => pigeon.id)).toEqual([888])
+    expect(store.canUsePigeonInSelectedProject(101)).toBe(false)
   })
 
   it('counts confirmed groups for the selected multi project only', () => {
@@ -359,9 +389,19 @@ function bootstrap(): BootstrapPayload {
       { id: 2, race_id: 1, name: '双羽组 200 元', group_size: 2, price_cent: 20000, sort_order: 2, is_enabled: true, allow_repeat_pigeon_in_project: false },
     ],
     pigeons: [
-      { id: 101, ring_number: 'CHN-2026-03-000101' },
-      { id: 102, ring_number: 'CHN-2026-03-000102' },
-      { id: 999, ring_number: 'CHN-2026-03-000999' },
+      { id: 101, pigeon_library_id: 1, ring_number: 'CHN-2026-03-000101' },
+      { id: 102, pigeon_library_id: 1, ring_number: 'CHN-2026-03-000102' },
+      { id: 999, pigeon_library_id: 1, ring_number: 'CHN-2026-03-000999' },
+      { id: 888, pigeon_library_id: 2, ring_number: 'CHN-2026-03-000888' },
+    ],
+    pigeon_libraries: [
+      { id: 1, name: '默认足环库', pigeon_count: 2, pigeons: [
+        { id: 101, pigeon_library_id: 1, ring_number: 'CHN-2026-03-000101' },
+        { id: 102, pigeon_library_id: 1, ring_number: 'CHN-2026-03-000102' },
+      ] },
+      { id: 2, name: '二关库', pigeon_count: 1, pigeons: [
+        { id: 888, pigeon_library_id: 2, ring_number: 'CHN-2026-03-000888' },
+      ] },
     ],
     existing_registration: null,
   }

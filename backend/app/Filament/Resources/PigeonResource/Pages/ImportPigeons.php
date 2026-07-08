@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Uploaded Excel file, server-side preview token, and pigeon import service / 已上传 Excel 文件、服务端预览令牌与足环导入服务
 // [OUT]: Large-file-safe preview-confirm pigeon import page / 大文件安全的预览确认式足环导入页面
 // [POS]: Backend admin pigeon import route / 后端后台足环导入路由
@@ -8,6 +9,7 @@
 namespace App\Filament\Resources\PigeonResource\Pages;
 
 use App\Filament\Resources\PigeonResource;
+use App\Models\PigeonLibrary;
 use App\Services\PigeonImportService;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
@@ -34,6 +36,13 @@ class ImportPigeons extends Page
 
     public ?array $lastResult = null;
 
+    public ?int $pigeonLibraryId = null;
+
+    public function mount(): void
+    {
+        $this->pigeonLibraryId = PigeonLibrary::default()->id;
+    }
+
     public function getTitle(): string
     {
         return '导入足环 Excel';
@@ -42,12 +51,14 @@ class ImportPigeons extends Page
     public function previewUpload(PigeonImportService $service): void
     {
         $this->validate([
+            'pigeonLibraryId' => ['required', 'integer', 'exists:pigeon_libraries,id'],
             'upload' => ['required', 'file', 'mimes:xlsx,xls', 'max:'.PigeonImportService::MAX_UPLOAD_KB],
         ]);
 
         try {
+            $library = PigeonLibrary::query()->findOrFail($this->pigeonLibraryId);
             $rows = $service->rowsFromSpreadsheet($this->upload->getRealPath());
-            $preview = $service->preview($rows);
+            $preview = $service->preview($rows, $library);
             $this->previewToken = $service->storeRowsForConfirmation($rows);
             $this->preview = $service->browserPreview([...$preview, 'token' => $this->previewToken]);
             $this->fileName = $this->upload->getClientOriginalName();
@@ -63,7 +74,8 @@ class ImportPigeons extends Page
             return;
         }
 
-        $batch = $service->commitStoredPreview($this->fileName, $this->previewToken, auth()->id());
+        $library = PigeonLibrary::query()->findOrFail($this->pigeonLibraryId);
+        $batch = $service->commitStoredPreview($this->fileName, $this->previewToken, auth()->id(), $library);
         $this->lastResult = [
             'success_rows' => $batch->success_rows,
             'failed_rows' => $batch->failed_rows,
@@ -76,6 +88,16 @@ class ImportPigeons extends Page
             ->send();
 
         $this->reset(['upload', 'preview', 'fileName', 'previewToken']);
+    }
+
+    public function libraryOptions(): array
+    {
+        return PigeonLibrary::query()
+            ->orderByDesc('is_enabled')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
     }
 
     public function resetImport(PigeonImportService $service): void
