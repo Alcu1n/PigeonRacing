@@ -1,12 +1,14 @@
 <?php
+
 // [IN]: PigeonResource table definition, pigeons, registration references, and cache service / PigeonResource 表格定义、足环、报名引用与缓存服务
-// [OUT]: Filament pigeon list page with import/template/delete-all actions / 带导入、模板与全部删除动作的 Filament 足环列表页面
+// [OUT]: Filament pigeon list page with import/export/template/delete-all actions / 带导入、导出、模板与全部删除动作的 Filament 足环列表页面
 // [POS]: Backend admin pigeon index route / 后端后台足环索引路由
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 
 namespace App\Filament\Resources\PigeonResource\Pages;
 
+use App\Exports\PigeonExport;
 use App\Exports\PigeonImportTemplateExport;
 use App\Filament\Resources\PigeonResource;
 use App\Models\Pigeon;
@@ -31,7 +33,11 @@ class ListPigeons extends ListRecords
                 ->url(PigeonResource::getUrl('import')),
             Action::make('downloadTemplate')
                 ->label('下载模板')
-                ->action(fn () => Excel::download(new PigeonImportTemplateExport(), '足环导入模板.xlsx')),
+                ->action(fn () => Excel::download(new PigeonImportTemplateExport, '足环导入模板.xlsx')),
+            Action::make('exportExcel')
+                ->label('导出 Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->action(fn () => Excel::download(new PigeonExport, '足环列表.xlsx')),
             Action::make('deleteAllPigeons')
                 ->label('删除所有足环')
                 ->color('danger')

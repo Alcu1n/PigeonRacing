@@ -1,38 +1,62 @@
 {{-- [IN]: Import page Livewire state / 导入页面 Livewire 状态 --}}
-{{-- [OUT]: Compact styled member import upload, preview, and confirm UI / 紧凑样式统一的会员导入上传、预览与确认 UI --}}
+{{-- [OUT]: Spaced styled member import upload, preview, and confirm UI / 间距稳定且样式统一的会员导入上传、预览与确认 UI --}}
 {{-- [POS]: Backend admin member import Blade view / 后端后台会员导入 Blade 视图 --}}
 {{-- Protocol: When updating me, sync this header + parent folder's .folder.md --}}
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
 <x-filament-panels::page>
-    <div class="space-y-6">
+    @once
+        <style>
+            .excel-import-page { display: flex; flex-direction: column; gap: 1.5rem; }
+            .excel-import-stack { display: flex; flex-direction: column; gap: 1.25rem; }
+            .excel-import-note { border: 1px solid rgb(209 213 219); border-radius: .75rem; background: rgb(249 250 251); padding: .875rem 1rem; color: rgb(55 65 81); font-size: .875rem; line-height: 1.625; }
+            .dark .excel-import-note { border-color: rgb(55 65 81); background: rgb(17 24 39 / .4); color: rgb(229 231 235); }
+            .excel-import-note-title { margin-bottom: .25rem; font-weight: 600; color: rgb(17 24 39); }
+            .dark .excel-import-note-title { color: #fff; }
+            .excel-import-note-help { margin-top: .25rem; color: rgb(107 114 128); font-size: .8125rem; }
+            .dark .excel-import-note-help { color: rgb(156 163 175); }
+            .excel-import-upload-row, .excel-import-actions, .excel-import-result { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+            .excel-import-file-name { min-width: 12rem; max-width: 28rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; border-radius: .5rem; background: rgb(243 244 246); padding: .5rem .75rem; color: rgb(55 65 81); font-size: .875rem; }
+            .dark .excel-import-file-name { background: rgb(31 41 55); color: rgb(229 231 235); }
+            .excel-import-loading { color: rgb(37 99 235); font-size: .875rem; }
+            .excel-import-error { color: rgb(220 38 38); font-size: .875rem; }
+            .excel-import-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .75rem; }
+            .excel-import-stat { border-radius: .625rem; background: rgb(249 250 251); padding: .625rem .75rem; color: rgb(55 65 81); font-size: .875rem; }
+            .dark .excel-import-stat { background: rgb(31 41 55 / .72); color: rgb(229 231 235); }
+            .excel-import-preview-actions { margin-top: 1rem; display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+            .excel-import-table-wrap { margin-top: 1.5rem; overflow-x: auto; border: 1px solid rgb(209 213 219); border-radius: .75rem; }
+            .dark .excel-import-table-wrap { border-color: rgb(55 65 81); }
+        </style>
+    @endonce
+
+    <div class="excel-import-page">
         <x-filament::section heading="上传 Excel">
-            <div class="space-y-5">
-                <div class="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm leading-6 text-gray-700 dark:border-gray-700 dark:bg-gray-900/40 dark:text-gray-200">
-                    <div class="font-medium text-gray-950 dark:text-white">Excel 导入格式</div>
-                    <div class="mt-1">
+            <div class="excel-import-stack">
+                <div class="excel-import-note">
+                    <div class="excel-import-note-title">Excel 导入格式</div>
+                    <div>
                         表头固定为：<span class="font-semibold">序号、棚号、参赛名、手机号、密码</span>
                     </div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400">
+                    <div class="excel-import-note-help">
                         支持 .xlsx / .xls，最大 10MB。密码可留空；密码非空时会员首次登录必须修改密码。
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="excel-import-upload-row">
                     <input id="member-import-upload" type="file" wire:model="upload" accept=".xlsx,.xls" style="display: none;" />
                     <x-filament::button tag="label" for="member-import-upload" icon="heroicon-o-arrow-up-tray" color="gray">
                         选择文件
                     </x-filament::button>
-                    <span class="min-w-0 max-w-md truncate rounded-md bg-gray-100 px-3 py-2 text-sm text-gray-700 dark:bg-gray-800 dark:text-gray-200">
+                    <span class="excel-import-file-name">
                         {{ $upload?->getClientOriginalName() ?? '尚未选择文件' }}
                     </span>
-                    <span wire:loading wire:target="upload" class="text-sm text-primary-600">
+                    <span wire:loading wire:target="upload" class="excel-import-loading">
                         正在上传...
                     </span>
                 </div>
                 @error('upload')
-                    <p class="text-sm text-danger-600">{{ $message }}</p>
+                    <p class="excel-import-error">{{ $message }}</p>
                 @enderror
-                <div class="flex flex-wrap gap-2">
+                <div class="excel-import-actions">
                     <x-filament::button wire:click="previewUpload" wire:loading.attr="disabled">
                         预览导入
                     </x-filament::button>
@@ -45,7 +69,7 @@
 
         @if ($lastResult)
             <x-filament::section heading="最近一次导入结果">
-                <div class="flex flex-wrap items-center gap-4 text-sm">
+                <div class="excel-import-result">
                     <span>成功：<strong>{{ $lastResult['success_rows'] }}</strong> 行</span>
                     <span>失败：<strong>{{ $lastResult['failed_rows'] }}</strong> 行</span>
                     @if ($lastResult['error_report_path'])
@@ -59,16 +83,16 @@
 
         @if ($preview)
             <x-filament::section heading="导入预览">
-                <div class="grid gap-3 md:grid-cols-6">
-                    <div>总行数：<strong>{{ $preview['total_rows'] }}</strong></div>
-                    <div>可导入：<strong>{{ $preview['valid_rows'] }}</strong></div>
-                    <div>失败：<strong>{{ $preview['failed_rows'] }}</strong></div>
-                    <div>重复/冲突：<strong>{{ $preview['duplicate_rows'] }}</strong></div>
-                    <div>新建会员：<strong>{{ $preview['create_member_rows'] }}</strong></div>
-                    <div>重置密码：<strong>{{ $preview['reset_password_rows'] }}</strong></div>
+                <div class="excel-import-stats">
+                    <div class="excel-import-stat">总行数：<strong>{{ $preview['total_rows'] }}</strong></div>
+                    <div class="excel-import-stat">可导入：<strong>{{ $preview['valid_rows'] }}</strong></div>
+                    <div class="excel-import-stat">失败：<strong>{{ $preview['failed_rows'] }}</strong></div>
+                    <div class="excel-import-stat">重复/冲突：<strong>{{ $preview['duplicate_rows'] }}</strong></div>
+                    <div class="excel-import-stat">新建会员：<strong>{{ $preview['create_member_rows'] }}</strong></div>
+                    <div class="excel-import-stat">重置密码：<strong>{{ $preview['reset_password_rows'] }}</strong></div>
                 </div>
 
-                <div class="mt-4 flex gap-3">
+                <div class="excel-import-preview-actions">
                     <x-filament::button color="success" wire:click="confirmImport" wire:loading.attr="disabled" :disabled="$preview['valid_rows'] === 0">
                         确认导入
                     </x-filament::button>
@@ -77,7 +101,7 @@
                     </x-filament::button>
                 </div>
 
-                <div class="mt-6 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                <div class="excel-import-table-wrap">
                     <table class="w-full min-w-[860px] text-left text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
