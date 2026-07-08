@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: RaceProject model records with cent-stored prices / 以分存储价格的赛事项目模型记录
 // [OUT]: Filament project rule configuration screens using yuan labels / 使用元单位标签的 Filament 项目规则配置页面
 // [POS]: Backend admin race project resource / 后端后台赛事项目资源
@@ -8,6 +9,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\RaceProjectResource\Pages;
+use App\Models\PigeonLibrary;
 use App\Models\RaceProject;
 use App\Models\RegistrationCategory;
 use Filament\Actions\DeleteAction;
@@ -24,14 +26,29 @@ use Filament\Tables\Table;
 class RaceProjectResource extends Resource
 {
     protected static ?string $model = RaceProject::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-squares-2x2';
+
     protected static ?string $navigationLabel = '报名项目';
+
     protected static ?string $modelLabel = '报名项目';
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
             Select::make('race_id')->label('赛事')->relationship('race', 'name')->required(),
+            Select::make('pigeon_library_id')
+                ->label('足环库')
+                ->options(fn (): array => PigeonLibrary::query()
+                    ->orderByDesc('is_enabled')
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->pluck('name', 'id')
+                    ->all())
+                ->default(fn (): int => PigeonLibrary::default()->id)
+                ->searchable()
+                ->required(fn (callable $get): bool => (bool) $get('is_enabled'))
+                ->helperText('启用项目必须选择足环库；会员报名时只能选择该库内足环。'),
             Select::make('project_type')
                 ->label('项目类型')
                 ->options([
@@ -74,6 +91,7 @@ class RaceProjectResource extends Resource
     {
         return $table->columns([
             TextColumn::make('race.name')->label('赛事')->searchable(),
+            TextColumn::make('pigeonLibrary.name')->label('足环库')->placeholder('-')->searchable(),
             TextColumn::make('project_type')
                 ->label('类型')
                 ->formatStateUsing(fn (?string $state): string => $state === RaceProject::TYPE_PROGRESSIVE_STAGE ? '递进阶段' : '普通项目')

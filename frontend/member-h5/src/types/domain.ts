@@ -29,6 +29,7 @@ export type PublishedRaceDetailsScope = 'confirmed_only' | 'all_submitted'
 export interface RaceProject {
   id: number
   race_id: number
+  pigeon_library_id?: number | null
   project_type?: 'standard' | 'progressive_stage'
   registration_category_id?: number | null
   stage_order?: number | null
@@ -45,12 +46,21 @@ export interface RaceProject {
 
 export interface Pigeon {
   id: number
+  pigeon_library_id?: number | null
   ring_number: string
+}
+
+export interface PigeonLibrary {
+  id: number
+  name: string
+  pigeon_count: number
+  pigeons: Pigeon[]
 }
 
 export interface MemberProfile {
   member: Member
   pigeons: Pigeon[]
+  pigeon_libraries: PigeonLibrary[]
 }
 
 export interface RegistrationEntryPayload {
@@ -124,6 +134,7 @@ export interface ProgressiveCategory {
     name: string
     price_cent: number
     group_size: number
+    pigeon_library_id?: number | null
     stage_order?: number | null
     sort_order: number
   } | null
@@ -206,6 +217,7 @@ export interface BootstrapPayload {
   member: Member
   projects: RaceProject[]
   pigeons: Pigeon[]
+  pigeon_libraries?: PigeonLibrary[]
   progressive_categories?: ProgressiveCategory[]
   existing_registration: ExistingRegistration | null
 }

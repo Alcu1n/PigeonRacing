@@ -10,7 +10,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import MemberTopActions from '../components/MemberTopActions.vue'
 import { useAuthStore } from '../stores/auth'
-import { registrationStatusText, registrationStatusTone, type Pigeon, type RegistrationHistoryItem } from '../types/domain'
+import { registrationStatusText, registrationStatusTone, type Pigeon, type PigeonLibrary, type RegistrationHistoryItem } from '../types/domain'
 import { api } from '../api/client'
 import { yuan } from '../utils/money'
 
@@ -18,6 +18,8 @@ const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const pigeons = ref<Pigeon[]>([])
+const pigeonLibraries = ref<PigeonLibrary[]>([])
+const activeLibraryId = ref<number | null>(null)
 const registrations = ref<RegistrationHistoryItem[]>([])
 const loading = ref(true)
 const submitting = ref(false)
@@ -29,6 +31,7 @@ onMounted(async () => {
   try {
     const profile = await auth.fetchProfile()
     pigeons.value = profile.pigeons
+    setPigeonLibraries(profile.pigeon_libraries ?? [])
     await loadRegistrationHistory()
   } finally {
     loading.value = false
@@ -54,6 +57,7 @@ async function updatePassword(): Promise<void> {
   try {
     const profile = await auth.updatePassword(password.value, passwordConfirmation.value)
     pigeons.value = profile.pigeons
+    setPigeonLibraries(profile.pigeon_libraries ?? [])
     password.value = ''
     passwordConfirmation.value = ''
     showToast('密码已修改')
@@ -69,6 +73,14 @@ async function updatePassword(): Promise<void> {
     submitting.value = false
   }
 }
+
+function setPigeonLibraries(libraries: PigeonLibrary[]): void {
+  pigeonLibraries.value = libraries
+  activeLibraryId.value = libraries[0]?.id ?? null
+}
+
+const activeLibrary = computed(() => pigeonLibraries.value.find((library) => library.id === activeLibraryId.value) ?? pigeonLibraries.value[0] ?? null)
+const visiblePigeons = computed(() => activeLibrary.value?.pigeons ?? pigeons.value)
 </script>
 
 <template>
@@ -136,8 +148,22 @@ async function updatePassword(): Promise<void> {
       <section class="profile-card">
         <h2>名下足环</h2>
         <p v-if="pigeons.length === 0" class="empty-note">暂无足环信息</p>
+        <div v-else-if="pigeonLibraries.length > 0" class="profile-library-tabs">
+          <button
+            v-for="library in pigeonLibraries"
+            :key="library.id"
+            type="button"
+            :class="{ active: activeLibraryId === library.id }"
+            @click="activeLibraryId = library.id"
+          >
+            {{ library.name }} · {{ library.pigeon_count }}
+          </button>
+        </div>
         <ul v-else class="profile-pigeon-list">
-          <li v-for="pigeon in pigeons" :key="pigeon.id">{{ pigeon.ring_number }}</li>
+          <li v-for="pigeon in visiblePigeons" :key="pigeon.id">{{ pigeon.ring_number }}</li>
+        </ul>
+        <ul v-if="pigeons.length > 0 && pigeonLibraries.length > 0" class="profile-pigeon-list">
+          <li v-for="pigeon in visiblePigeons" :key="pigeon.id">{{ pigeon.ring_number }}</li>
         </ul>
       </section>
 

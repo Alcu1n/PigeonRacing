@@ -77,14 +77,19 @@ describe('auth store', () => {
 
   it('loads profile with pigeons when refreshing an authenticated route', async () => {
     vi.mocked(api.get).mockResolvedValueOnce({
-      data: { member: memberPayload(true), pigeons: [{ id: 1, ring_number: '2026-13-000001' }] },
+      data: {
+        member: memberPayload(true),
+        pigeons: [{ id: 1, pigeon_library_id: 1, ring_number: '2026-13-000001' }],
+        pigeon_libraries: [{ id: 1, name: '默认足环库', pigeon_count: 1, pigeons: [{ id: 1, pigeon_library_id: 1, ring_number: '2026-13-000001' }] }],
+      },
     })
 
     const auth = useAuthStore()
     const profile = await auth.fetchProfile()
 
     expect(auth.member?.loft_number).toBe('A001')
-    expect(profile.pigeons).toEqual([{ id: 1, ring_number: '2026-13-000001' }])
+    expect(profile.pigeons).toEqual([{ id: 1, pigeon_library_id: 1, ring_number: '2026-13-000001' }])
+    expect(profile.pigeon_libraries[0].name).toBe('默认足环库')
   })
 
   it('clears must-change-password state after password update', async () => {

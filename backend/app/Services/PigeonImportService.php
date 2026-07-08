@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Spreadsheet rows, server-side preview tokens, members, pigeons, and admin id / 电子表格行、服务端预览令牌、会员、足环与管理员 ID
 // [OUT]: Small browser preview, committed pigeon rows, and error report / 小体积浏览器预览、已写入足环与错误报告
 // [POS]: Backend Excel pigeon import rule service / 后端 Excel 足环导入规则服务
@@ -12,6 +13,8 @@ use App\Imports\SpreadsheetArrayImport;
 use App\Models\ImportBatch;
 use App\Models\Member;
 use App\Models\Pigeon;
+use App\Models\PigeonLibrary;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -21,15 +24,20 @@ use Maatwebsite\Excel\Facades\Excel;
 class PigeonImportService
 {
     public const HEADERS = ['序号', '会员棚号', '会员参赛名', '足环号码'];
+
     public const MAX_UPLOAD_KB = 51200;
+
     public const PREVIEW_SAMPLE_LIMIT = 50;
+
     private const PREVIEW_DIR = 'imports/previews';
+
     private const QUERY_CHUNK_SIZE = 1000;
+
     private const INSERT_CHUNK_SIZE = 1000;
 
     public function rowsFromSpreadsheet(string $path): array
     {
-        $sheets = Excel::toArray(new SpreadsheetArrayImport(), $path);
+        $sheets = Excel::toArray(new SpreadsheetArrayImport, $path);
         $rows = $sheets[0] ?? [];
 
         if ($rows === []) {
@@ -64,10 +72,11 @@ class PigeonImportService
         return $normalized;
     }
 
-    public function preview(array $rows): array
+    public function preview(array $rows, ?PigeonLibrary $library = null): array
     {
+        $library ??= PigeonLibrary::default();
         $members = $this->membersByLoft($rows);
-        $existingRings = $this->existingRingSet($rows);
+        $existingRings = $this->existingRingSet($rows, $library);
         $seenRings = [];
         $rowsPreview = [];
 
@@ -143,15 +152,10 @@ class PigeonImportService
         return $token;
     }
 
-    public function commit(string $fileName, array $preview, ?int $adminId): ImportBatch
-    {
-        return $this->commitRows($fileName, $preview['source_rows'] ?? [], $adminId);
-    }
-
-    public function commitStoredPreview(string $fileName, string $token, ?int $adminId): ImportBatch
+    public function commitStoredPreview(string $fileName, string $token, ?int $adminId, ?PigeonLibrary $library = null): ImportBatch
     {
         try {
-            return $this->commitRows($fileName, $this->rowsFromStoredPreview($token), $adminId);
+            return $this->commitRows($fileName, $this->rowsFromStoredPreview($token), $adminId, $library ?? PigeonLibrary::default());
         } finally {
             $this->forgetStoredPreview($token);
         }
@@ -164,12 +168,18 @@ class PigeonImportService
         }
     }
 
-    private function commitRows(string $fileName, array $rows, ?int $adminId): ImportBatch
+    public function commit(string $fileName, array $preview, ?int $adminId, ?PigeonLibrary $library = null): ImportBatch
     {
-        $preview = $this->preview($rows);
+        return $this->commitRows($fileName, $preview['source_rows'] ?? [], $adminId, $library ?? PigeonLibrary::default());
+    }
 
-        return DB::transaction(function () use ($fileName, $adminId, $preview): ImportBatch {
+    private function commitRows(string $fileName, array $rows, ?int $adminId, PigeonLibrary $library): ImportBatch
+    {
+        $preview = $this->preview($rows, $library);
+
+        return DB::transaction(function () use ($fileName, $adminId, $preview, $library): ImportBatch {
             $batch = ImportBatch::query()->create([
+                'pigeon_library_id' => $library->id,
                 'file_name' => $fileName,
                 'total_rows' => $preview['total_rows'],
                 'success_rows' => 0,
@@ -204,6 +214,7 @@ class PigeonImportService
 
                 $affectedMemberIds[] = $member->id;
                 $insertRows[] = [
+                    'pigeon_library_id' => $library->id,
                     'member_id' => $member->id,
                     'loft_number' => $member->loft_number,
                     'participant_name' => $member->participant_name,
@@ -280,7 +291,7 @@ class PigeonImportService
         return self::PREVIEW_DIR.'/'.$token.'.json';
     }
 
-    private function membersByLoft(array $rows): \Illuminate\Support\Collection
+    private function membersByLoft(array $rows): Collection
     {
         return collect($rows)
             ->pluck('loft_number')
@@ -292,7 +303,7 @@ class PigeonImportService
             ->keyBy('loft_number');
     }
 
-    private function existingRingSet(array $rows): \Illuminate\Support\Collection
+    private function existingRingSet(array $rows, PigeonLibrary $library): Collection
     {
         return collect($rows)
             ->pluck('ring_number')
@@ -300,7 +311,10 @@ class PigeonImportService
             ->unique()
             ->values()
             ->chunk(self::QUERY_CHUNK_SIZE)
-            ->flatMap(fn ($rings) => Pigeon::query()->whereIn('ring_number', $rings->all())->pluck('ring_number'))
+            ->flatMap(fn ($rings) => Pigeon::query()
+                ->where('pigeon_library_id', $library->id)
+                ->whereIn('ring_number', $rings->all())
+                ->pluck('ring_number'))
             ->flip();
     }
 

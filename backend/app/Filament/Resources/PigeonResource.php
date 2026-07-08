@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Member and pigeon model records / 会员与足环模型记录
 // [OUT]: Filament pigeon management screens with member snapshot and Excel import / 带会员快照与 Excel 导入的 Filament 足环管理页面
 // [POS]: Backend admin pigeon resource / 后端后台足环资源
@@ -10,6 +11,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\PigeonResource\Pages;
 use App\Models\Member;
 use App\Models\Pigeon;
+use App\Models\PigeonLibrary;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Select;
@@ -23,13 +25,27 @@ use Filament\Tables\Table;
 class PigeonResource extends Resource
 {
     protected static ?string $model = Pigeon::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-identification';
+
     protected static ?string $navigationLabel = '足环管理';
+
     protected static ?string $modelLabel = '足环';
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
+            Select::make('pigeon_library_id')
+                ->label('足环库')
+                ->options(fn (): array => PigeonLibrary::query()
+                    ->orderByDesc('is_enabled')
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->pluck('name', 'id')
+                    ->all())
+                ->default(fn (): int => PigeonLibrary::default()->id)
+                ->searchable()
+                ->required(),
             Select::make('member_id')
                 ->label('会员棚号')
                 ->relationship('member', 'loft_number')
@@ -69,6 +85,7 @@ class PigeonResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
+            TextColumn::make('library.name')->label('足环库')->searchable(),
             TextColumn::make('ring_number')->label('足环号码')->searchable(),
             TextColumn::make('loft_number')->label('棚号')->searchable(),
             TextColumn::make('participant_name')->label('参赛名')->searchable(),

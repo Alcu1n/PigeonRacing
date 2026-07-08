@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Member, race, config version, idempotency key, and normalized entries / 会员、赛事、配置版本、幂等键与标准化报名项目
 // [OUT]: Validated registration with readable number, unique groups, and bootstrap cache invalidation / 带可读编号、唯一组合与初始化缓存失效的报名快照
 // [POS]: Backend trusted registration transaction service / 后端可信报名事务服务
@@ -13,8 +14,8 @@ use App\Models\Pigeon;
 use App\Models\ProgressiveStageEntry;
 use App\Models\Race;
 use App\Models\RaceProject;
-use App\Models\RegistrationCategory;
 use App\Models\Registration;
+use App\Models\RegistrationCategory;
 use App\Models\RegistrationEntry;
 use App\Models\RegistrationEntryPigeon;
 use Illuminate\Support\Collection;
@@ -134,6 +135,9 @@ class RegistrationSubmissionService
                 if (! $pigeon instanceof Pigeon) {
                     throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前会员或不可报名的足环。', 403);
                 }
+                if ((int) $pigeon->pigeon_library_id !== (int) $project->pigeon_library_id) {
+                    throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前项目足环库的足环。', 403);
+                }
                 $entryPigeons[] = $pigeon;
                 $pigeonUsageByProject[$project->id][$pigeonId] = ($pigeonUsageByProject[$project->id][$pigeonId] ?? 0) + 1;
             }
@@ -220,6 +224,9 @@ class RegistrationSubmissionService
                     $pigeon = $pigeons->get($pigeonId);
                     if (! $pigeon instanceof Pigeon) {
                         throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前会员或不可报名的足环。', 403);
+                    }
+                    if ((int) $pigeon->pigeon_library_id !== (int) $project->pigeon_library_id) {
+                        throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前阶段足环库的足环。', 403);
                     }
                     $entryPigeons[] = $pigeon;
                     $pigeonUsage[$pigeonId] = ($pigeonUsage[$pigeonId] ?? 0) + 1;

@@ -43,6 +43,18 @@
                     </div>
                 </div>
 
+                <label class="excel-import-note">
+                    <div class="excel-import-note-title">目标足环库</div>
+                    <select wire:model="pigeonLibraryId" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900">
+                        @foreach ($this->libraryOptions() as $libraryId => $libraryName)
+                            <option value="{{ $libraryId }}">{{ $libraryName }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                @error('pigeonLibraryId')
+                    <p class="excel-import-error">{{ $message }}</p>
+                @enderror
+
                 <div class="excel-import-upload-row">
                     <input id="pigeon-import-upload" type="file" wire:model="upload" accept=".xlsx,.xls" style="display: none;" />
                     <x-filament::button tag="label" for="pigeon-import-upload" icon="heroicon-o-arrow-up-tray" color="gray">

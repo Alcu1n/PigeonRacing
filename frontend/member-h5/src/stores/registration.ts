@@ -42,6 +42,7 @@ export const useRegistrationStore = defineStore('registration', () => {
   const member = computed(() => bootstrap.value?.member ?? null)
   const projects = computed(() => bootstrap.value?.projects ?? [])
   const pigeons = computed(() => bootstrap.value?.pigeons ?? [])
+  const pigeonLibraries = computed(() => bootstrap.value?.pigeon_libraries ?? [])
   const progressiveCategories = computed(() => bootstrap.value?.progressive_categories ?? [])
   const singleProjects = computed(() => projects.value.filter((project) => project.group_size === 1))
   const multiProjects = computed(() => projects.value.filter((project) => project.group_size > 1))
@@ -55,8 +56,9 @@ export const useRegistrationStore = defineStore('registration', () => {
 
   const filteredPigeons = computed(() => {
     const query = searchQuery.value.trim().toLowerCase()
-    if (!query) return pigeons.value
-    return pigeons.value.filter((pigeon) => pigeon.ring_number.toLowerCase().includes(query))
+    const source = activePigeons()
+    if (!query) return source
+    return source.filter((pigeon) => pigeon.ring_number.toLowerCase().includes(query))
   })
 
   const singleEntries = computed<RegistrationEntryPayload[]>(() => {
@@ -165,20 +167,23 @@ export const useRegistrationStore = defineStore('registration', () => {
   function toggleSingle(pigeonId: number, projectId: number): void {
     const project = requireProject(projectId)
     if (project.group_size !== 1) return
+    if (!isSingleProjectAvailable(pigeonId, projectId)) return
     singleMatrix.value[pigeonId] = { ...(singleMatrix.value[pigeonId] ?? {}) }
     singleMatrix.value[pigeonId][projectId] = !singleMatrix.value[pigeonId][projectId]
     saveDraft()
   }
 
   function isSingleRowAllSelected(pigeonId: number): boolean {
-    return singleProjects.value.length > 0 && singleProjects.value.every((project) => singleMatrix.value[pigeonId]?.[project.id])
+    const availableProjects = singleProjects.value.filter((project) => isSingleProjectAvailable(pigeonId, project.id))
+
+    return availableProjects.length > 0 && availableProjects.every((project) => singleMatrix.value[pigeonId]?.[project.id])
   }
 
   function toggleSingleRowAll(pigeonId: number): void {
     const nextSelected = !isSingleRowAllSelected(pigeonId)
     singleMatrix.value[pigeonId] = { ...(singleMatrix.value[pigeonId] ?? {}) }
 
-    for (const project of singleProjects.value) {
+    for (const project of singleProjects.value.filter((candidate) => isSingleProjectAvailable(pigeonId, candidate.id))) {
       singleMatrix.value[pigeonId][project.id] = nextSelected
     }
 
@@ -195,6 +200,7 @@ export const useRegistrationStore = defineStore('registration', () => {
   function togglePendingMultiPigeon(pigeonId: number): void {
     const project = selectedMultiProject.value
     if (!project) return
+    if (!pigeonBelongsToProjectLibrary(pigeonId, project)) return
     const existingIndex = pendingMultiPigeonIds.value.indexOf(pigeonId)
     if (existingIndex >= 0) {
       pendingMultiPigeonIds.value.splice(existingIndex, 1)
@@ -266,8 +272,12 @@ export const useRegistrationStore = defineStore('registration', () => {
 
   function pigeonById(pigeonId: number): Pigeon {
     const pigeon = pigeons.value.find((candidate) => candidate.id === pigeonId)
-    if (!pigeon) throw new Error(`Unknown pigeon ${pigeonId}`)
-    return pigeon
+    if (pigeon) return pigeon
+    const existingPigeon = bootstrap.value?.existing_registration?.entries
+      .flatMap((entry) => entry.pigeons)
+      .find((candidate) => candidate.pigeon_id === pigeonId)
+    if (existingPigeon) return { id: existingPigeon.pigeon_id, ring_number: existingPigeon.ring_number }
+    throw new Error(`Unknown pigeon ${pigeonId}`)
   }
 
   function requireProject(projectId: number): RaceProject {
@@ -315,6 +325,7 @@ export const useRegistrationStore = defineStore('registration', () => {
   function canUsePigeonInSelectedProject(pigeonId: number, alreadyPending: boolean = pendingMultiPigeonIds.value.includes(pigeonId)): boolean {
     const project = selectedMultiProject.value
     if (!project) return false
+    if (!pigeonBelongsToProjectLibrary(pigeonId, project)) return false
     if (alreadyPending) return true
 
     const currentUsage = selectedMultiProjectUsage.value[pigeonId] ?? 0
@@ -322,6 +333,37 @@ export const useRegistrationStore = defineStore('registration', () => {
     if (project.max_usage_per_pigeon !== null && project.max_usage_per_pigeon !== undefined && currentUsage >= project.max_usage_per_pigeon) return false
 
     return true
+  }
+
+  function isSingleProjectAvailable(pigeonId: number, projectId: number): boolean {
+    const project = singleProjects.value.find((candidate) => candidate.id === projectId)
+    if (!project) return false
+
+    return pigeonBelongsToProjectLibrary(pigeonId, project)
+  }
+
+  function pigeonBelongsToProjectLibrary(pigeonId: number, project: RaceProject): boolean {
+    if (project.pigeon_library_id === null || project.pigeon_library_id === undefined) return true
+    const pigeon = pigeons.value.find((candidate) => candidate.id === pigeonId)
+
+    return (pigeon?.pigeon_library_id ?? null) === project.pigeon_library_id
+  }
+
+  function activePigeons(): Pigeon[] {
+    const queryProjects = activeTab.value === 'single'
+      ? singleProjects.value
+      : activeTab.value === 'multi' && selectedMultiProject.value
+        ? [selectedMultiProject.value]
+        : []
+
+    if (queryProjects.length === 0) return pigeons.value
+
+    const libraryIds = new Set(queryProjects
+      .map((project) => project.pigeon_library_id)
+      .filter((libraryId): libraryId is number => typeof libraryId === 'number'))
+    if (libraryIds.size === 0) return pigeons.value
+
+    return pigeons.value.filter((pigeon) => pigeon.pigeon_library_id !== null && pigeon.pigeon_library_id !== undefined && libraryIds.has(pigeon.pigeon_library_id))
   }
 
   function hydrateExisting(existing: ExistingRegistration | null): void {
@@ -462,6 +504,7 @@ export const useRegistrationStore = defineStore('registration', () => {
     projects,
     pigeons,
     progressiveCategories,
+    pigeonLibraries,
     singleProjects,
     multiProjects,
     selectedMultiProject,
@@ -490,6 +533,7 @@ export const useRegistrationStore = defineStore('registration', () => {
     togglePendingMultiPigeon,
     confirmMultiGroup,
     canUsePigeonInSelectedProject,
+    isSingleProjectAvailable,
     deleteMultiGroup,
     progressiveTabId,
     toggleProgressiveGroup,
