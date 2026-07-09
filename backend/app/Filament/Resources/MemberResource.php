@@ -1,6 +1,6 @@
 <?php
 // [IN]: Member model records with optional login credentials / 可选登录凭据的会员模型记录
-// [OUT]: Filament member CRUD screens for imported and login-enabled members / 支持导入与可登录会员的 Filament 会员 CRUD 页面
+// [OUT]: Filament member CRUD screens, selected deletion, and cache cleanup / 支持导入、可登录会员、所选删除与缓存清理的 Filament 会员 CRUD 页面
 // [POS]: Backend admin member resource / 后端后台会员资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -9,13 +9,18 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\MemberResource\Pages;
 use App\Models\Member;
+use App\Services\RaceCacheService;
+use Filament\Actions\BulkAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class MemberResource extends Resource
 {
@@ -45,7 +50,59 @@ class MemberResource extends Resource
             TextColumn::make('pigeons_count')->counts('pigeons')->label('足环数量'),
             TextColumn::make('status')->label('状态'),
             TextColumn::make('last_login_at')->label('最近登录')->dateTime(),
-        ])->recordActions([EditAction::make(), DeleteAction::make()]);
+        ])->recordActions([
+            EditAction::make(),
+            DeleteAction::make()
+                ->using(fn (Member $record): bool => self::deleteMembers([$record]) === 1),
+        ])
+            ->bulkActions([
+                BulkAction::make('deleteSelectedMembers')
+                    ->label('删除所选会员')
+                    ->icon('heroicon-o-trash')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('删除所选会员')
+                    ->modalDescription('此操作会删除所选会员，并同步删除这些会员的足环和报名记录。')
+                    ->modalSubmitActionLabel('确认删除')
+                    ->action(function (Collection $records): void {
+                        $deleted = self::deleteMembers($records);
+
+                        Notification::make()
+                            ->title("已删除 {$deleted} 个会员")
+                            ->success()
+                            ->send();
+                    })
+                    ->deselectRecordsAfterCompletion(),
+            ]);
+    }
+
+    public static function deleteMembers(iterable $records): int
+    {
+        $members = collect($records)
+            ->filter(fn ($record): bool => $record instanceof Member)
+            ->values();
+
+        $memberIds = $members
+            ->pluck('id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        $deleted = DB::transaction(function () use ($members): int {
+            $deleted = 0;
+
+            foreach ($members as $member) {
+                if ($member->exists && $member->delete()) {
+                    $deleted++;
+                }
+            }
+
+            return $deleted;
+        });
+
+        $memberIds->each(fn (int $memberId) => app(RaceCacheService::class)->forgetMemberPigeonsById($memberId));
+
+        return $deleted;
     }
 
     public static function getPages(): array
