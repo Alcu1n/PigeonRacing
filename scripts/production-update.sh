@@ -12,6 +12,7 @@ COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.yml}"
 MODE="${1:-}"
 PULL_CODE="${PULL_CODE:-1}"
 FRONTEND_ASSET_MODE="${FRONTEND_ASSET_MODE:-oss}"
+STRICT_GIT_STATUS="${STRICT_GIT_STATUS:-0}"
 
 fail() {
     printf 'ERROR: %s\n' "$1" >&2
@@ -30,6 +31,7 @@ Environment variables:
   COMPOSE_FILE=/path/docker-compose.yml
   PULL_CODE=0                         Skip git fetch/pull.
   FRONTEND_ASSET_MODE=oss|local       Default: oss.
+  STRICT_GIT_STATUS=1                 Fail before pull when local changes exist.
 USAGE
 }
 
@@ -66,11 +68,15 @@ prepare_workspace() {
     git fetch origin
 
     if [[ -n "$(git status --short)" ]]; then
+        printf 'Production worktree has local changes; git pull will use --autostash for tracked files:\n'
         git status --short
-        fail "Production worktree has local changes. Resolve them before updating, or rerun with PULL_CODE=0 if intentional."
+
+        if [[ "$STRICT_GIT_STATUS" == "1" ]]; then
+            fail "Production worktree has local changes and STRICT_GIT_STATUS=1."
+        fi
     fi
 
-    git pull --ff-only
+    git pull --ff-only --autostash
 }
 
 deploy_frontend() {

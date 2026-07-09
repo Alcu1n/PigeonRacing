@@ -767,10 +767,16 @@ pigeon-back    # 只更新 Laravel 后端
 pigeon-full    # 前后端都更新
 ```
 
-脚本默认会执行 `git fetch origin && git pull --ff-only`。如果服务器本地有未提交修改，脚本会停止，不会强行覆盖。确实要跳过拉代码时才使用：
+脚本默认会执行 `git fetch origin && git pull --ff-only --autostash`。如果服务器本地有未提交修改，例如生产环境本地化的 `docker-compose.yml`，脚本会打印这些改动，并让 Git 临时保存 tracked 改动、拉取代码后再恢复。确实要跳过拉代码时才使用：
 
 ```bash
 ssh pigeon-prod 'PULL_CODE=0 bash /opt/pigeon-racing/scripts/production-update.sh backend'
+```
+
+如果希望恢复旧的严格行为，让本地有任何改动时都停止：
+
+```bash
+ssh pigeon-prod 'STRICT_GIT_STATUS=1 bash /opt/pigeon-racing/scripts/production-update.sh backend'
 ```
 
 如果没有启用 OSS/CDN，而是直接由 Docker Nginx 读取本机 `frontend/member-h5/dist`，前端或完整更新时使用：
