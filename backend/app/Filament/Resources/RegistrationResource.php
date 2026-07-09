@@ -1,6 +1,7 @@
 <?php
-// [IN]: Registration model records, snapshot matrix service, and confirmation action / 报名模型记录、快照矩阵服务与确认动作
-// [OUT]: Filament registration review table, bulk confirm, edit entry, localized status badges, and dense detail matrix / 带批量确认、编辑入口、本地化状态徽标与高密度详情矩阵的 Filament 报名审核表格
+
+// [IN]: Registration model records, snapshot matrix service, confirmation action, and deletion requests / 报名模型记录、快照矩阵服务、确认动作与删除请求
+// [OUT]: Filament registration review table, bulk confirm/delete, edit entry, localized status badges, and dense detail matrix / 带批量确认/删除、编辑入口、本地化状态徽标与高密度详情矩阵的 Filament 报名审核表格
 // [POS]: Backend admin registration resource / 后端后台报名资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -16,6 +17,7 @@ use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\ViewAction;
 use Filament\Infolists\Components\TextEntry;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\View;
@@ -23,12 +25,16 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class RegistrationResource extends Resource
 {
     protected static ?string $model = Registration::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
+
     protected static ?string $navigationLabel = '报名记录';
+
     protected static ?string $modelLabel = '报名记录';
 
     public static function form(Schema $schema): Schema
@@ -99,6 +105,22 @@ class RegistrationResource extends Resource
                 ->label('修改报名数据')
                 ->icon('heroicon-o-pencil-square')
                 ->url(fn (Registration $record): string => self::getUrl('edit-data', ['record' => $record])),
+            Action::make('deleteRegistration')
+                ->label('删除报名记录')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('删除报名记录')
+                ->modalDescription('此操作会删除该报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这条报名。')
+                ->modalSubmitActionLabel('确认删除')
+                ->action(function (Registration $record): void {
+                    $deleted = self::deleteRegistrations(collect([$record]));
+
+                    Notification::make()
+                        ->title("已删除 {$deleted} 条报名记录")
+                        ->success()
+                        ->send();
+                }),
         ])->bulkActions([
             BulkAction::make('confirmSelected')
                 ->label('确认报名')
@@ -107,6 +129,22 @@ class RegistrationResource extends Resource
                 ->requiresConfirmation()
                 ->action(fn (Collection $records) => self::confirmRegistrations($records))
                 ->successNotificationTitle('已批量确认报名'),
+            BulkAction::make('deleteSelectedRegistrations')
+                ->label('删除报名记录')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('删除所选报名记录')
+                ->modalDescription('此操作会删除所选报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这些报名。')
+                ->modalSubmitActionLabel('确认删除')
+                ->action(function (Collection $records): void {
+                    $deleted = self::deleteRegistrations($records);
+
+                    Notification::make()
+                        ->title("已删除 {$deleted} 条报名记录")
+                        ->success()
+                        ->send();
+                }),
         ]);
     }
 
@@ -151,6 +189,39 @@ class RegistrationResource extends Resource
         }
 
         return $confirmed;
+    }
+
+    public static function deleteRegistrations(iterable $records): int
+    {
+        $registrations = collect($records)
+            ->filter(fn ($record): bool => $record instanceof Registration)
+            ->values();
+
+        return DB::transaction(function () use ($registrations): int {
+            $deleted = 0;
+
+            foreach ($registrations as $registration) {
+                $registration->loadMissing(['race', 'member']);
+
+                if (! $registration->exists) {
+                    continue;
+                }
+
+                $registration->progressiveStageEntries()->delete();
+
+                if (! $registration->delete()) {
+                    continue;
+                }
+
+                if ($registration->race !== null && $registration->member !== null) {
+                    app(RaceCacheService::class)->forgetBootstrap($registration->race, $registration->member);
+                }
+
+                $deleted++;
+            }
+
+            return $deleted;
+        });
     }
 
     private static function formatYuan(?int $cent): string

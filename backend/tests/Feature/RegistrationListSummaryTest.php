@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Filament admin session and registration totals / Filament 后台会话与报名汇总
 // [OUT]: Registration list summary render assertions / 报名列表汇总渲染断言
 // [POS]: Backend admin registration list summary feature test / 后端后台报名列表汇总功能测试
@@ -17,6 +18,8 @@ use App\Models\Race;
 use App\Models\RaceProject;
 use App\Models\Registration;
 use App\Models\RegistrationCategory;
+use App\Models\RegistrationEntry;
+use App\Models\RegistrationEntryPigeon;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -86,6 +89,68 @@ class RegistrationListSummaryTest extends TestCase
             'status' => RegistrationStatus::Confirmed->value,
             'confirmed_by' => $admin->id,
         ]);
+    }
+
+    public function test_admin_can_delete_registration_and_member_history_no_longer_restores_it(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Admin',
+            'email' => 'admin-delete-registration@example.com',
+            'password' => 'password',
+        ]);
+        $race = Race::query()->create([
+            'name' => '测试赛事',
+            'registration_start_at' => now()->subDay(),
+            'registration_end_at' => now()->addDay(),
+            'status' => RaceStatus::Published,
+            'is_visible' => true,
+        ]);
+        $registration = $this->registration($race, 'A201', RegistrationStatus::PendingConfirmation, 5000);
+        $project = RaceProject::query()->create([
+            'race_id' => $race->id,
+            'name' => '单羽 50',
+            'group_size' => 1,
+            'price_cent' => 5000,
+            'sort_order' => 1,
+            'is_enabled' => true,
+        ]);
+        $pigeon = Pigeon::query()->create([
+            'member_id' => $registration->member_id,
+            'loft_number' => $registration->member->loft_number,
+            'participant_name' => $registration->member->participant_name,
+            'ring_number' => '2026-13-201001',
+            'status' => 'normal',
+        ]);
+        $entry = RegistrationEntry::query()->create([
+            'registration_id' => $registration->id,
+            'race_project_id' => $project->id,
+            'project_name_snapshot' => $project->name,
+            'group_size_snapshot' => 1,
+            'price_cent_snapshot' => 5000,
+            'group_index' => 1,
+            'created_at' => now(),
+        ]);
+        RegistrationEntryPigeon::query()->create([
+            'registration_entry_id' => $entry->id,
+            'pigeon_id' => $pigeon->id,
+            'ring_number_snapshot' => $pigeon->ring_number,
+            'sort_order' => 1,
+            'created_at' => now(),
+        ]);
+        $this->progressiveEntry($race, $registration, RegistrationStatus::PendingConfirmation);
+
+        $this->actingAs($admin);
+        $deleted = RegistrationResource::deleteRegistrations(collect([$registration]));
+
+        $this->assertSame(1, $deleted);
+        $this->assertDatabaseMissing('registrations', ['id' => $registration->id]);
+        $this->assertDatabaseMissing('registration_entries', ['registration_id' => $registration->id]);
+        $this->assertDatabaseMissing('registration_entry_pigeons', ['registration_entry_id' => $entry->id]);
+        $this->assertDatabaseMissing('progressive_stage_entries', ['registration_id' => $registration->id]);
+        $this->actingAs($registration->member, 'member')
+            ->getJson('/api/member/registrations')
+            ->assertOk()
+            ->assertJsonCount(0);
     }
 
     private function registration(Race $race, string $loftNumber, RegistrationStatus $status, int $amountCent): Registration

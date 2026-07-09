@@ -1,6 +1,7 @@
 <?php
-// [IN]: RegistrationResource table, summary service, and race selector / RegistrationResource 表格、汇总服务与赛事选择器
-// [OUT]: Filament registration list page with inline summary and Excel export / 带内联汇总与 Excel 导出的 Filament 报名列表页面
+
+// [IN]: RegistrationResource table, summary service, race selector, and delete-all action / RegistrationResource 表格、汇总服务、赛事选择器与全部删除动作
+// [OUT]: Filament registration list page with inline summary, Excel export, and registration cleanup / 带内联汇总、Excel 导出与报名清理的 Filament 报名列表页面
 // [POS]: Backend admin registration index route / 后端后台报名索引路由
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -10,9 +11,11 @@ namespace App\Filament\Resources\RegistrationResource\Pages;
 use App\Exports\RegistrationMatrixExport;
 use App\Filament\Resources\RegistrationResource;
 use App\Models\Race;
+use App\Models\Registration;
 use App\Services\RegistrationSummaryService;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\RenderHook;
@@ -57,6 +60,25 @@ class ListRegistrations extends ListRecords
 
                     return Excel::download($export, $export->fileName());
                 }),
+            Action::make('deleteAllRegistrations')
+                ->label('删除所有报名记录')
+                ->color('danger')
+                ->icon('heroicon-o-trash')
+                ->requiresConfirmation()
+                ->modalHeading('删除所有报名记录')
+                ->modalDescription('此操作会删除全部报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这些报名。')
+                ->modalSubmitActionLabel('确认删除')
+                ->action(fn () => $this->deleteAllRegistrations()),
         ];
+    }
+
+    private function deleteAllRegistrations(): void
+    {
+        $deleted = RegistrationResource::deleteRegistrations(Registration::query()->get());
+
+        Notification::make()
+            ->title("已删除 {$deleted} 条报名记录")
+            ->success()
+            ->send();
     }
 }
