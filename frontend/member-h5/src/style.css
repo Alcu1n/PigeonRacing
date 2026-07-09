@@ -1397,6 +1397,39 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   list-style: none;
 }
 
+.profile-pigeon-card {
+  max-height: min(420px, calc(100vh - 180px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.profile-pigeon-head {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 8px;
+  padding-bottom: 10px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+
+.profile-pigeon-head h2,
+.profile-pigeon-head p {
+  margin: 0;
+}
+
+.profile-pigeon-head p {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.profile-pigeon-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  padding-top: 10px;
+}
+
 .profile-library-tabs {
   display: flex;
   gap: 8px;
@@ -1925,6 +1958,21 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   font-weight: 800;
 }
 
+.progressive-ring-group em {
+  display: block;
+  font-style: normal;
+  font-size: 10px;
+  line-height: 1;
+}
+
+.ring-button.progressive-ring-group strong {
+  display: block;
+  font-size: 15px;
+  line-height: 1;
+  letter-spacing: 0;
+  color: var(--green-dark);
+}
+
 .ring-button strong {
   font-size: 14px;
   letter-spacing: 0;
@@ -2053,6 +2101,24 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .group-card ol, .detail-block ul { margin: 0; padding-left: 20px; line-height: 1.8; }
 .group-card button { color: var(--danger); background: transparent; font-weight: 700; text-align: left; }
+
+.detail-block-head {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.detail-block-head h3,
+.detail-block-head p {
+  margin: 0;
+}
+
+.detail-block-scroll {
+  max-height: min(320px, calc(100vh - 260px));
+  overflow-y: auto;
+}
 
 .mini-group {
   display: grid;

@@ -33,6 +33,14 @@ const selectedCount = computed(() => {
 function copyGroup(ringNumbers: string[]): void {
   void globalThis.navigator?.clipboard?.writeText(ringNumbers.join('，'))
 }
+
+function ringPrefix(ringNumber: string): string {
+  return ringNumber.slice(0, -6)
+}
+
+function ringTail(ringNumber: string): string {
+  return ringNumber.slice(-6)
+}
 </script>
 
 <template>
@@ -66,7 +74,8 @@ function copyGroup(ringNumbers: string[]): void {
       >
         <button class="ring-cell sticky-ring-cell ring-button progressive-ring-group" type="button" @click="copyGroup(group.pigeons.map((pigeon) => pigeon.ring_number))">
           <span v-for="pigeon in group.pigeons" :key="pigeon.id">
-            {{ pigeon.ring_number }}
+            <em>{{ ringPrefix(pigeon.ring_number) }}</em>
+            <strong>{{ ringTail(pigeon.ring_number) }}</strong>
           </span>
         </button>
         <button

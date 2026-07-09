@@ -35,11 +35,15 @@ const progressiveGroups = computed(() => store.progressiveCategories.map((catego
 
     <article v-for="project in store.multiProjects" :key="project.id" class="detail-block">
       <template v-if="store.multiGroups.some((group) => group.project_id === project.id)">
-        <h3>{{ project.name }}</h3>
-        <p>共 {{ store.multiGroups.filter((group) => group.project_id === project.id).length }} 组，小计 {{ yuan(store.multiGroups.filter((group) => group.project_id === project.id).length * project.price_cent) }}</p>
-        <div v-for="(group, index) in store.multiGroups.filter((item) => item.project_id === project.id)" :key="group.id" class="mini-group">
-          <strong>第 {{ index + 1 }} 组</strong>
-          <span>{{ group.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
+        <div class="detail-block-head">
+          <h3>{{ project.name }}</h3>
+          <p>共 {{ store.multiGroups.filter((group) => group.project_id === project.id).length }} 组，小计 {{ yuan(store.multiGroups.filter((group) => group.project_id === project.id).length * project.price_cent) }}</p>
+        </div>
+        <div class="detail-block-scroll">
+          <div v-for="(group, index) in store.multiGroups.filter((item) => item.project_id === project.id)" :key="group.id" class="mini-group">
+            <strong>第 {{ index + 1 }} 组</strong>
+            <span>{{ group.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
+          </div>
         </div>
       </template>
     </article>

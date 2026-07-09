@@ -145,26 +145,28 @@ const visiblePigeons = computed(() => activeLibrary.value?.pigeons ?? pigeons.va
         </div>
       </section>
 
-      <section class="profile-card">
-        <h2>名下足环</h2>
-        <p v-if="pigeons.length === 0" class="empty-note">暂无足环信息</p>
-        <div v-else-if="pigeonLibraries.length > 0" class="profile-library-tabs">
-          <button
-            v-for="library in pigeonLibraries"
-            :key="library.id"
-            type="button"
-            :class="{ active: activeLibraryId === library.id }"
-            @click="activeLibraryId = library.id"
-          >
-            {{ library.name }} · {{ library.pigeon_count }}
-          </button>
+      <section class="profile-card profile-pigeon-card">
+        <div class="profile-pigeon-head">
+          <h2>名下足环</h2>
+          <p v-if="pigeons.length > 0">{{ visiblePigeons.length }} 羽</p>
+          <div v-if="pigeonLibraries.length > 0" class="profile-library-tabs">
+            <button
+              v-for="library in pigeonLibraries"
+              :key="library.id"
+              type="button"
+              :class="{ active: activeLibraryId === library.id }"
+              @click="activeLibraryId = library.id"
+            >
+              {{ library.name }} · {{ library.pigeon_count }}
+            </button>
+          </div>
         </div>
-        <ul v-else class="profile-pigeon-list">
-          <li v-for="pigeon in visiblePigeons" :key="pigeon.id">{{ pigeon.ring_number }}</li>
-        </ul>
-        <ul v-if="pigeons.length > 0 && pigeonLibraries.length > 0" class="profile-pigeon-list">
-          <li v-for="pigeon in visiblePigeons" :key="pigeon.id">{{ pigeon.ring_number }}</li>
-        </ul>
+        <p v-if="pigeons.length === 0" class="empty-note">暂无足环信息</p>
+        <div v-else class="profile-pigeon-scroll">
+          <ul class="profile-pigeon-list">
+            <li v-for="pigeon in visiblePigeons" :key="pigeon.id">{{ pigeon.ring_number }}</li>
+          </ul>
+        </div>
       </section>
 
       <button v-if="!forcePassword" class="secondary-action wide" @click="router.push('/races')">返回赛事列表</button>
