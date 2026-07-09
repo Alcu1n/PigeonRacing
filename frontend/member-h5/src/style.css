@@ -2028,7 +2028,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   margin: 0 auto;
 }
 
-.multi-current, .detail-block, .group-card {
+.multi-current, .group-card {
   display: grid;
   gap: 10px;
   margin-top: 12px;
@@ -2099,32 +2099,120 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   gap: 10px;
 }
 
-.group-card ol, .detail-block ul { margin: 0; padding-left: 20px; line-height: 1.8; }
+.group-card ol { margin: 0; padding-left: 20px; line-height: 1.8; }
 .group-card button { color: var(--danger); background: transparent; font-weight: 700; text-align: left; }
+
+.detail-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 0;
+  overflow: hidden;
+  border: 1px solid #dbe8df;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(22, 54, 39, .06);
+}
 
 .detail-block-head {
   flex: 0 0 auto;
   display: grid;
   gap: 8px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+  background: #eef7f2;
+  border-bottom: 1px solid #d8e8df;
 }
 
-.detail-block-head h3,
-.detail-block-head p {
+.detail-block-head h3 {
   margin: 0;
+  color: #173b2b;
+  font-size: 15px;
+  line-height: 1.25;
+  font-weight: 900;
+}
+
+.detail-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.detail-count-chip,
+.detail-amount-chip {
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 6px;
+  padding: 0 9px;
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.detail-count-chip {
+  background: #f2f5f3;
+  color: #52655b;
+  border: 1px solid #dfe8e2;
+}
+
+.detail-amount-chip {
+  background: #fff3dc;
+  color: #9a520f;
+  border: 1px solid #f3d8aa;
 }
 
 .detail-block-scroll {
   max-height: min(320px, calc(100vh - 260px));
   overflow-y: auto;
+  padding: 6px 12px 12px;
+}
+
+.detail-ring-list {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.detail-ring-list li {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 7px;
+  background: #f7faf8;
+  color: #1e3b30;
+  font-weight: 850;
 }
 
 .mini-group {
   display: grid;
-  gap: 4px;
-  padding-top: 8px;
-  border-top: 1px solid var(--border);
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid #edf2ef;
+}
+
+.mini-group:first-child {
+  border-top: 0;
+}
+
+.mini-group strong {
+  color: #335244;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.mini-group span {
+  color: #173b2b;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 800;
 }
 
 .empty-note {

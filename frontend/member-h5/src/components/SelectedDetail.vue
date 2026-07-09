@@ -19,41 +19,61 @@ const progressiveGroups = computed(() => store.progressiveCategories.map((catego
   const groups = store.progressiveSelections[category.id] ?? []
   return { category, groups }
 }).filter((group) => group.groups.length > 0))
+
+const multiGroups = computed(() => store.multiProjects.map((project) => {
+  const groups = store.multiGroups.filter((group) => group.project_id === project.id)
+  return { project, groups }
+}).filter((group) => group.groups.length > 0))
 </script>
 
 <template>
   <section class="detail-panel">
     <article v-for="group in singleGroups" :key="group.project.id" class="detail-block">
-      <h3>{{ group.project.name }}</h3>
-      <p>共 {{ group.entries.length }} 羽，小计 {{ yuan(group.entries.length * group.project.price_cent) }}</p>
-      <ul>
-        <li v-for="entry in group.entries.slice(0, 8)" :key="entry.project_id + '-' + entry.pigeon_ids[0]">
-          {{ store.pigeonById(entry.pigeon_ids[0]).ring_number }}
-        </li>
-      </ul>
+      <div class="detail-block-head">
+        <h3>{{ group.project.name }}</h3>
+        <div class="detail-summary-row">
+          <span class="detail-count-chip">共 {{ group.entries.length }} 羽</span>
+          <span class="detail-amount-chip">小计 {{ yuan(group.entries.length * group.project.price_cent) }}</span>
+        </div>
+      </div>
+      <div class="detail-block-scroll">
+        <ul class="detail-ring-list">
+          <li v-for="entry in group.entries" :key="entry.project_id + '-' + entry.pigeon_ids[0]">
+            {{ store.pigeonById(entry.pigeon_ids[0]).ring_number }}
+          </li>
+        </ul>
+      </div>
     </article>
 
-    <article v-for="project in store.multiProjects" :key="project.id" class="detail-block">
-      <template v-if="store.multiGroups.some((group) => group.project_id === project.id)">
-        <div class="detail-block-head">
-          <h3>{{ project.name }}</h3>
-          <p>共 {{ store.multiGroups.filter((group) => group.project_id === project.id).length }} 组，小计 {{ yuan(store.multiGroups.filter((group) => group.project_id === project.id).length * project.price_cent) }}</p>
+    <article v-for="group in multiGroups" :key="group.project.id" class="detail-block">
+      <div class="detail-block-head">
+        <h3>{{ group.project.name }}</h3>
+        <div class="detail-summary-row">
+          <span class="detail-count-chip">共 {{ group.groups.length }} 组</span>
+          <span class="detail-amount-chip">小计 {{ yuan(group.groups.length * group.project.price_cent) }}</span>
         </div>
-        <div class="detail-block-scroll">
-          <div v-for="(group, index) in store.multiGroups.filter((item) => item.project_id === project.id)" :key="group.id" class="mini-group">
-            <strong>第 {{ index + 1 }} 组</strong>
-            <span>{{ group.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
-          </div>
+      </div>
+      <div class="detail-block-scroll">
+        <div v-for="(item, index) in group.groups" :key="item.id" class="mini-group">
+          <strong>第 {{ index + 1 }} 组</strong>
+          <span>{{ item.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
         </div>
-      </template>
+      </div>
     </article>
 
     <article v-for="group in progressiveGroups" :key="group.category.id" class="detail-block">
-      <h3>{{ group.category.name }} · {{ group.category.current_stage?.name }}</h3>
-      <p>共 {{ group.groups.length }} 组，小计 {{ yuan(group.groups.length * (group.category.current_stage?.price_cent ?? 0)) }}</p>
-      <div v-for="(item, index) in group.groups.slice(0, 12)" :key="group.category.id + '-' + item.group_key" class="mini-group">
-        <strong>第 {{ index + 1 }} 组</strong>
-        <span>{{ item.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
+      <div class="detail-block-head">
+        <h3>{{ group.category.name }} · {{ group.category.current_stage?.name }}</h3>
+        <div class="detail-summary-row">
+          <span class="detail-count-chip">共 {{ group.groups.length }} 组</span>
+          <span class="detail-amount-chip">小计 {{ yuan(group.groups.length * (group.category.current_stage?.price_cent ?? 0)) }}</span>
+        </div>
+      </div>
+      <div class="detail-block-scroll">
+        <div v-for="(item, index) in group.groups" :key="group.category.id + '-' + item.group_key" class="mini-group">
+          <strong>第 {{ index + 1 }} 组</strong>
+          <span>{{ item.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
+        </div>
       </div>
     </article>
 
