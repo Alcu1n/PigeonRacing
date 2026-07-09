@@ -741,26 +741,52 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan 
 
 ## 8. 生产环境代码更新
 
-生产环境已经部署完成后，不要重新生成 `APP_KEY`，不要删除 MySQL volume，不要重新申请 SSL。每次更新先进入项目目录：
+生产环境已经部署完成后，不要重新生成 `APP_KEY`，不要删除 MySQL volume，不要重新申请 SSL。
+
+日常更新优先使用一键脚本。脚本会在服务器上进入 `/opt/pigeon-racing`，检查服务，拉取远端代码，然后按模式执行前端、后端或完整更新：
 
 ```bash
-cd /opt/pigeon-racing
-pwd
-docker compose -f /opt/pigeon-racing/docker-compose.yml ps
+ssh 你的服务器别名或IP 'bash /opt/pigeon-racing/scripts/production-update.sh frontend'
+ssh 你的服务器别名或IP 'bash /opt/pigeon-racing/scripts/production-update.sh backend'
+ssh 你的服务器别名或IP 'bash /opt/pigeon-racing/scripts/production-update.sh full'
 ```
 
-确认路径是 `/opt/pigeon-racing`，服务包含 `app`、`nginx`、`mysql`、`redis`、`queue`、`scheduler`。
-
-先拉取代码：
+推荐在本地 `~/.zshrc` 或 `~/.bashrc` 中添加别名，把 `pigeon-prod` 换成你的 SSH Host、用户名加 IP，或宝塔服务器地址：
 
 ```bash
-cd /opt/pigeon-racing
-git fetch origin
-git status --short
-git pull --ff-only
+alias pigeon-front="ssh pigeon-prod 'bash /opt/pigeon-racing/scripts/production-update.sh frontend'"
+alias pigeon-back="ssh pigeon-prod 'bash /opt/pigeon-racing/scripts/production-update.sh backend'"
+alias pigeon-full="ssh pigeon-prod 'bash /opt/pigeon-racing/scripts/production-update.sh full'"
 ```
 
-如果 `git status --short` 显示服务器本地有未提交修改，不要强行覆盖，先确认这些修改是否应该保留。
+之后本地终端只需要执行：
+
+```bash
+pigeon-front   # 只更新会员端前端
+pigeon-back    # 只更新 Laravel 后端
+pigeon-full    # 前后端都更新
+```
+
+脚本默认会执行 `git fetch origin && git pull --ff-only`。如果服务器本地有未提交修改，脚本会停止，不会强行覆盖。确实要跳过拉代码时才使用：
+
+```bash
+ssh pigeon-prod 'PULL_CODE=0 bash /opt/pigeon-racing/scripts/production-update.sh backend'
+```
+
+如果没有启用 OSS/CDN，而是直接由 Docker Nginx 读取本机 `frontend/member-h5/dist`，前端或完整更新时使用：
+
+```bash
+ssh pigeon-prod 'FRONTEND_ASSET_MODE=local bash /opt/pigeon-racing/scripts/production-update.sh frontend'
+ssh pigeon-prod 'FRONTEND_ASSET_MODE=local bash /opt/pigeon-racing/scripts/production-update.sh full'
+```
+
+脚本文件是 `scripts/production-update.sh`。如果这是第一次把该脚本发布到服务器，而服务器上还没有这个文件，先手动执行一次：
+
+```bash
+ssh pigeon-prod 'cd /opt/pigeon-racing && git fetch origin && git pull --ff-only'
+```
+
+然后再使用上面的 `pigeon-front`、`pigeon-back`、`pigeon-full`。
 
 ### 8.1 只更新前端代码
 
@@ -772,9 +798,7 @@ git pull --ff-only
 如果生产环境启用了 OSS/CDN，执行：
 
 ```bash
-cd /opt/pigeon-racing
-bash scripts/deploy-member-assets-to-oss.sh
-docker compose -f /opt/pigeon-racing/docker-compose.yml restart nginx
+pigeon-front
 ```
 
 然后到阿里云 CDN 控制台刷新：
@@ -788,11 +812,7 @@ URL：https://cdn.feilesg.com/assets/
 如果没有启用 OSS/CDN，执行：
 
 ```bash
-cd /opt/pigeon-racing/frontend/member-h5
-npm ci
-npm run build
-cd /opt/pigeon-racing
-docker compose -f /opt/pigeon-racing/docker-compose.yml restart nginx
+ssh pigeon-prod 'FRONTEND_ASSET_MODE=local bash /opt/pigeon-racing/scripts/production-update.sh frontend'
 ```
 
 验证：
@@ -814,17 +834,7 @@ https://feilesg.com/login
 执行：
 
 ```bash
-cd /opt/pigeon-racing
-docker compose -f /opt/pigeon-racing/docker-compose.yml build app queue scheduler
-docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
-docker compose -f /opt/pigeon-racing/docker-compose.yml up -d --remove-orphans
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate --force
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan filament:assets
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan route:cache
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan view:cache
-docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue scheduler nginx
+pigeon-back
 ```
 
 验证：
@@ -845,18 +855,7 @@ https://feilesg.com/login
 启用 OSS/CDN 时执行完整流程：
 
 ```bash
-cd /opt/pigeon-racing
-docker compose -f /opt/pigeon-racing/docker-compose.yml build app queue scheduler
-docker compose -f /opt/pigeon-racing/docker-compose.yml run --rm app composer install --no-dev --optimize-autoloader
-bash scripts/deploy-member-assets-to-oss.sh
-docker compose -f /opt/pigeon-racing/docker-compose.yml up -d --remove-orphans
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan migrate --force
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan filament:assets
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan optimize:clear
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan config:cache
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan route:cache
-docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php artisan view:cache
-docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue scheduler nginx
+pigeon-full
 ```
 
 然后刷新 CDN：
@@ -867,24 +866,13 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue schedu
 URL：https://cdn.feilesg.com/assets/
 ```
 
-未启用 OSS/CDN 时，把 `bash scripts/deploy-member-assets-to-oss.sh` 换成：
+未启用 OSS/CDN 时执行：
 
 ```bash
-cd /opt/pigeon-racing/frontend/member-h5
-npm ci
-npm run build
-cd /opt/pigeon-racing
+ssh pigeon-prod 'FRONTEND_ASSET_MODE=local bash /opt/pigeon-racing/scripts/production-update.sh full'
 ```
 
-如果服务器上 `npm run build` 卡在类型检查，可以临时使用：
-
-```bash
-cd /opt/pigeon-racing/frontend/member-h5
-VITE_ASSET_BASE_URL=https://cdn.feilesg.com/ npx vite build
-cd /opt/pigeon-racing
-```
-
-这会跳过类型检查，只执行 Vite 构建。正式发布前仍建议在本地或 CI 跑完整 `npm run build`。
+生产脚本调用 `deploy-member-assets-to-oss.sh` 时默认执行 `npx vite build`，不会额外跑类型检查。正式发布前仍建议在本地或 CI 跑完整前端测试和构建。
 
 ### 8.4 更新后检查
 
