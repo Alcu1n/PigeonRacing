@@ -1,6 +1,7 @@
 <?php
-// [IN]: Spreadsheet rows, members, import batches, and admin id / 电子表格行、会员、导入批次与管理员 ID
-// [OUT]: Member import preview, committed member rows, and error report / 会员导入预览、已写入会员与错误报告
+
+// [IN]: Spreadsheet rows, shared member import lock, members, batches, and admin id / 电子表格行、共享会员导入锁、会员、批次与管理员 ID
+// [OUT]: Serialized member import preview, committed rows, and error report / 串行化的会员导入预览、已写入行与错误报告
 // [POS]: Backend Excel member import rule service / 后端 Excel 会员导入规则服务
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -11,6 +12,8 @@ use App\Exports\MemberImportErrorExport;
 use App\Imports\SpreadsheetArrayImport;
 use App\Models\ImportBatch;
 use App\Models\Member;
+use Closure;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
@@ -19,9 +22,11 @@ class MemberImportService
 {
     public const HEADERS = ['序号', '棚号', '参赛名', '手机号', '密码'];
 
+    public const ACCOUNT_IMPORT_LOCK = 'member_account_import_lock';
+
     public function rowsFromSpreadsheet(string $path): array
     {
-        $sheets = Excel::toArray(new SpreadsheetArrayImport(), $path);
+        $sheets = Excel::toArray(new SpreadsheetArrayImport, $path);
         $rows = $sheets[0] ?? [];
 
         if ($rows === []) {
@@ -124,6 +129,40 @@ class MemberImportService
     }
 
     public function commit(string $fileName, array $preview, ?int $adminId): ImportBatch
+    {
+        return self::withAccountImportLock(
+            fn (): ImportBatch => $this->commitInTransaction($fileName, $preview, $adminId)
+        );
+    }
+
+    public static function withAccountImportLock(Closure $callback): ImportBatch
+    {
+        DB::table('app_settings')->insertOrIgnore([
+            'key' => self::ACCOUNT_IMPORT_LOCK,
+            'value' => 'mutex',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        try {
+            return DB::transaction(function () use ($callback): ImportBatch {
+                DB::table('app_settings')
+                    ->where('key', self::ACCOUNT_IMPORT_LOCK)
+                    ->lockForUpdate()
+                    ->first();
+
+                return $callback();
+            });
+        } catch (QueryException $exception) {
+            if (in_array((int) ($exception->errorInfo[1] ?? 0), [1205, 1213], true)) {
+                throw ValidationException::withMessages(['upload' => '另一项会员导入正在执行，请稍后重试。']);
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function commitInTransaction(string $fileName, array $preview, ?int $adminId): ImportBatch
     {
         $preview = $this->preview($preview['source_rows'] ?? []);
 

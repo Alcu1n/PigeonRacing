@@ -1,6 +1,7 @@
 <?php
+
 // [IN]: Member model records with optional login credentials / 可选登录凭据的会员模型记录
-// [OUT]: Filament member CRUD screens, selected deletion, and cache cleanup / 支持导入、可登录会员、所选删除与缓存清理的 Filament 会员 CRUD 页面
+// [OUT]: Filament member CRUD, parallel imports, selected deletion, and cache cleanup / Filament 会员 CRUD、并行导入、所选删除与缓存清理
 // [POS]: Backend admin member resource / 后端后台会员资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -25,8 +26,11 @@ use Illuminate\Support\Facades\DB;
 class MemberResource extends Resource
 {
     protected static ?string $model = Member::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
+
     protected static ?string $navigationLabel = '会员管理';
+
     protected static ?string $modelLabel = '会员';
 
     public static function form(Schema $schema): Schema
@@ -112,6 +116,7 @@ class MemberResource extends Resource
             'create' => Pages\CreateMember::route('/create'),
             'edit' => Pages\EditMember::route('/{record}/edit'),
             'import' => Pages\ImportMembers::route('/import'),
+            'import-credentials' => Pages\ImportMemberCredentials::route('/import-credentials'),
         ];
     }
 }
