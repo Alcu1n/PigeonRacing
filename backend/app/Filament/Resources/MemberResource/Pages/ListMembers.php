@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: MemberResource table definition and member/credential import exports / MemberResource 表格定义与会员/登录凭据导入导出
-// [OUT]: Filament member list with parallel member and credential import actions / 并行提供会员与登录凭据导入动作的 Filament 会员列表
+// [OUT]: Filament member list with import, export, and deletion actions / 提供导入、导出与删除动作的 Filament 会员列表
 // [POS]: Backend admin member index route / 后端后台会员索引路由
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -9,6 +9,7 @@
 namespace App\Filament\Resources\MemberResource\Pages;
 
 use App\Exports\MemberCredentialImportTemplateExport;
+use App\Exports\MemberExport;
 use App\Exports\MemberImportTemplateExport;
 use App\Filament\Resources\MemberResource;
 use App\Models\Member;
@@ -32,6 +33,10 @@ class ListMembers extends ListRecords
             Action::make('downloadTemplate')
                 ->label('下载模板')
                 ->action(fn () => Excel::download(new MemberImportTemplateExport, '会员导入模板.xlsx')),
+            Action::make('exportExcel')
+                ->label('导出 Excel')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->action(fn () => Excel::download(new MemberExport, '会员列表.xlsx')),
             Action::make('importCredentials')
                 ->label('导入手机号密码')
                 ->url(MemberResource::getUrl('import-credentials')),

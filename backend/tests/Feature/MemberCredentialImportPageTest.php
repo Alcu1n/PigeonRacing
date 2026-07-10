@@ -35,6 +35,7 @@ class MemberCredentialImportPageTest extends TestCase
 
         $this->assertSame('导入 Excel', $actions->get('importExcel')?->getLabel());
         $this->assertSame('下载模板', $actions->get('downloadTemplate')?->getLabel());
+        $this->assertSame('导出 Excel', $actions->get('exportExcel')?->getLabel());
         $this->assertSame('导入手机号密码', $actions->get('importCredentials')?->getLabel());
         $this->assertSame('下载手机号密码模板', $actions->get('downloadCredentialTemplate')?->getLabel());
 
