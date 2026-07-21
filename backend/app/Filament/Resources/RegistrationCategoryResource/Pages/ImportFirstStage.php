@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Uploaded Excel file, progressive category record, and preview token / 已上传 Excel、递进类别记录与预览令牌
 // [OUT]: First-stage baseline import page / 第一阶段基准导入页
 // [POS]: Backend admin progressive first-stage import route / 后端后台递进第一阶段导入路由
@@ -38,6 +39,11 @@ class ImportFirstStage extends Page
     public ?string $previewToken = null;
 
     public ?array $lastResult = null;
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        return RegistrationCategoryResource::hasModulePermission('create');
+    }
 
     public function mount(int|string $record): void
     {

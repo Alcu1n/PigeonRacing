@@ -8,6 +8,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasModulePermissions;
 use App\Filament\Resources\PigeonLibraryResource\Pages;
 use App\Models\PigeonLibrary;
 use Filament\Actions\DeleteAction;
@@ -22,6 +23,10 @@ use Filament\Tables\Table;
 
 class PigeonLibraryResource extends Resource
 {
+    use HasModulePermissions;
+
+    protected static string $permissionModule = 'pigeon-libraries';
+
     protected static ?string $model = PigeonLibrary::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-archive-box';

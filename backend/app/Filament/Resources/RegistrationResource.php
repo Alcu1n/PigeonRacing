@@ -9,6 +9,7 @@
 namespace App\Filament\Resources;
 
 use App\Enums\RegistrationStatus;
+use App\Filament\Concerns\HasModulePermissions;
 use App\Filament\Resources\RegistrationResource\Pages;
 use App\Models\Registration;
 use App\Services\RaceCacheService;
@@ -29,6 +30,10 @@ use Illuminate\Support\Facades\DB;
 
 class RegistrationResource extends Resource
 {
+    use HasModulePermissions;
+
+    protected static string $permissionModule = 'registrations';
+
     protected static ?string $model = Registration::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
@@ -82,6 +87,7 @@ class RegistrationResource extends Resource
                 ->action(
                     Action::make('confirmFromColumn')
                         ->label('确认报名')
+                        ->visible(fn (): bool => self::hasModulePermission('update'))
                         ->requiresConfirmation()
                         ->disabled(fn (Registration $record): bool => $record->status === RegistrationStatus::Confirmed)
                         ->action(fn (Registration $record) => self::confirmRegistration($record)),
@@ -103,10 +109,12 @@ class RegistrationResource extends Resource
             ViewAction::make(),
             Action::make('editRegistrationData')
                 ->label('修改报名数据')
+                ->visible(fn (): bool => self::hasModulePermission('update'))
                 ->icon('heroicon-o-pencil-square')
                 ->url(fn (Registration $record): string => self::getUrl('edit-data', ['record' => $record])),
             Action::make('deleteRegistration')
                 ->label('删除报名记录')
+                ->visible(fn (): bool => self::hasModulePermission('delete'))
                 ->icon('heroicon-o-trash')
                 ->color('danger')
                 ->requiresConfirmation()
@@ -114,6 +122,7 @@ class RegistrationResource extends Resource
                 ->modalDescription('此操作会删除该报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这条报名。')
                 ->modalSubmitActionLabel('确认删除')
                 ->action(function (Registration $record): void {
+                    abort_unless(self::hasModulePermission('delete'), 403);
                     $deleted = self::deleteRegistrations(collect([$record]));
 
                     Notification::make()
@@ -124,13 +133,19 @@ class RegistrationResource extends Resource
         ])->bulkActions([
             BulkAction::make('confirmSelected')
                 ->label('确认报名')
+                ->visible(fn (): bool => self::hasModulePermission('update'))
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
                 ->requiresConfirmation()
-                ->action(fn (Collection $records) => self::confirmRegistrations($records))
+                ->action(function (Collection $records): int {
+                    abort_unless(self::hasModulePermission('update'), 403);
+
+                    return self::confirmRegistrations($records);
+                })
                 ->successNotificationTitle('已批量确认报名'),
             BulkAction::make('deleteSelectedRegistrations')
                 ->label('删除报名记录')
+                ->visible(fn (): bool => self::hasModulePermission('delete'))
                 ->icon('heroicon-o-trash')
                 ->color('danger')
                 ->requiresConfirmation()
@@ -138,6 +153,7 @@ class RegistrationResource extends Resource
                 ->modalDescription('此操作会删除所选报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这些报名。')
                 ->modalSubmitActionLabel('确认删除')
                 ->action(function (Collection $records): void {
+                    abort_unless(self::hasModulePermission('delete'), 403);
                     $deleted = self::deleteRegistrations($records);
 
                     Notification::make()
@@ -159,6 +175,8 @@ class RegistrationResource extends Resource
 
     private static function confirmRegistration(Registration $record): void
     {
+        abort_unless(self::hasModulePermission('update'), 403);
+
         self::confirmRegistrations(collect([$record]));
     }
 

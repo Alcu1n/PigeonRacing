@@ -30,16 +30,28 @@ class ListPigeons extends ListRecords
             CreateAction::make(),
             Action::make('importExcel')
                 ->label('导入 Excel')
+                ->visible(fn (): bool => PigeonResource::hasModulePermission('create'))
                 ->url(PigeonResource::getUrl('import')),
             Action::make('downloadTemplate')
                 ->label('下载模板')
-                ->action(fn () => Excel::download(new PigeonImportTemplateExport, '足环导入模板.xlsx')),
+                ->visible(fn (): bool => PigeonResource::hasModulePermission('create'))
+                ->action(function () {
+                    abort_unless(PigeonResource::hasModulePermission('create'), 403);
+
+                    return Excel::download(new PigeonImportTemplateExport, '足环导入模板.xlsx');
+                }),
             Action::make('exportExcel')
                 ->label('导出 Excel')
+                ->visible(fn (): bool => PigeonResource::hasModulePermission('view'))
                 ->icon('heroicon-o-arrow-down-tray')
-                ->action(fn () => Excel::download(new PigeonExport, '足环列表.xlsx')),
+                ->action(function () {
+                    abort_unless(PigeonResource::hasModulePermission('view'), 403);
+
+                    return Excel::download(new PigeonExport, '足环列表.xlsx');
+                }),
             Action::make('deleteAllPigeons')
                 ->label('删除所有足环')
+                ->visible(fn (): bool => PigeonResource::hasModulePermission('delete'))
                 ->color('danger')
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
@@ -52,6 +64,8 @@ class ListPigeons extends ListRecords
 
     private function deleteAllPigeons(): void
     {
+        abort_unless(PigeonResource::hasModulePermission('delete'), 403);
+
         $referenced = DB::table('registration_entry_pigeons')->count();
 
         if ($referenced > 0) {

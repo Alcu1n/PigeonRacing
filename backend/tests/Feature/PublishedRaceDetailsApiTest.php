@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Member race APIs, publication fields, and registration snapshots / 会员赛事 API、发布字段与报名快照
 // [OUT]: Published race detail scope and list visibility assertions / 已发布赛事明细范围与列表可见性断言
 // [POS]: Backend published race details feature test / 后端已发布赛事明细功能测试
@@ -34,6 +35,7 @@ class PublishedRaceDetailsApiTest extends TestCase
             'email' => 'admin-publish-details@example.com',
             'password' => 'password',
         ]);
+        $admin->assignRole('super-admin');
         $this->race();
 
         $this->actingAs($admin)

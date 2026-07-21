@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Custom admin dashboard, Filament panel builder, and topbar render hooks / 自定义后台仪表板、Filament 面板构建器与顶部栏渲染钩子
 // [OUT]: Admin panel resources, custom dashboard, settings pages, and contact topbar copy / 后台资源、自定义仪表板、设置页面与顶部栏联系信息
 // [POS]: Backend Filament admin panel provider / 后端 Filament 后台面板提供者
@@ -7,7 +8,9 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\Login;
 use App\Filament\Pages\AdminDashboard;
+use App\Filament\Pages\EditAdminPassword;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -31,7 +34,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(Login::class)
+            ->profile(EditAdminPassword::class)
             ->colors(['primary' => Color::Emerald])
             ->renderHook(
                 PanelsRenderHook::GLOBAL_SEARCH_BEFORE,

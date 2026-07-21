@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: RegistrationResource infolist definition and registration record / RegistrationResource 信息列表定义与报名记录
 // [OUT]: Filament registration view page with eager-loaded detail data / 预加载明细数据的 Filament 报名查看页面
 // [POS]: Backend admin registration view route / 后端后台报名查看路由
@@ -27,6 +28,7 @@ class ViewRegistration extends ViewRecord
         return [
             Action::make('editRegistrationData')
                 ->label('修改报名数据')
+                ->visible(fn (): bool => RegistrationResource::hasModulePermission('update'))
                 ->icon('heroicon-o-pencil-square')
                 ->url(fn (): string => RegistrationResource::getUrl('edit-data', ['record' => $this->record])),
         ];

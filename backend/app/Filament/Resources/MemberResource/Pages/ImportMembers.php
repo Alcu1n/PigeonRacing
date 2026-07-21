@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Uploaded Excel file and member import service / 已上传 Excel 文件与会员导入服务
 // [OUT]: Preview-confirm member import page / 预览确认式会员导入页面
 // [POS]: Backend admin member import route / 后端后台会员导入路由
@@ -31,6 +32,11 @@ class ImportMembers extends Page
     public ?string $fileName = null;
 
     public ?array $lastResult = null;
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        return MemberResource::hasModulePermission('create');
+    }
 
     public function getTitle(): string
     {

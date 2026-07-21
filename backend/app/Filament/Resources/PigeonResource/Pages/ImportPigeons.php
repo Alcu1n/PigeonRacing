@@ -38,6 +38,11 @@ class ImportPigeons extends Page
 
     public ?int $pigeonLibraryId = null;
 
+    public static function canAccess(array $parameters = []): bool
+    {
+        return PigeonResource::hasModulePermission('create');
+    }
+
     public function mount(): void
     {
         $this->pigeonLibraryId = PigeonLibrary::default()->id;

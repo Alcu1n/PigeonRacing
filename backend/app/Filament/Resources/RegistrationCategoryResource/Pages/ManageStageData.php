@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Progressive category, selected member, and stage group form state / 递进类别、所选会员与阶段组表单状态
 // [OUT]: Admin page for editing progressive stage baseline and later-stage data / 用于编辑递进阶段基准与后续阶段数据的后台页面
 // [POS]: Backend admin progressive stage data management route / 后端后台递进阶段数据管理路由
@@ -32,6 +33,11 @@ class ManageStageData extends Page
     public array $categoryData = [];
 
     public array $stageGroups = [];
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        return RegistrationCategoryResource::hasModulePermission('update');
+    }
 
     public function mount(int|string $record): void
     {
@@ -76,6 +82,7 @@ class ManageStageData extends Page
         $member = $this->member();
         if (! $member) {
             Notification::make()->title('请先选择会员')->warning()->send();
+
             return;
         }
 

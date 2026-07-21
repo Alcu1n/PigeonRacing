@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Filament form state, public storage disk, supported logo image types, and app settings / Filament 表单状态、公开存储磁盘、受支持 Logo 图片类型与应用设置
 // [OUT]: Persisted readable public brand logo path for member H5 rendering / 已持久化、可供会员 H5 渲染的公开品牌 Logo 路径
 // [POS]: Backend admin brand settings page / 后端后台品牌设置页
@@ -8,6 +9,8 @@
 namespace App\Filament\Pages;
 
 use App\Models\AppSetting;
+use App\Models\User;
+use App\Support\AdminPermissions;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Notifications\Notification;
@@ -22,12 +25,23 @@ use Illuminate\Support\Facades\Storage;
 class BrandSettings extends Page
 {
     protected static ?string $title = '品牌设置';
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-photo';
+
     protected static ?string $navigationLabel = '品牌设置';
+
     protected static string|\UnitEnum|null $navigationGroup = '系统设置';
+
     protected static ?int $navigationSort = 90;
 
     public ?array $data = [];
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && $user->can(AdminPermissions::name('brand-settings', 'view'));
+    }
 
     public function mount(): void
     {
@@ -75,6 +89,8 @@ class BrandSettings extends Page
 
     public function save(): void
     {
+        abort_unless(auth()->user()?->can(AdminPermissions::name('brand-settings', 'update')), 403);
+
         $data = $this->form->getState();
         $path = $data['brand_logo_path'] ?? null;
 

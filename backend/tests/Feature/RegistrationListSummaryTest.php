@@ -36,6 +36,7 @@ class RegistrationListSummaryTest extends TestCase
             'email' => 'admin-summary@example.com',
             'password' => 'password',
         ]);
+        $admin->assignRole('super-admin');
         $race = Race::query()->create([
             'name' => '测试赛事',
             'registration_start_at' => now()->subDay(),

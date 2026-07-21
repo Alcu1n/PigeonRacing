@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Filament admin session, brand settings page, and topbar contact hook / Filament 后台会话、品牌设置页与顶部栏联系信息钩子
 // [OUT]: Brand settings and admin topbar render assertions / 品牌设置与后台顶部栏渲染断言
 // [POS]: Backend admin shell feature test / 后端后台外壳功能测试
@@ -22,6 +23,7 @@ class BrandSettingsPageTest extends TestCase
             'email' => 'admin@example.com',
             'password' => 'password',
         ]);
+        $admin->assignRole('super-admin');
 
         $this->actingAs($admin)
             ->get('/admin/brand-settings')

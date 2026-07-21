@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Race model records and lifecycle enum values / 赛事模型记录与生命周期枚举值
 // [OUT]: Filament race configuration screens with Chinese status select and detail publication actions / 带中文状态下拉与明细发布动作的 Filament 赛事配置页面
 // [POS]: Backend admin race resource / 后端后台赛事资源
@@ -7,17 +8,18 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\RaceResource\Pages;
 use App\Enums\RaceStatus;
+use App\Filament\Concerns\HasModulePermissions;
+use App\Filament\Resources\RaceResource\Pages;
 use App\Models\Race;
 use Filament\Actions\Action;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
-use Filament\Notifications\Notification;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -25,9 +27,16 @@ use Filament\Tables\Table;
 
 class RaceResource extends Resource
 {
+    use HasModulePermissions;
+
+    protected static string $permissionModule = 'races';
+
     protected static ?string $model = Race::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-flag';
+
     protected static ?string $navigationLabel = '赛事管理';
+
     protected static ?string $modelLabel = '赛事';
 
     public static function form(Schema $schema): Schema
@@ -69,11 +78,12 @@ class RaceResource extends Resource
                 ->label('明细发布')
                 ->icon('heroicon-o-megaphone')
                 ->color('success')
-                ->visible(fn (Race $record): bool => self::canPublishDetails($record) && ! $record->hasPublishedRegistrationDetails())
+                ->visible(fn (Race $record): bool => self::hasModulePermission('update') && self::canPublishDetails($record) && ! $record->hasPublishedRegistrationDetails())
                 ->form([self::detailsScopeSelect()])
                 ->modalHeading('发布报名明细')
                 ->modalSubmitActionLabel('确认发布')
                 ->action(function (Race $record, array $data): void {
+                    abort_unless(self::hasModulePermission('update'), 403);
                     self::publishDetails($record, (string) ($data['registration_details_scope'] ?? Race::DETAILS_SCOPE_CONFIRMED_ONLY));
                     Notification::make()->title('报名明细已发布')->success()->send();
                 }),
@@ -81,7 +91,7 @@ class RaceResource extends Resource
                 ->label('更新发布设置')
                 ->icon('heroicon-o-adjustments-horizontal')
                 ->color('gray')
-                ->visible(fn (Race $record): bool => $record->hasPublishedRegistrationDetails())
+                ->visible(fn (Race $record): bool => self::hasModulePermission('update') && $record->hasPublishedRegistrationDetails())
                 ->fillForm(fn (Race $record): array => [
                     'registration_details_scope' => $record->registration_details_scope ?: Race::DETAILS_SCOPE_CONFIRMED_ONLY,
                 ])
@@ -89,6 +99,7 @@ class RaceResource extends Resource
                 ->modalHeading('更新报名明细发布设置')
                 ->modalSubmitActionLabel('保存设置')
                 ->action(function (Race $record, array $data): void {
+                    abort_unless(self::hasModulePermission('update'), 403);
                     self::publishDetails($record, (string) ($data['registration_details_scope'] ?? Race::DETAILS_SCOPE_CONFIRMED_ONLY), false);
                     Notification::make()->title('发布设置已更新')->success()->send();
                 }),
@@ -97,14 +108,15 @@ class RaceResource extends Resource
                 ->icon('heroicon-o-eye')
                 ->url(fn (Race $record): string => url("/races/{$record->id}/details"))
                 ->openUrlInNewTab()
-                ->visible(fn (Race $record): bool => $record->hasPublishedRegistrationDetails()),
+                ->visible(fn (Race $record): bool => self::hasModulePermission('view') && $record->hasPublishedRegistrationDetails()),
             Action::make('unpublishDetails')
                 ->label('取消发布')
                 ->icon('heroicon-o-eye-slash')
                 ->color('danger')
                 ->requiresConfirmation()
-                ->visible(fn (Race $record): bool => $record->hasPublishedRegistrationDetails())
+                ->visible(fn (Race $record): bool => self::hasModulePermission('update') && $record->hasPublishedRegistrationDetails())
                 ->action(function (Race $record): void {
+                    abort_unless(self::hasModulePermission('update'), 403);
                     $record->forceFill(['registration_details_published_at' => null])->save();
                     Notification::make()->title('报名明细已取消发布')->success()->send();
                 }),

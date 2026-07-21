@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Progressive registration category records / 递进报名类别记录
 // [OUT]: Filament category management with current stage, import entry, stage data management, and template download / 带当前阶段、导入入口、阶段数据管理与模板下载的 Filament 类别管理
 // [POS]: Backend admin progressive category resource / 后端后台递进类别资源
@@ -8,6 +9,7 @@
 namespace App\Filament\Resources;
 
 use App\Exports\ProgressiveStageImportTemplateExport;
+use App\Filament\Concerns\HasModulePermissions;
 use App\Filament\Resources\RegistrationCategoryResource\Pages;
 use App\Models\RegistrationCategory;
 use App\Services\ProgressiveStageImportService;
@@ -26,9 +28,16 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class RegistrationCategoryResource extends Resource
 {
+    use HasModulePermissions;
+
+    protected static string $permissionModule = 'registration-categories';
+
     protected static ?string $model = RegistrationCategory::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-path-rounded-square';
+
     protected static ?string $navigationLabel = '递进报名类别';
+
     protected static ?string $modelLabel = '递进报名类别';
 
     public static function form(Schema $schema): Schema
@@ -58,19 +67,23 @@ class RegistrationCategoryResource extends Resource
         ])->recordActions([
             Action::make('importFirstStage')
                 ->label('导入第一阶段')
+                ->visible(fn (): bool => self::hasModulePermission('create'))
                 ->icon('heroicon-o-arrow-up-tray')
                 ->url(fn (RegistrationCategory $record): string => self::getUrl('import-first-stage', ['record' => $record->getKey()])),
             Action::make('downloadFirstStageTemplate')
                 ->label('下载模板')
+                ->visible(fn (): bool => self::hasModulePermission('create'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
                 ->action(function (RegistrationCategory $record) {
+                    abort_unless(self::hasModulePermission('create'), 403);
                     $stage = app(ProgressiveStageImportService::class)->firstStage($record);
 
                     return Excel::download(new ProgressiveStageImportTemplateExport($stage->name, (int) $stage->group_size), "递进第一阶段导入模板-{$record->name}.xlsx");
                 }),
             Action::make('manageStageData')
                 ->label('阶段数据管理')
+                ->visible(fn (): bool => self::hasModulePermission('update'))
                 ->icon('heroicon-o-table-cells')
                 ->url(fn (RegistrationCategory $record): string => self::getUrl('stage-data', ['record' => $record->getKey()])),
             EditAction::make(),

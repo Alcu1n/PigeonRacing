@@ -155,8 +155,9 @@
 
     <section class="admin-dashboard-shell">
 
-        <div class="admin-dashboard-grid">
-            @foreach ($this->featureCards() as $card)
+        @if (count($this->featureCards()))
+            <div class="admin-dashboard-grid">
+                @foreach ($this->featureCards() as $card)
                 <a
                     class="admin-dashboard-card"
                     href="{{ $card['href'] }}"
@@ -175,7 +176,10 @@
                         <span class="admin-dashboard-description">{{ $card['description'] }}</span>
                     </span>
                 </a>
-            @endforeach
-        </div>
+                @endforeach
+            </div>
+        @else
+            <p class="admin-dashboard-hint">暂无后台权限，请联系超级管理员授权。</p>
+        @endif
     </section>
 </x-filament-panels::page>

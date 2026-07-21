@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: InformationPost model rows and rich HTML content / 信息发布模型行与富文本 HTML 内容
 // [OUT]: Filament information publishing CRUD with TipTap RichEditor / 带 TipTap RichEditor 的 Filament 信息发布 CRUD
 // [POS]: Backend admin information publishing resource / 后端后台信息发布资源
@@ -7,6 +8,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasModulePermissions;
 use App\Filament\Resources\InformationPostResource\Pages;
 use App\Models\InformationPost;
 use Filament\Actions\DeleteAction;
@@ -16,23 +18,30 @@ use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\RichEditorTool;
 use Filament\Forms\Components\RichEditor\TextColor;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
+use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Columns\IconColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Filament\Support\Icons\Heroicon;
 use Illuminate\Support\Js;
 
 class InformationPostResource extends Resource
 {
+    use HasModulePermissions;
+
+    protected static string $permissionModule = 'information-posts';
+
     protected static ?string $model = InformationPost::class;
+
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-newspaper';
+
     protected static ?string $navigationLabel = '信息发布';
+
     protected static ?string $modelLabel = '信息发布';
 
     public static function form(Schema $schema): Schema

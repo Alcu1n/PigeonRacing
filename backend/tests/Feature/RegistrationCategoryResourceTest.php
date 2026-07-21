@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Filament admin session and progressive category import route / Filament 后台会话与递进类别导入路由
 // [OUT]: Progressive first-stage import page render assertions / 递进第一阶段导入页渲染断言
 // [POS]: Backend progressive category resource feature test / 后端递进类别资源功能测试
@@ -29,6 +30,7 @@ class RegistrationCategoryResourceTest extends TestCase
             'email' => 'admin@example.com',
             'password' => 'password',
         ]);
+        $admin->assignRole('super-admin');
         $race = Race::query()->create([
             'name' => '测试赛事',
             'registration_start_at' => now()->subDay(),
@@ -69,6 +71,7 @@ class RegistrationCategoryResourceTest extends TestCase
             'email' => 'admin-stage-data@example.com',
             'password' => 'password',
         ]);
+        $admin->assignRole('super-admin');
         $race = Race::query()->create([
             'name' => '测试赛事',
             'registration_start_at' => now()->subDay(),

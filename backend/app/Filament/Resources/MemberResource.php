@@ -8,6 +8,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasModulePermissions;
 use App\Filament\Resources\MemberResource\Pages;
 use App\Models\Member;
 use App\Services\RaceCacheService;
@@ -25,6 +26,10 @@ use Illuminate\Support\Facades\DB;
 
 class MemberResource extends Resource
 {
+    use HasModulePermissions;
+
+    protected static string $permissionModule = 'members';
+
     protected static ?string $model = Member::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
@@ -62,6 +67,7 @@ class MemberResource extends Resource
             ->bulkActions([
                 BulkAction::make('deleteSelectedMembers')
                     ->label('删除所选会员')
+                    ->visible(fn (): bool => self::hasModulePermission('delete'))
                     ->icon('heroicon-o-trash')
                     ->color('danger')
                     ->requiresConfirmation()
@@ -69,6 +75,7 @@ class MemberResource extends Resource
                     ->modalDescription('此操作会删除所选会员，并同步删除这些会员的足环和报名记录。')
                     ->modalSubmitActionLabel('确认删除')
                     ->action(function (Collection $records): void {
+                        abort_unless(self::hasModulePermission('delete'), 403);
                         $deleted = self::deleteMembers($records);
 
                         Notification::make()

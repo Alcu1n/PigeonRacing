@@ -8,6 +8,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasModulePermissions;
 use App\Filament\Resources\RaceProjectResource\Pages;
 use App\Models\PigeonLibrary;
 use App\Models\RaceProject;
@@ -25,6 +26,10 @@ use Filament\Tables\Table;
 
 class RaceProjectResource extends Resource
 {
+    use HasModulePermissions;
+
+    protected static string $permissionModule = 'race-projects';
+
     protected static ?string $model = RaceProject::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-squares-2x2';

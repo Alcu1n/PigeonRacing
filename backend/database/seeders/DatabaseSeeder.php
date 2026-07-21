@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Empty database / 空数据库
 // [OUT]: Demo admin, member, race, projects, and pigeons / 演示管理员、会员、赛事、项目与足环
 // [POS]: Backend development seed entrypoint / 后端开发种子入口
@@ -14,15 +15,19 @@ use App\Models\Race;
 use App\Models\RaceProject;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        User::query()->firstOrCreate(
+        $admin = User::query()->firstOrCreate(
             ['email' => 'admin@example.com'],
             ['name' => '系统管理员', 'password' => 'password']
         );
+        if (Role::query()->where('name', 'super-admin')->where('guard_name', 'web')->exists()) {
+            $admin->syncRoles(['super-admin']);
+        }
 
         $member = Member::query()->firstOrCreate(
             ['phone' => '13800000000'],

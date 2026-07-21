@@ -8,6 +8,7 @@
 
 namespace App\Filament\Resources;
 
+use App\Filament\Concerns\HasModulePermissions;
 use App\Filament\Resources\PigeonResource\Pages;
 use App\Models\Member;
 use App\Models\Pigeon;
@@ -24,6 +25,10 @@ use Filament\Tables\Table;
 
 class PigeonResource extends Resource
 {
+    use HasModulePermissions;
+
+    protected static string $permissionModule = 'pigeons';
+
     protected static ?string $model = Pigeon::class;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-identification';

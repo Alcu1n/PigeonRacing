@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Filament admin session and registration snapshots / Filament 后台会话与报名快照
 // [OUT]: Registration detail matrix render assertions / 报名详情矩阵渲染断言
 // [POS]: Backend admin registration detail feature test / 后端后台报名详情功能测试
@@ -33,6 +34,7 @@ class RegistrationDetailPageTest extends TestCase
             'email' => 'admin-detail@example.com',
             'password' => 'password',
         ]);
+        $admin->assignRole('super-admin');
         $registration = $this->registrationWithEntries();
 
         $this->actingAs($admin)
@@ -59,6 +61,7 @@ class RegistrationDetailPageTest extends TestCase
             'email' => 'admin-edit-registration@example.com',
             'password' => 'password',
         ]);
+        $admin->assignRole('super-admin');
         $registration = $this->registrationWithEntries();
 
         $this->actingAs($admin)

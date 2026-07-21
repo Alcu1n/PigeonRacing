@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Laravel application lifecycle / Laravel 应用生命周期
 // [OUT]: Shared application boot rules / 共享应用启动规则
 // [POS]: Backend application service provider / 后端应用服务提供者
@@ -7,6 +8,8 @@
 
 namespace App\Providers;
 
+use App\Models\User;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -18,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        Gate::before(function (User $user): ?bool {
+            return $user->isSuperAdmin() ? true : null;
+        });
     }
 }

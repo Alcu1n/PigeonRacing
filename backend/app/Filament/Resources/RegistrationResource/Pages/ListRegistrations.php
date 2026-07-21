@@ -48,6 +48,7 @@ class ListRegistrations extends ListRecords
         return [
             Action::make('exportExcel')
                 ->label('导出 Excel')
+                ->visible(fn (): bool => RegistrationResource::hasModulePermission('view'))
                 ->form([
                     Select::make('race_id')
                         ->label('赛事')
@@ -56,12 +57,14 @@ class ListRegistrations extends ListRecords
                         ->required(),
                 ])
                 ->action(function (array $data) {
+                    abort_unless(RegistrationResource::hasModulePermission('view'), 403);
                     $export = new RegistrationMatrixExport((int) $data['race_id']);
 
                     return Excel::download($export, $export->fileName());
                 }),
             Action::make('deleteAllRegistrations')
                 ->label('删除所有报名记录')
+                ->visible(fn (): bool => RegistrationResource::hasModulePermission('delete'))
                 ->color('danger')
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
@@ -74,6 +77,8 @@ class ListRegistrations extends ListRecords
 
     private function deleteAllRegistrations(): void
     {
+        abort_unless(RegistrationResource::hasModulePermission('delete'), 403);
+
         $deleted = RegistrationResource::deleteRegistrations(Registration::query()->get());
 
         Notification::make()

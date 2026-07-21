@@ -29,22 +29,40 @@ class ListMembers extends ListRecords
             CreateAction::make(),
             Action::make('importExcel')
                 ->label('导入 Excel')
+                ->visible(fn (): bool => MemberResource::hasModulePermission('create'))
                 ->url(MemberResource::getUrl('import')),
             Action::make('downloadTemplate')
                 ->label('下载模板')
-                ->action(fn () => Excel::download(new MemberImportTemplateExport, '会员导入模板.xlsx')),
+                ->visible(fn (): bool => MemberResource::hasModulePermission('create'))
+                ->action(function () {
+                    abort_unless(MemberResource::hasModulePermission('create'), 403);
+
+                    return Excel::download(new MemberImportTemplateExport, '会员导入模板.xlsx');
+                }),
             Action::make('exportExcel')
                 ->label('导出 Excel')
+                ->visible(fn (): bool => MemberResource::hasModulePermission('view'))
                 ->icon('heroicon-o-arrow-down-tray')
-                ->action(fn () => Excel::download(new MemberExport, '会员列表.xlsx')),
+                ->action(function () {
+                    abort_unless(MemberResource::hasModulePermission('view'), 403);
+
+                    return Excel::download(new MemberExport, '会员列表.xlsx');
+                }),
             Action::make('importCredentials')
                 ->label('导入手机号密码')
+                ->visible(fn (): bool => MemberResource::hasModulePermission('create'))
                 ->url(MemberResource::getUrl('import-credentials')),
             Action::make('downloadCredentialTemplate')
                 ->label('下载手机号密码模板')
-                ->action(fn () => Excel::download(new MemberCredentialImportTemplateExport, '会员手机号密码导入模板.xlsx')),
+                ->visible(fn (): bool => MemberResource::hasModulePermission('create'))
+                ->action(function () {
+                    abort_unless(MemberResource::hasModulePermission('create'), 403);
+
+                    return Excel::download(new MemberCredentialImportTemplateExport, '会员手机号密码导入模板.xlsx');
+                }),
             Action::make('deleteAllMembers')
                 ->label('删除所有会员')
+                ->visible(fn (): bool => MemberResource::hasModulePermission('delete'))
                 ->color('danger')
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
@@ -57,6 +75,8 @@ class ListMembers extends ListRecords
 
     private function deleteAllMembers(): void
     {
+        abort_unless(MemberResource::hasModulePermission('delete'), 403);
+
         $deleted = MemberResource::deleteMembers(Member::query()->get());
 
         Notification::make()

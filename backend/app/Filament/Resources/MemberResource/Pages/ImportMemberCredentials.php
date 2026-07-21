@@ -33,6 +33,11 @@ class ImportMemberCredentials extends Page
 
     public ?array $lastResult = null;
 
+    public static function canAccess(array $parameters = []): bool
+    {
+        return MemberResource::hasModulePermission('create');
+    }
+
     public function getTitle(): string
     {
         return '导入会员手机号和密码';

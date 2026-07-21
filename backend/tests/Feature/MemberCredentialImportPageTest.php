@@ -29,6 +29,7 @@ class MemberCredentialImportPageTest extends TestCase
             'email' => 'admin@example.com',
             'password' => 'password',
         ]);
+        $admin->assignRole('super-admin');
 
         $method = new ReflectionMethod(ListMembers::class, 'getHeaderActions');
         $actions = collect($method->invoke(new ListMembers))->keyBy(fn ($action): string => $action->getName());

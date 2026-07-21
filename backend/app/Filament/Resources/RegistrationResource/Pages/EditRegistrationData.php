@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Registration record and admin-edited group form state / 报名记录与后台编辑的分组表单状态
 // [OUT]: Registration data edit page backed by AdminRegistrationEditService / 由后台编辑服务支撑的报名数据编辑页面
 // [POS]: Backend admin registration data edit route / 后端后台报名数据编辑路由
@@ -35,6 +36,11 @@ class EditRegistrationData extends Page
     public array $multiGroups = [];
 
     public array $progressiveGroups = [];
+
+    public static function canAccess(array $parameters = []): bool
+    {
+        return RegistrationResource::hasModulePermission('update');
+    }
 
     public function mount(int|string $record): void
     {

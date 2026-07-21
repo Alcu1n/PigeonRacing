@@ -1,4 +1,5 @@
 <?php
+
 // [IN]: Filament admin session and InformationPostResource page / Filament 后台会话与 InformationPostResource 页面
 // [OUT]: Information publishing create page render assertions / 信息发布创建页渲染断言
 // [POS]: Backend information publishing resource feature test / 后端信息发布资源功能测试
@@ -25,6 +26,7 @@ class InformationPostResourceTest extends TestCase
             'email' => 'admin@example.com',
             'password' => 'password',
         ]);
+        $admin->assignRole('super-admin');
 
         $this->actingAs($admin)
             ->get(InformationPostResource::getUrl('create'))
