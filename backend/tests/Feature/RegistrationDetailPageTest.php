@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Filament admin session and registration snapshots / Filament 后台会话与报名快照
-// [OUT]: Registration detail matrix render assertions / 报名详情矩阵渲染断言
+// [OUT]: Priority overview and registration detail matrix render assertions / 重点概览与报名详情矩阵渲染断言
 // [POS]: Backend admin registration detail feature test / 后端后台报名详情功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -40,6 +40,9 @@ class RegistrationDetailPageTest extends TestCase
         $this->actingAs($admin)
             ->get(RegistrationResource::getUrl('view', ['record' => $registration]))
             ->assertOk()
+            ->assertSee('报名概览')
+            ->assertSeeInOrder(['会员棚号', 'A001', '会员参赛名', '张三鸽舍', '总金额', '￥', '350'])
+            ->assertSeeInOrder(['报名编号', 'REG-DETAIL', '赛事名称', '测试赛事', '确认状态', '未确认'])
             ->assertSee('单羽项目矩阵')
             ->assertSee('多羽组明细')
             ->assertSee('A001')
