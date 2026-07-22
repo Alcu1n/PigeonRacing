@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Registration model records, snapshot matrix service, confirmation action, and deletion requests / 报名模型记录、快照矩阵服务、确认动作与删除请求
-// [OUT]: Filament registration review table, latest-submission order, confirmation filter, bulk confirm/delete, edit entry, localized status badges, prioritized overview, and dense detail matrix / 带最近提交排序、确认状态筛选、批量确认/删除、编辑入口、本地化状态徽标、重点概览与高密度详情矩阵的 Filament 报名审核表格
+// [OUT]: Filament registration review table, latest-submission order, confirmation filter, identity-aware confirmation/deletion prompts, bulk confirm/delete, edit entry, localized status badges, prioritized overview, and dense detail matrix / 带最近提交排序、确认状态筛选、含身份信息的确认/删除提示、批量确认/删除、编辑入口、本地化状态徽标、重点概览与高密度详情矩阵的 Filament 报名审核表格
 // [POS]: Backend admin registration resource / 后端后台报名资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -69,13 +69,16 @@ class RegistrationResource extends Resource
             TextColumn::make('status')
                 ->label('确认报名')
                 ->badge()
-                ->formatStateUsing(fn (RegistrationStatus $state): string => Registration::statusLabel($state))
+                ->formatStateUsing(fn (RegistrationStatus $state): string => $state === RegistrationStatus::Confirmed ? '已确认' : '点击确认')
                 ->color(fn (RegistrationStatus $state): string => Registration::statusColor($state))
                 ->action(
                     Action::make('confirmFromColumn')
                         ->label('确认报名')
                         ->visible(fn (): bool => self::hasModulePermission('update'))
                         ->requiresConfirmation()
+                        ->modalHeading('确认报名')
+                        ->modalDescription(fn (Registration $record): string => self::confirmationPrompt($record))
+                        ->modalSubmitActionLabel('确认报名')
                         ->disabled(fn (Registration $record): bool => $record->status === RegistrationStatus::Confirmed)
                         ->action(fn (Registration $record) => self::confirmRegistration($record)),
                 ),
@@ -116,7 +119,7 @@ class RegistrationResource extends Resource
                 ->color('danger')
                 ->requiresConfirmation()
                 ->modalHeading('删除报名记录')
-                ->modalDescription('此操作会删除该报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这条报名。')
+                ->modalDescription(fn (Registration $record): string => self::deletionPrompt($record))
                 ->modalSubmitActionLabel('确认删除')
                 ->action(function (Registration $record): void {
                     abort_unless(self::hasModulePermission('delete'), 403);
@@ -175,6 +178,44 @@ class RegistrationResource extends Resource
         abort_unless(self::hasModulePermission('update'), 403);
 
         self::confirmRegistrations(collect([$record]));
+    }
+
+    private static function confirmationPrompt(Registration $record): string
+    {
+        return sprintf(
+            '请确认报名信息：棚号：%s；会员名：%s；总金额：%s 元。确认后将标记为已确认。',
+            self::loftNumber($record),
+            self::memberName($record),
+            self::formatAmount($record->total_amount_cent),
+        );
+    }
+
+    private static function deletionPrompt(Registration $record): string
+    {
+        return sprintf(
+            '即将删除报名记录：棚号：%s；会员名：%s。此操作会删除该报名记录、普通报名明细和递进报名明细，删除后会员端不再恢复这条报名。',
+            self::loftNumber($record),
+            self::memberName($record),
+        );
+    }
+
+    private static function loftNumber(Registration $record): string
+    {
+        $record->loadMissing('member');
+
+        return $record->member?->loft_number ?? $record->loft_number_snapshot ?? '—';
+    }
+
+    private static function memberName(Registration $record): string
+    {
+        $record->loadMissing('member');
+
+        return $record->member?->participant_name ?? $record->participant_name_snapshot ?? '—';
+    }
+
+    private static function formatAmount(?int $amountCent): string
+    {
+        return rtrim(rtrim(number_format(($amountCent ?? 0) / 100, 2, '.', ''), '0'), '.');
     }
 
     public static function confirmRegistrations(iterable $records): int

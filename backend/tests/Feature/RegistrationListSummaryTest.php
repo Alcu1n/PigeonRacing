@@ -123,6 +123,37 @@ class RegistrationListSummaryTest extends TestCase
         ]);
     }
 
+    public function test_registration_list_confirmation_and_deletion_prompts_identify_the_registration(): void
+    {
+        $race = Race::query()->create([
+            'name' => '测试赛事',
+            'registration_start_at' => now()->subDay(),
+            'registration_end_at' => now()->addDay(),
+            'status' => RaceStatus::Published,
+            'is_visible' => true,
+        ]);
+        $pending = $this->registration($race, 'A151', RegistrationStatus::PendingConfirmation, 12345);
+        $confirmed = $this->registration($race, 'A152', RegistrationStatus::Confirmed, 1000);
+
+        $table = RegistrationResource::table(Table::make(Mockery::mock(HasTable::class)));
+        $statusColumn = $table->getColumn('status');
+        $confirmationAction = $statusColumn->getAction()->record($pending);
+        $deletionAction = collect($table->getRecordActions())
+            ->first(fn ($action): bool => $action->getName() === 'deleteRegistration')
+            ->record($pending);
+
+        $this->assertSame('点击确认', $statusColumn->formatState($pending->status));
+        $this->assertSame('已确认', $statusColumn->formatState($confirmed->status));
+        $this->assertSame(
+            '请确认报名信息：棚号：A151；会员名：A151鸽舍；总金额：123.45 元。确认后将标记为已确认。',
+            $confirmationAction->getModalDescription(),
+        );
+        $this->assertSame(
+            '即将删除报名记录：棚号：A151；会员名：A151鸽舍。此操作会删除该报名记录、普通报名明细和递进报名明细，删除后会员端不再恢复这条报名。',
+            $deletionAction->getModalDescription(),
+        );
+    }
+
     public function test_admin_can_delete_registration_and_member_history_no_longer_restores_it(): void
     {
         $admin = User::query()->create([
