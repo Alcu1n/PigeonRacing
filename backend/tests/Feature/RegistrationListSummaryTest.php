@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Filament admin session and registration totals / Filament 后台会话与报名汇总
-// [OUT]: Registration list summary render assertions / 报名列表汇总渲染断言
+// [OUT]: Registration list summary, latest-submission order, confirmation filtering, and pagination defaults assertions / 报名列表汇总、最近提交排序、确认状态筛选与分页默认值断言
 // [POS]: Backend admin registration list summary feature test / 后端后台报名列表汇总功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -21,8 +21,11 @@ use App\Models\RegistrationCategory;
 use App\Models\RegistrationEntry;
 use App\Models\RegistrationEntryPigeon;
 use App\Models\User;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Mockery;
 use Tests\TestCase;
 
 class RegistrationListSummaryTest extends TestCase
@@ -59,6 +62,34 @@ class RegistrationListSummaryTest extends TestCase
             ->assertSee('200 元')
             ->assertSee('报名总棚数')
             ->assertSee('2 棚');
+    }
+
+    public function test_registration_list_defaults_to_latest_submissions_and_filters_confirmation_status(): void
+    {
+        $race = Race::query()->create([
+            'name' => '测试赛事',
+            'registration_start_at' => now()->subDay(),
+            'registration_end_at' => now()->addDay(),
+            'status' => RaceStatus::Published,
+            'is_visible' => true,
+        ]);
+        $olderPending = $this->registration($race, 'A003', RegistrationStatus::PendingConfirmation, 5000);
+        $newerConfirmed = $this->registration($race, 'A004', RegistrationStatus::Confirmed, 5000);
+        $olderPending->update(['submitted_at' => now()->subMinute()]);
+        $newerConfirmed->update(['submitted_at' => now()]);
+
+        $table = RegistrationResource::table(Table::make(Mockery::mock(HasTable::class)));
+        $filter = $table->getFilter('confirmation_status');
+
+        $this->assertSame('submitted_at', $table->getDefaultSort(Registration::query(), 'desc'));
+        $this->assertSame('desc', $table->getDefaultSortDirection());
+        $this->assertSame(50, $table->getDefaultPaginationPageOption());
+        $this->assertSame('确认状态', $filter->getLabel());
+        $this->assertSame('全部', $filter->getPlaceholder());
+        $this->assertSame('已确认', $filter->getTrueLabel());
+        $this->assertSame('未确认', $filter->getFalseLabel());
+        $this->assertSame([$newerConfirmed->id], $filter->apply(Registration::query(), ['value' => true])->pluck('id')->all());
+        $this->assertSame([$olderPending->id], $filter->apply(Registration::query(), ['value' => false])->pluck('id')->all());
     }
 
     public function test_admin_can_confirm_multiple_registrations_at_once(): void

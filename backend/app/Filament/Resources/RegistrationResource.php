@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Registration model records, snapshot matrix service, confirmation action, and deletion requests / 报名模型记录、快照矩阵服务、确认动作与删除请求
-// [OUT]: Filament registration review table, bulk confirm/delete, edit entry, localized status badges, prioritized overview, and dense detail matrix / 带批量确认/删除、编辑入口、本地化状态徽标、重点概览与高密度详情矩阵的 Filament 报名审核表格
+// [OUT]: Filament registration review table, latest-submission order, confirmation filter, bulk confirm/delete, edit entry, localized status badges, prioritized overview, and dense detail matrix / 带最近提交排序、确认状态筛选、批量确认/删除、编辑入口、本地化状态徽标、重点概览与高密度详情矩阵的 Filament 报名审核表格
 // [POS]: Backend admin registration resource / 后端后台报名资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -22,7 +22,9 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -59,6 +61,10 @@ class RegistrationResource extends Resource
 
     public static function table(Table $table): Table
     {
+        $table
+            ->defaultSort('submitted_at', 'desc')
+            ->defaultPaginationPageOption(50);
+
         return $table->columns([
             TextColumn::make('status')
                 ->label('确认报名')
@@ -86,6 +92,16 @@ class RegistrationResource extends Resource
                 ->state(fn (Registration $record): string => Registration::statusLabel($record->status))
                 ->color(fn (Registration $record): string => Registration::statusColor($record->status)),
             TextColumn::make('submitted_at')->label('提交时间')->dateTime(),
+        ])->filters([
+            TernaryFilter::make('confirmation_status')
+                ->label('确认状态')
+                ->placeholder('全部')
+                ->trueLabel('已确认')
+                ->falseLabel('未确认')
+                ->queries(
+                    true: fn (Builder $query): Builder => $query->where('status', RegistrationStatus::Confirmed->value),
+                    false: fn (Builder $query): Builder => $query->where('status', '!=', RegistrationStatus::Confirmed->value),
+                ),
         ])->recordActions([
             ViewAction::make(),
             Action::make('editRegistrationData')
