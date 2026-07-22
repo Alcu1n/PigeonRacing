@@ -1,5 +1,5 @@
 # [IN]: Member H5 source, ossutil 2.0, and OSS environment variables / 会员端 H5 源码、ossutil 2.0 与 OSS 环境变量
-# [OUT]: CDN-prefixed Vite build and baseline-compatible OSS asset sync / CDN 前缀的 Vite 构建与基础兼容 OSS 资源同步
+# [OUT]: Lockfile-synced CDN Vite build and baseline-compatible OSS asset sync / 按锁文件同步依赖的 CDN Vite 构建与基础兼容 OSS 资源同步
 # [POS]: Production helper for uploading member static assets to Alibaba Cloud OSS / 上传会员端静态资源到阿里云 OSS 的生产辅助脚本
 # Protocol: When updating me, sync this header + parent folder's .folder.md
 # 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -65,9 +65,7 @@ oss_destination() {
 build_member_h5() {
     cd "$FRONTEND_DIR"
 
-    if [[ ! -d node_modules ]]; then
-        npm ci
-    fi
+    npm ci --include=dev
 
     if [[ "$RUN_TYPECHECK" == "1" ]]; then
         npm run typecheck

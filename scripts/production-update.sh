@@ -88,7 +88,7 @@ deploy_frontend() {
             ;;
         local)
             cd "$ROOT_DIR/frontend/member-h5"
-            npm ci
+            npm ci --include=dev
             npm run build
             cd "$ROOT_DIR"
             ;;
