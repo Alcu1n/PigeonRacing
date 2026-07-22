@@ -1,5 +1,5 @@
 // [IN]: Result, profile history, and registration history detail views / 报名结果、个人历史与报名历史详情视图
-// [OUT]: Receipt entry ordering, isolated list actions, and mobile WeChat fallback assertions / 凭证入口顺序、列表动作隔离与移动微信降级断言
+// [OUT]: Receipt entry ordering, isolated list actions, and mobile WeChat original-image fallback assertions / 凭证入口顺序、列表动作隔离与移动微信原图降级断言
 // [POS]: Frontend receipt entrypoint integration tests / 前端凭证入口集成测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -11,11 +11,12 @@ import RegistrationHistoryDetailView from '../views/RegistrationHistoryDetailVie
 import ResultView from '../views/ResultView.vue'
 import RegistrationReceiptDownload from '../components/RegistrationReceiptDownload.vue'
 
-const { apiGet, downloadBlob, isMobileClient, isWechat, renderReceipt, routerPush } = vi.hoisted(() => ({
+const { apiGet, downloadBlob, isMobileClient, isWechat, receiptDataUrl, renderReceipt, routerPush } = vi.hoisted(() => ({
   apiGet: vi.fn(),
   downloadBlob: vi.fn(),
   isMobileClient: vi.fn(),
   isWechat: vi.fn(),
+  receiptDataUrl: vi.fn(),
   renderReceipt: vi.fn(),
   routerPush: vi.fn(),
 }))
@@ -29,6 +30,7 @@ vi.mock('../utils/registrationReceiptExport', () => ({
   downloadReceiptBlob: downloadBlob,
   isMobileReceiptClient: isMobileClient,
   isWechatClient: isWechat,
+  receiptBlobDataUrl: receiptDataUrl,
   renderRegistrationReceipt: renderReceipt,
   shareReceiptFile: vi.fn(),
 }))
@@ -44,6 +46,7 @@ describe('registration receipt entrypoints', () => {
     downloadBlob.mockReset()
     isMobileClient.mockReset().mockReturnValue(false)
     isWechat.mockReset().mockReturnValue(false)
+    receiptDataUrl.mockReset().mockResolvedValue('data:image/png;base64,clean-receipt')
     renderReceipt.mockReset().mockResolvedValue(new Blob(['png'], { type: 'image/png' }))
     routerPush.mockReset()
   })
@@ -128,9 +131,12 @@ describe('registration receipt entrypoints', () => {
     await trigger.trigger('click')
     await flushPromises()
 
-    expect(document.body.textContent).toContain('请长按上方图片选择保存')
+    expect(document.body.textContent).toContain('请长按上方原图选择保存')
     expect(document.body.textContent).toContain('下载 PNG')
     expect(document.body.textContent).not.toContain('保存到相册')
+    expect(receiptDataUrl).toHaveBeenCalledOnce()
+    expect(document.querySelector<HTMLImageElement>('.receipt-preview-scroll img')?.src)
+      .toBe('data:image/png;base64,clean-receipt')
     expect(document.activeElement?.getAttribute('aria-label')).toBe('关闭预览')
 
     document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))

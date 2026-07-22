@@ -9,6 +9,7 @@ import {
   downloadReceiptBlob,
   isMobileReceiptClient,
   isWechatClient,
+  receiptBlobDataUrl,
   receiptCanvasScale,
   renderRegistrationReceipt,
   shareReceiptFile,
@@ -76,6 +77,11 @@ describe('registration receipt export', () => {
     expect(isMobileReceiptClient('Mozilla/5.0 (iPhone) Mobile')).toBe(true)
     expect(isWechatClient('Mozilla/5.0 MicroMessenger/8.0')).toBe(true)
     expect(isMobileReceiptClient('Mozilla/5.0 Macintosh Chrome')).toBe(false)
+  })
+
+  it('turns the clean PNG blob into a data URL for WeChat long press', async () => {
+    await expect(receiptBlobDataUrl(new Blob(['png'], { type: 'image/png' })))
+      .resolves.toMatch(/^data:image\/png;base64,/)
   })
 
   it('treats cancelling the system share sheet as a normal outcome', async () => {

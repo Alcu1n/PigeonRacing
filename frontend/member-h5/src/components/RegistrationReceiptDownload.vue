@@ -1,5 +1,5 @@
 <!-- [IN]: Loaded registration or registration id, detail API, and browser export capabilities / 已加载报名或报名 ID、详情 API 与浏览器导出能力 -->
-<!-- [OUT]: Reusable amber download action with desktop download and mobile preview/share / 可复用琥珀金下载动作、电脑下载与手机预览分享 -->
+<!-- [OUT]: Reusable amber download action with desktop download, mobile preview/share, and WeChat original-image saving / 可复用琥珀金下载动作、电脑下载、手机预览分享与微信原图保存 -->
 <!-- [POS]: Shared registration receipt download workflow / 共享报名凭证下载流程 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -13,6 +13,7 @@ import {
   downloadReceiptBlob,
   isMobileReceiptClient,
   isWechatClient,
+  receiptBlobDataUrl,
   renderRegistrationReceipt,
   shareReceiptFile,
 } from '../utils/registrationReceiptExport'
@@ -37,6 +38,7 @@ const receipt = ref<RegistrationReceiptData | null>(null)
 const renderHost = ref<HTMLElement | null>(null)
 const previewBlob = ref<Blob | null>(null)
 const previewUrl = ref('')
+const previewObjectUrl = ref('')
 const previewFileName = ref('')
 const shareUnsupported = ref(false)
 
@@ -54,7 +56,7 @@ async function generateReceipt(): Promise<void> {
     const blob = await renderRegistrationReceipt(renderHost.value)
     const fileName = receiptFileName(receipt.value)
     if (isMobileReceiptClient()) {
-      openPreview(blob, fileName)
+      await openPreview(blob, fileName)
     } else {
       downloadReceiptBlob(blob, fileName)
       showToast('报名明细图片已下载')
@@ -97,12 +99,17 @@ async function loadRegistration(): Promise<ExistingRegistration> {
   return response.data
 }
 
-function openPreview(blob: Blob, fileName: string): void {
+async function openPreview(blob: Blob, fileName: string): Promise<void> {
   revokePreviewUrl()
+  const wechatClient = isWechatClient()
+  const imageUrl = wechatClient
+    ? await receiptBlobDataUrl(blob)
+    : createPreviewObjectUrl(blob)
+
   previewBlob.value = blob
   previewFileName.value = fileName
-  previewUrl.value = URL.createObjectURL(blob)
-  shareUnsupported.value = isWechatClient()
+  previewUrl.value = imageUrl
+  shareUnsupported.value = wechatClient
   void nextTick(() => previewCloseButton.value?.focus())
 }
 
@@ -130,8 +137,15 @@ function trapPreviewFocus(event: KeyboardEvent): void {
 }
 
 function revokePreviewUrl(): void {
-  if (previewUrl.value) URL.revokeObjectURL(previewUrl.value)
+  if (previewObjectUrl.value) URL.revokeObjectURL(previewObjectUrl.value)
+  previewObjectUrl.value = ''
   previewUrl.value = ''
+}
+
+function createPreviewObjectUrl(blob: Blob): string {
+  const objectUrl = URL.createObjectURL(blob)
+  previewObjectUrl.value = objectUrl
+  return objectUrl
 }
 
 function waitForPaint(): Promise<void> {
@@ -172,7 +186,7 @@ onBeforeUnmount(revokePreviewUrl)
         <div class="receipt-preview-scroll">
           <img :src="previewUrl" alt="报名明细长图预览" />
         </div>
-        <p v-if="shareUnsupported" class="receipt-save-hint">当前浏览器不支持直接写入相册，请长按上方图片选择保存，或下载 PNG。</p>
+        <p v-if="shareUnsupported" class="receipt-save-hint">当前浏览器不支持直接写入相册，请长按上方原图选择保存，或下载 PNG。</p>
         <div :class="['receipt-preview-actions', { single: shareUnsupported }]">
           <button v-if="!shareUnsupported" type="button" class="receipt-save-action" :disabled="saving" @click="saveToAlbum">
             {{ saving ? '正在打开系统分享…' : '保存到相册' }}

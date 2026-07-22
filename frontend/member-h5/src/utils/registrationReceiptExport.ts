@@ -1,5 +1,5 @@
 // [IN]: Rendered receipt DOM, PNG blobs, and browser file capabilities / 已渲染凭证 DOM、PNG Blob 与浏览器文件能力
-// [OUT]: Adaptive PNG rendering, direct download, mobile detection, and system sharing / 自适应 PNG 渲染、直接下载、移动端检测与系统分享
+// [OUT]: Adaptive PNG rendering, direct download, mobile detection, sharing, and WeChat original-image previews / 自适应 PNG 渲染、直接下载、移动端检测、系统分享与微信原图预览
 // [POS]: Registration receipt browser export boundary / 报名凭证浏览器导出边界
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -63,6 +63,22 @@ export function isMobileReceiptClient(userAgent = globalThis.navigator?.userAgen
 
 export function isWechatClient(userAgent = globalThis.navigator?.userAgent ?? ''): boolean {
   return /MicroMessenger/i.test(userAgent)
+}
+
+export function receiptBlobDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(reader.error ?? new Error('报名明细图片读取失败'))
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        resolve(reader.result)
+        return
+      }
+
+      reject(new Error('报名明细图片读取失败'))
+    }
+    reader.readAsDataURL(blob)
+  })
 }
 
 export async function shareReceiptFile(
