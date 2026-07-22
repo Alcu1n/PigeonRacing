@@ -1,6 +1,7 @@
 <?php
+
 // [IN]: Admin edit service, registration snapshots, and progressive stage rows / 后台编辑服务、报名快照与递进阶段行
-// [OUT]: Assertions for admin-edited standard entries, progressive cascade, and totals / 后台编辑普通项目、递进联动与金额断言
+// [OUT]: Assertions for admin-edited entries, preserved identity snapshots, progressive cascade, and totals / 后台编辑明细、保留身份快照、递进联动与金额断言
 // [POS]: Backend admin registration edit feature tests / 后端后台报名编辑功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -50,6 +51,9 @@ class AdminRegistrationEditServiceTest extends TestCase
         $registration->refresh();
         $this->assertSame(20000, $registration->total_amount_cent);
         $this->assertSame(RegistrationStatus::Confirmed, $registration->status);
+        $this->assertSame('测试赛事', $registration->race_name_snapshot);
+        $this->assertSame($member->loft_number, $registration->loft_number_snapshot);
+        $this->assertSame('测试鸽舍', $registration->participant_name_snapshot);
         $this->assertSame(3, $registration->entries()->count());
         $this->assertDatabaseHas('registration_entry_pigeons', ['pigeon_id' => $third->id, 'ring_number_snapshot' => '2026-13-100003']);
     }
@@ -208,6 +212,9 @@ class AdminRegistrationEditServiceTest extends TestCase
             'registration_no' => 'R'.$race->id.'-'.$member->loft_number,
             'race_id' => $race->id,
             'member_id' => $member->id,
+            'race_name_snapshot' => $race->name,
+            'loft_number_snapshot' => $member->loft_number,
+            'participant_name_snapshot' => $member->participant_name,
             'total_amount_cent' => 0,
             'status' => RegistrationStatus::PendingConfirmation,
             'idempotency_key' => (string) Str::uuid(),

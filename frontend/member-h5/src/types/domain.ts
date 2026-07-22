@@ -1,5 +1,5 @@
 // [IN]: Backend API JSON contracts / 后端 API JSON 契约
-// [OUT]: Frontend domain TypeScript types, localized registration status helpers, information contracts, and published race details / 前端领域 TypeScript 类型、本地化报名状态辅助函数、信息发布契约与已发布赛事明细
+// [OUT]: Frontend domain types, snapshot-stable registration identity, status helpers, information, and published details / 前端领域类型、快照稳定报名身份、状态辅助、信息发布与已发布赛事明细
 // [POS]: Frontend shared domain contract / 前端共享领域契约
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -87,7 +87,9 @@ export interface ExistingRegistrationEntry {
 export interface ExistingRegistration {
   id: number
   race_id?: number
-  race_name?: string
+  race_name: string
+  loft_number: string
+  participant_name: string
   registration_no: string
   status: string
   total_amount_cent: number

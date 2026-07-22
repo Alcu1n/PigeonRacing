@@ -1,6 +1,7 @@
 <?php
+
 // [IN]: Registration submission workflow and persisted race/member rows / 报名提交流程与持久化赛事/会员行
-// [OUT]: Short readable registration number assertion / 短可读报名编号断言
+// [OUT]: Short readable registration number and submission identity snapshot assertions / 短可读报名编号与提交身份快照断言
 // [POS]: Backend registration number feature test / 后端报名编号功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -59,5 +60,59 @@ class RegistrationShortNumberTest extends TestCase
 
         $this->assertSame("R{$race->id}-A001", $registration->registration_no);
         $this->assertLessThanOrEqual(10, strlen($registration->registration_no));
+    }
+
+    public function test_submission_captures_race_and_member_identity_snapshots(): void
+    {
+        $member = Member::query()->create([
+            'phone' => '13900001002',
+            'password' => 'password',
+            'loft_number' => 'B002',
+            'participant_name' => '快照鸽舍',
+            'status' => 'enabled',
+        ]);
+        $race = Race::query()->create([
+            'name' => '快照测试赛',
+            'registration_start_at' => now()->subHour(),
+            'registration_end_at' => now()->addHour(),
+            'status' => RaceStatus::Published,
+            'is_visible' => true,
+            'allow_member_edit' => true,
+            'require_admin_confirm' => false,
+        ]);
+        $project = RaceProject::query()->create([
+            'race_id' => $race->id,
+            'name' => '单羽 50',
+            'group_size' => 1,
+            'price_cent' => 5000,
+            'is_enabled' => true,
+        ]);
+        $pigeon = Pigeon::query()->create([
+            'member_id' => $member->id,
+            'loft_number' => $member->loft_number,
+            'participant_name' => $member->participant_name,
+            'ring_number' => '2026-13-000002',
+            'status' => 'normal',
+        ]);
+
+        $race = $race->fresh();
+        $registration = app(RegistrationSubmissionService::class)->submit($member, $race, $race->config_version, '22222222-2222-4222-8222-222222222222', [
+            ['project_id' => $project->id, 'pigeon_ids' => [$pigeon->id]],
+        ]);
+
+        $this->assertSame('快照测试赛', $registration->race_name_snapshot);
+        $this->assertSame('B002', $registration->loft_number_snapshot);
+        $this->assertSame('快照鸽舍', $registration->participant_name_snapshot);
+
+        $member->forceFill(['loft_number' => 'B009', 'participant_name' => '更新鸽舍'])->save();
+        $race->forceFill(['name' => '更新后测试赛'])->save();
+        $resubmitted = app(RegistrationSubmissionService::class)->submit($member->fresh(), $race->fresh(), $race->config_version, '33333333-3333-4333-8333-333333333333', [
+            ['project_id' => $project->id, 'pigeon_ids' => [$pigeon->id]],
+        ]);
+
+        $this->assertSame($registration->id, $resubmitted->id);
+        $this->assertSame('更新后测试赛', $resubmitted->race_name_snapshot);
+        $this->assertSame('B009', $resubmitted->loft_number_snapshot);
+        $this->assertSame('更新鸽舍', $resubmitted->participant_name_snapshot);
     }
 }

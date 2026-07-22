@@ -1,5 +1,5 @@
 <!-- [IN]: Registration history route param and backend detail API / 报名历史路由参数与后端详情 API -->
-<!-- [OUT]: Read-only mobile-friendly registration history detail with localized status / 带本地化状态的移动端友好只读报名历史详情 -->
+<!-- [OUT]: Read-only mobile-friendly registration history detail with receipt download / 带报名凭证下载的移动端友好只读报名历史详情 -->
 <!-- [POS]: Frontend member registration history detail screen / 前端会员报名历史详情页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -7,6 +7,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MemberTopActions from '../components/MemberTopActions.vue'
+import RegistrationReceiptDownload from '../components/RegistrationReceiptDownload.vue'
 import { api } from '../api/client'
 import { registrationStatusText, registrationStatusTone, type ExistingRegistration } from '../types/domain'
 import { buildRegistrationHistoryMatrix } from '../utils/registrationHistory'
@@ -128,7 +129,8 @@ onMounted(async () => {
         </article>
       </section>
 
-      <button class="secondary-action wide" @click="router.push('/profile')">返回个人信息</button>
+      <RegistrationReceiptDownload :registration="registration" />
+      <button class="primary-action wide" @click="router.push('/profile')">返回个人信息</button>
     </template>
   </main>
 </template>

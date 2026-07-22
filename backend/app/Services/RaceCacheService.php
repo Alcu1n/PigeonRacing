@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Race, project, member, and pigeon read models / 赛事、项目、会员与足环读取模型
-// [OUT]: Versioned cached bootstrap payloads and race/member invalidation hooks / 带版本的已缓存初始化数据与赛事/会员失效钩子
+// [OUT]: Versioned bootstrap payloads, snapshot-stable registrations, and invalidation hooks / 带版本的初始化数据、快照稳定报名与失效钩子
 // [POS]: Backend read-cache coordinator / 后端读取缓存协调器
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -153,6 +153,9 @@ class RaceCacheService
     {
         return [
             'id' => $registration->id,
+            'race_name' => $registration->race_name_snapshot ?: ($registration->race?->name ?? '未知赛事'),
+            'loft_number' => $registration->loft_number_snapshot ?: ($registration->member?->loft_number ?? ''),
+            'participant_name' => $registration->participant_name_snapshot ?: ($registration->member?->participant_name ?? ''),
             'registration_no' => $registration->registration_no,
             'status' => $registration->status->value,
             'total_amount_cent' => $registration->total_amount_cent,

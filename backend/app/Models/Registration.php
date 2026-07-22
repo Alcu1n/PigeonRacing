@@ -1,6 +1,7 @@
 <?php
+
 // [IN]: Submitted member registration rows / 已提交会员报名行
-// [OUT]: Registration total, localized status labels, colors, and snapshot entries / 报名总额、本地化状态标签、颜色与快照明细
+// [OUT]: Registration identity, total, localized status labels, colors, and snapshot entries / 报名身份、总额、本地化状态标签、颜色与快照明细
 // [POS]: Backend registration aggregate root / 后端报名聚合根
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -18,6 +19,9 @@ class Registration extends Model
         'registration_no',
         'race_id',
         'member_id',
+        'race_name_snapshot',
+        'loft_number_snapshot',
+        'participant_name_snapshot',
         'total_amount_cent',
         'status',
         'idempotency_key',

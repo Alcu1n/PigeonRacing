@@ -13,6 +13,7 @@
     "@vitejs/plugin-vue": "^6.0.0",
     "axios": "^1.7.9",
     "dompurify": "^3.4.11",
+    "html2canvas": "1.4.1",
     "pinia": "^3.0.3",
     "vant": "^4.9.17",
     "vue": "^3.5.22",

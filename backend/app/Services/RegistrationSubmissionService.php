@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Member, race, config version, idempotency key, and normalized entries / 会员、赛事、配置版本、幂等键与标准化报名项目
-// [OUT]: Validated registration with readable number, unique groups, and bootstrap cache invalidation / 带可读编号、唯一组合与初始化缓存失效的报名快照
+// [OUT]: Validated registration with identity snapshots, readable number, unique groups, and bootstrap cache invalidation / 带身份快照、可读编号、唯一组合与初始化缓存失效的报名快照
 // [POS]: Backend trusted registration transaction service / 后端可信报名事务服务
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -81,6 +81,9 @@ class RegistrationSubmissionService
             ]);
 
             $registration->fill([
+                'race_name_snapshot' => $race->name,
+                'loft_number_snapshot' => $member->loft_number,
+                'participant_name_snapshot' => $member->participant_name,
                 'total_amount_cent' => $standardValidated['total_amount_cent'] + $progressiveValidated['total_amount_cent'],
                 'status' => $race->require_admin_confirm ? RegistrationStatus::PendingConfirmation : RegistrationStatus::Submitted,
                 'idempotency_key' => $idempotencyKey,

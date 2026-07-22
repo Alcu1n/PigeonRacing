@@ -1,5 +1,5 @@
 <!-- [IN]: Authenticated member profile, registration history API, and password form / 已鉴权会员档案、报名历史 API 与改密表单 -->
-<!-- [OUT]: Member profile, localized registration history status, pigeon list, and password update workflow / 会员档案、本地化报名历史状态、足环列表与改密流程 -->
+<!-- [OUT]: Member profile, downloadable registration history, pigeon list, and password update workflow / 会员档案、可下载报名历史、足环列表与改密流程 -->
 <!-- [POS]: Frontend member profile screen / 前端会员个人档案页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -9,6 +9,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import MemberTopActions from '../components/MemberTopActions.vue'
+import RegistrationReceiptDownload from '../components/RegistrationReceiptDownload.vue'
 import { useAuthStore } from '../stores/auth'
 import { registrationStatusText, registrationStatusTone, type Pigeon, type PigeonLibrary, type RegistrationHistoryItem } from '../types/domain'
 import { api } from '../api/client'
@@ -126,22 +127,26 @@ const visiblePigeons = computed(() => activeLibrary.value?.pigeons ?? pigeons.va
         <h2>报名记录</h2>
         <p v-if="registrations.length === 0" class="empty-note">暂无报名记录</p>
         <div v-else class="history-list">
-          <button
+          <article
             v-for="item in registrations"
             :key="item.registration_id"
             class="history-list-item"
-            type="button"
-            @click="router.push(`/profile/registrations/${item.registration_id}`)"
           >
-            <strong>{{ item.race_name }}</strong>
-            <span class="history-meta-row">
-              <span>{{ item.submitted_at }}</span>
-              <b :class="['registration-status-pill', registrationStatusTone(item.status)]">
-                {{ registrationStatusText(item.status) }}
-              </b>
-            </span>
-            <small>{{ yuan(item.total_amount_cent) }} · 单羽 {{ item.single_count }} 项 · 多羽 {{ item.multi_group_count }} 组 · 递进 {{ item.progressive_count ?? 0 }} 组</small>
-          </button>
+            <div class="history-list-copy">
+              <strong>{{ item.race_name }}</strong>
+              <span class="history-meta-row">
+                <span>{{ item.submitted_at }}</span>
+                <b :class="['registration-status-pill', registrationStatusTone(item.status)]">
+                  {{ registrationStatusText(item.status) }}
+                </b>
+              </span>
+              <small>{{ yuan(item.total_amount_cent) }} · 单羽 {{ item.single_count }} 项 · 多羽 {{ item.multi_group_count }} 组 · 递进 {{ item.progressive_count ?? 0 }} 组</small>
+            </div>
+            <div class="history-list-actions">
+              <button type="button" class="history-detail-action" @click="router.push(`/profile/registrations/${item.registration_id}`)">查看明细</button>
+              <RegistrationReceiptDownload compact :registration-id="item.registration_id" />
+            </div>
+          </article>
         </div>
       </section>
 

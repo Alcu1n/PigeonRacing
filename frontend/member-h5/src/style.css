@@ -1,5 +1,5 @@
 /* [IN]: Member H5 markup and design tokens / 会员 H5 标记与设计令牌 */
-/* [OUT]: Mobile-first locked-zoom UI styles with centered logo login footer, public information pages, localized status pills, compact amount bar, highlighted race list, published details, paint-stable matrix selection, history detail, and compact matrix / 居中 Logo 登录页脚、公开信息页、本地化状态标签、紧凑金额栏、突出赛事列表、已发布明细、稳定绘制的矩阵选中态、历史详情与紧凑矩阵移动端 UI 样式 */
+/* [OUT]: Mobile-first UI styles with public pages, registration matrices, downloadable history actions, and compact workflows / 公开页面、报名矩阵、可下载历史动作与紧凑流程的移动优先 UI 样式 */
 /* [POS]: Frontend global stylesheet / 前端全局样式 */
 /* Protocol: When updating me, sync this header + parent folder's .folder.md */
 /* 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md */
@@ -1468,7 +1468,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .history-list-item {
   display: grid;
-  gap: 5px;
+  gap: 10px;
   width: 100%;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -1476,6 +1476,11 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   background: #f8fbf9;
   color: var(--text);
   text-align: left;
+}
+
+.history-list-copy {
+  display: grid;
+  gap: 5px;
 }
 
 .history-list-item strong {
@@ -1494,6 +1499,26 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+
+.history-list-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid var(--border);
+}
+
+.history-detail-action {
+  min-height: 34px;
+  border: 1px solid #c9dbd2;
+  border-radius: 7px;
+  padding: 0 12px;
+  background: #fff;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .registration-status-pill {

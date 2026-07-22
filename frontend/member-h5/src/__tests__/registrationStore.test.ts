@@ -410,6 +410,9 @@ function bootstrap(): BootstrapPayload {
 function existingRegistration(submittedAt: string) {
   return {
     id: 10,
+    race_name: '2026 春季大奖赛',
+    loft_number: 'A001',
+    participant_name: '张三鸽舍',
     registration_no: 'R1-A001',
     status: 'submitted',
     total_amount_cent: 25000,

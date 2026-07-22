@@ -1,5 +1,5 @@
 // [IN]: Registration history matrix helper and route guard / 报名历史矩阵辅助函数与路由守卫
-// [OUT]: History detail matrix and forced-password route assertions / 历史详情矩阵与强制改密路由断言
+// [OUT]: History detail matrix, receipt summary, and forced-password route assertions / 历史详情矩阵、凭证汇总与强制改密路由断言
 // [POS]: Frontend registration history feature tests / 前端报名历史功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -8,6 +8,7 @@ import { createPinia, setActivePinia } from 'pinia'
 import { router } from '../router'
 import { useAuthStore } from '../stores/auth'
 import { buildRegistrationHistoryMatrix } from '../utils/registrationHistory'
+import { buildRegistrationReceiptData } from '../utils/registrationReceipt'
 import type { ExistingRegistration } from '../types/domain'
 
 vi.mock('../api/client', () => ({
@@ -59,14 +60,30 @@ describe('registration history', () => {
     expect(router.currentRoute.value.path).toBe('/profile')
     expect(router.currentRoute.value.query.forcePassword).toBe('1')
   })
+
+  it('builds receipt summaries for single, multi, and progressive projects', () => {
+    const receipt = buildRegistrationReceiptData(registration())
+
+    expect(receipt.project_summaries).toEqual([
+      { category: '单羽组', project_name: '单羽 50', unit_price_cent: 5000, quantity: 1, quantity_unit: '羽', amount_cent: 5000 },
+      { category: '单羽组', project_name: '单羽 100', unit_price_cent: 10000, quantity: 1, quantity_unit: '羽', amount_cent: 10000 },
+      { category: '多羽组', project_name: '双羽组 200', unit_price_cent: 20000, quantity: 1, quantity_unit: '组', amount_cent: 20000 },
+      { category: '递进阶段', project_name: '指定鸽 · 第二关', unit_price_cent: 150000, quantity: 1, quantity_unit: '组', amount_cent: 150000 },
+    ])
+    expect(receipt.single.rows[0]).toMatchObject({ count: 2, amount_cent: 15000 })
+    expect(receipt.progressive[0].groups[0].rings).toEqual(['2026-13-000001'])
+  })
 })
 
 function registration(): ExistingRegistration {
   return {
     id: 1,
+    race_name: '春赛',
+    loft_number: 'A001',
+    participant_name: '张三鸽舍',
     registration_no: 'REG001',
     status: 'submitted',
-    total_amount_cent: 35000,
+    total_amount_cent: 185000,
     submitted_at: '2026-06-27 10:00:00',
     entries: [
       {
@@ -95,6 +112,22 @@ function registration(): ExistingRegistration {
           { pigeon_id: 1, ring_number: '2026-13-000001', sort_order: 1 },
           { pigeon_id: 2, ring_number: '2026-13-000002', sort_order: 2 },
         ],
+      },
+    ],
+    progressive_entries: [
+      {
+        category_id: 1,
+        category_name: '指定鸽',
+        stage_project_id: 4,
+        stage_project_name: '第二关',
+        group_key: '1',
+        group_index: 1,
+        group_size: 1,
+        pigeon_id: 1,
+        ring_number: '2026-13-000001',
+        pigeon_sort_order: 1,
+        price_cent: 150000,
+        status: 'confirmed',
       },
     ],
   }

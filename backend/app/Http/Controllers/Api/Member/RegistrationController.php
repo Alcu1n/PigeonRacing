@@ -1,6 +1,7 @@
 <?php
+
 // [IN]: Authenticated member registration API requests and history queries / 已鉴权会员报名 API 请求与历史查询
-// [OUT]: Registration submit, history list, and detail responses / 报名提交、历史列表与详情响应
+// [OUT]: Registration submit, history list, and snapshot-stable detail responses / 报名提交、历史列表与快照稳定的详情响应
 // [POS]: Backend member registration controller / 后端会员报名控制器
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -33,7 +34,7 @@ class RegistrationController extends Controller
             ->map(fn (Registration $registration): array => [
                 'registration_id' => $registration->id,
                 'race_id' => $registration->race_id,
-                'race_name' => $registration->race?->name ?? '未知赛事',
+                'race_name' => $registration->race_name_snapshot ?: ($registration->race?->name ?? '未知赛事'),
                 'registration_no' => $registration->registration_no,
                 'status' => $registration->status->value,
                 'total_amount_cent' => $registration->total_amount_cent,
@@ -87,12 +88,11 @@ class RegistrationController extends Controller
             return response()->json(['error_code' => 'registration_not_found', 'message' => '报名记录不存在。'], 404);
         }
 
-        $registration->load(['race', 'entries.pigeons', 'progressiveStageEntries.category']);
+        $registration->load(['race', 'member', 'entries.pigeons', 'progressiveStageEntries.category']);
 
         return response()->json([
             ...$cache->serializeRegistration($registration),
             'race_id' => $registration->race_id,
-            'race_name' => $registration->race?->name ?? '未知赛事',
         ]);
     }
 }

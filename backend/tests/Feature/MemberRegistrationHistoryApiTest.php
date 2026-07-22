@@ -1,6 +1,7 @@
 <?php
+
 // [IN]: Member registration history API, races, and persisted snapshots / 会员报名历史 API、赛事与持久化快照
-// [OUT]: Latest-per-race history list and ownership assertions / 每赛事最新报名历史列表与归属断言
+// [OUT]: Latest-per-race history list, immutable display identity, and ownership assertions / 每赛事最新报名历史列表、不可变展示身份与归属断言
 // [POS]: Backend member registration history feature test / 后端会员报名历史功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -65,6 +66,42 @@ class MemberRegistrationHistoryApiTest extends TestCase
             ->getJson("/api/member/registrations/{$registration->id}")
             ->assertNotFound()
             ->assertJsonPath('error_code', 'registration_not_found');
+    }
+
+    public function test_registration_detail_uses_submission_snapshots_after_related_names_change(): void
+    {
+        $member = $this->member('A001');
+        $race = $this->race('报名时赛事');
+        $registration = $this->registration($member, $race, 5000, now());
+        $registration->forceFill([
+            'race_name_snapshot' => '报名时赛事',
+            'loft_number_snapshot' => 'A001',
+            'participant_name_snapshot' => 'A001鸽舍',
+        ])->save();
+
+        $member->forceFill(['loft_number' => 'A999', 'participant_name' => '新参赛名'])->save();
+        $race->forceFill(['name' => '改名后赛事'])->save();
+
+        $this->actingAs($member, 'member')
+            ->getJson("/api/member/registrations/{$registration->id}")
+            ->assertOk()
+            ->assertJsonPath('race_name', '报名时赛事')
+            ->assertJsonPath('loft_number', 'A001')
+            ->assertJsonPath('participant_name', 'A001鸽舍');
+    }
+
+    public function test_registration_detail_falls_back_to_current_related_names_when_snapshots_are_missing(): void
+    {
+        $member = $this->member('A001');
+        $race = $this->race('旧记录赛事');
+        $registration = $this->registration($member, $race, 5000, now());
+
+        $this->actingAs($member, 'member')
+            ->getJson("/api/member/registrations/{$registration->id}")
+            ->assertOk()
+            ->assertJsonPath('race_name', '旧记录赛事')
+            ->assertJsonPath('loft_number', 'A001')
+            ->assertJsonPath('participant_name', 'A001鸽舍');
     }
 
     private function member(string $loftNumber): Member
