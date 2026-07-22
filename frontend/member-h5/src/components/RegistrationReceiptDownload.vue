@@ -5,7 +5,7 @@
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref } from 'vue'
-import { showToast } from 'vant'
+import { Icon, showToast } from 'vant'
 import { api } from '../api/client'
 import type { ExistingRegistration } from '../types/domain'
 import { buildRegistrationReceiptData, receiptFileName, type RegistrationReceiptData } from '../utils/registrationReceipt'
@@ -149,7 +149,7 @@ onBeforeUnmount(revokePreviewUrl)
     :disabled="generating"
     @click="generateReceipt"
   >
-    <span aria-hidden="true">⇩</span>
+    <Icon name="down" class="receipt-download-icon" aria-hidden="true" />
     {{ generating ? '生成报名明细中…' : '下载报名明细' }}
   </button>
 
@@ -187,19 +187,33 @@ onBeforeUnmount(revokePreviewUrl)
 <style scoped>
 .receipt-download-action {
   min-height: 46px;
-  border: 1px solid #bd7b05;
+  border: 1px solid #6f3d00;
   border-radius: 9px;
   padding: 0 18px;
-  background: linear-gradient(180deg, #f0a72e, #d88708);
-  color: #3b2500;
+  background: linear-gradient(180deg, #a96000, #794100);
+  color: #fffaf0;
   font-size: 15px;
   font-weight: 950;
-  box-shadow: 0 10px 22px rgba(187, 119, 4, .24);
+  text-shadow: 0 1px 0 rgba(67, 34, 0, .28);
+  box-shadow: 0 10px 22px rgba(113, 61, 0, .22);
 }
 
-.receipt-download-action span {
-  margin-right: 5px;
-  font-size: 19px;
+.receipt-download-icon {
+  width: 24px;
+  height: 24px;
+  margin-right: 7px;
+  border: 1px solid rgba(255, 250, 240, .38);
+  border-radius: 50%;
+  background: rgba(255, 250, 240, .14);
+  color: inherit;
+  font-size: 15px;
+  line-height: 22px;
+  text-align: center;
+  vertical-align: -2px;
+}
+
+.receipt-download-action:active:not(:disabled) {
+  transform: translateY(1px);
 }
 
 .receipt-download-action.wide {
@@ -214,6 +228,15 @@ onBeforeUnmount(revokePreviewUrl)
   border-radius: 7px;
   font-size: 12px;
   box-shadow: none;
+}
+
+.receipt-download-action.compact .receipt-download-icon {
+  width: 19px;
+  height: 19px;
+  margin-right: 5px;
+  font-size: 12px;
+  line-height: 17px;
+  vertical-align: -1px;
 }
 
 .receipt-render-stage {
