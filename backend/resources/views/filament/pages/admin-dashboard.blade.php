@@ -49,6 +49,9 @@
         }
 
         .admin-dashboard-card {
+            --dashboard-card-background: color-mix(in oklch, var(--card-accent) 7%, white);
+            --dashboard-card-text: oklch(0.24 0.014 260);
+            --dashboard-card-muted-text: oklch(0.43 0.014 260);
             position: relative;
             display: grid;
             grid-template-rows: auto 1fr;
@@ -57,12 +60,18 @@
             border: 1px solid color-mix(in oklch, var(--card-accent) 24%, transparent);
             border-radius: 1rem;
             background:
-                radial-gradient(circle at 90% 8%, color-mix(in oklch, var(--card-accent) 16%, transparent), transparent 34%),
-                color-mix(in oklch, var(--card-accent) 4%, var(--fi-panel-bg, oklch(0.16 0.006 164)));
+                radial-gradient(circle at 90% 8%, color-mix(in oklch, var(--card-accent) 20%, transparent), transparent 34%),
+                var(--dashboard-card-background);
             padding: 1.05rem;
-            color: inherit;
+            color: var(--dashboard-card-text);
             text-decoration: none;
             transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+        }
+
+        .admin-dashboard-card:where(.dark, .dark *) {
+            --dashboard-card-background: color-mix(in oklch, var(--card-accent) 7%, oklch(0.16 0.006 164));
+            --dashboard-card-text: oklch(0.96 0.01 164);
+            --dashboard-card-muted-text: oklch(0.76 0.014 164);
         }
 
         .admin-dashboard-card:hover,
@@ -116,7 +125,7 @@
         .admin-dashboard-label {
             display: block;
             margin: 0;
-            color: color-mix(in oklch, currentColor 98%, transparent);
+            color: var(--dashboard-card-text);
             font-size: 1.16rem;
             font-weight: 760;
             line-height: 1.25;
@@ -126,7 +135,7 @@
         .admin-dashboard-description {
             display: block;
             margin: 0;
-            color: color-mix(in oklch, currentColor 62%, transparent);
+            color: var(--dashboard-card-muted-text);
             font-size: .9rem;
             line-height: 1.55;
         }
