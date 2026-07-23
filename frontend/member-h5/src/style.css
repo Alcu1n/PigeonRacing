@@ -1574,7 +1574,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .history-matrix-grid {
   display: grid;
-  grid-template-columns: 112px repeat(var(--history-project-count), minmax(62px, 1fr));
+  grid-template-columns: 112px repeat(var(--history-project-count), 128px);
   min-width: max-content;
 }
 
