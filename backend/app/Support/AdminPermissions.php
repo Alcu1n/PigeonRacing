@@ -15,6 +15,7 @@ final class AdminPermissions
         'members' => '会员管理',
         'pigeon-libraries' => '足环库管理',
         'pigeons' => '足环管理',
+        'ring-sales' => '售环记录',
         'races' => '赛事管理',
         'race-projects' => '报名项目',
         'registration-categories' => '递进报名类别',
