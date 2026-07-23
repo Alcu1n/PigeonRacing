@@ -46,8 +46,9 @@ class RingSaleFilamentTest extends TestCase
 
         $this->assertSame('新增售环', $actions->get('createSale')?->getLabel());
         $this->assertSame('导出 Excel', $actions->get('exportExcel')?->getLabel());
+        $this->assertNull($actions->get('createSale')?->getModalDescription());
 
-        Livewire::test(ListRingSales::class)
+        $component = Livewire::test(ListRingSales::class)
             ->assertActionExists('createSale')
             ->assertActionVisible('createSale')
             ->mountAction('createSale')
@@ -55,6 +56,24 @@ class RingSaleFilamentTest extends TestCase
             ->assertSchemaComponentExists('buyer_name')
             ->assertSchemaComponentExists('items')
             ->assertSchemaComponentExists('receipt_paths');
+
+        $component->assertDontSee('每行记录一个“类别＋号码段”');
+
+        $this->assertSame(
+            [
+                'payment_status',
+                'buyer_name',
+                'loft_number',
+                'total_amount_cent',
+                'paid_amount_cent',
+                'unpaid_amount_cent',
+                'items_summary',
+                'total_quantity',
+                'sale_no',
+                'sale_date',
+            ],
+            array_keys($component->instance()->getTable()->getColumns()),
+        );
     }
 
     public function test_ordinary_admin_without_view_permission_cannot_open_ring_sales(): void

@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Ring-sale quick-entry and date-range export requests / 售环快速录入与日期范围导出请求
-// [OUT]: Full-screen create modal and three-sheet Excel download / 全屏新增弹层与三工作表 Excel 下载
+// [OUT]: Compact full-screen mobile entry modal and three-sheet Excel download / 紧凑全屏手机录入弹层与三工作表 Excel 下载
 // [POS]: Ring-sale Filament list page / 售环记录 Filament 列表页
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -34,7 +34,6 @@ class ListRingSales extends ListRecords
                 ->visible(fn (): bool => RingSaleResource::hasModulePermission('create'))
                 ->schema(fn (): array => RingSaleResource::saleFormComponents(true))
                 ->modalHeading('新增售环记录')
-                ->modalDescription('选择会员可自动带出姓名和棚号；也可以直接记录非会员购买人。')
                 ->modalSubmitActionLabel('保存售环单')
                 ->stickyModalHeader()
                 ->stickyModalFooter()

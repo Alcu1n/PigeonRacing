@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Ring-sale aggregate, quick-entry form state, payments, and filtered list query / 售环聚合、快速录入表单状态、收款与筛选查询
-// [OUT]: Mobile-first modal workflow, payment actions, list badges, filters, and details / 移动优先弹层流程、收款动作、列表标记、筛选与详情
+// [OUT]: Compact mobile-first modal workflow, single-line ledger, payment actions, filters, and details / 紧凑移动优先弹层、单行台账、收款动作、筛选与详情
 // [POS]: Ring-sale Filament resource / 售环记录 Filament 资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -96,31 +96,56 @@ class RingSaleResource extends Resource
                     ->label('付款')
                     ->state(fn (RingSale $record): string => $record->payment_status_label)
                     ->badge()
-                    ->color(fn (RingSale $record): string => $record->payment_status_color),
-                TextColumn::make('sale_date')->label('售环日期')->date()->sortable(),
-                TextColumn::make('sale_no')->label('售环单号')->searchable()->copyable(),
-                TextColumn::make('buyer_name')->label('姓名')->searchable(),
-                TextColumn::make('loft_number')->label('棚号')->searchable()->placeholder('—'),
-                TextColumn::make('items_summary')
-                    ->label('号码段')
-                    ->state(fn (RingSale $record): string => self::itemsSummary($record))
-                    ->wrap(),
-                TextColumn::make('total_quantity')->label('数量')->sortable(),
+                    ->color(fn (RingSale $record): string => $record->payment_status_color)
+                    ->extraAttributes(['class' => 'ring-sale-nowrap']),
+                TextColumn::make('buyer_name')
+                    ->label('姓名')
+                    ->searchable()
+                    ->extraAttributes(['class' => 'ring-sale-nowrap']),
+                TextColumn::make('loft_number')
+                    ->label('棚号')
+                    ->searchable()
+                    ->placeholder('—')
+                    ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('total_amount_cent')
                     ->label('总金额')
                     ->formatStateUsing(fn (int $state): string => self::formatYuan($state))
-                    ->sortable(),
+                    ->sortable()
+                    ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('paid_amount_cent')
                     ->label('已付')
                     ->state(fn (RingSale $record): int => $record->paid_amount_cent)
-                    ->formatStateUsing(fn (int $state): string => self::formatYuan($state)),
+                    ->formatStateUsing(fn (int $state): string => self::formatYuan($state))
+                    ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('unpaid_amount_cent')
                     ->label('未付')
                     ->state(fn (RingSale $record): int => $record->unpaid_amount_cent)
                     ->formatStateUsing(fn (int $state): string => self::formatYuan($state))
                     ->color(fn (RingSale $record): string => $record->unpaid_amount_cent > 0 ? 'danger' : 'success')
                     ->sortable(query: fn (Builder $query, string $direction): Builder => $query
-                        ->orderByRaw("(ring_sales.total_amount_cent - ({$paidSql})) {$direction}")),
+                        ->orderByRaw("(ring_sales.total_amount_cent - ({$paidSql})) {$direction}"))
+                    ->extraAttributes(['class' => 'ring-sale-nowrap']),
+                TextColumn::make('items_summary')
+                    ->label('号码段')
+                    ->state(fn (RingSale $record): string => self::itemsSummary($record))
+                    ->extraAttributes([
+                        'class' => 'ring-sale-segments-scroll',
+                        'tabindex' => '0',
+                    ]),
+                TextColumn::make('total_quantity')
+                    ->label('数量')
+                    ->sortable()
+                    ->extraAttributes(['class' => 'ring-sale-nowrap']),
+                TextColumn::make('sale_no')
+                    ->label('售环单号')
+                    ->searchable()
+                    ->copyable()
+                    ->extraAttributes(['class' => 'ring-sale-nowrap']),
+                TextColumn::make('sale_date')
+                    ->label('售环日期')
+                    ->date()
+                    ->sortable()
+                    ->extraAttributes(['class' => 'ring-sale-nowrap']),
             ])
             ->filters([
                 Filter::make('sale_date')
@@ -184,128 +209,135 @@ class RingSaleResource extends Resource
             Section::make('购买人')
                 ->compact()
                 ->schema([
-                    Grid::make(['default' => 1, 'md' => 2])->schema([
-                        Select::make('member_id')
-                            ->label('关联会员（可选）')
-                            ->relationship('member', 'loft_number')
-                            ->getOptionLabelFromRecordUsing(fn (Member $record): string => "{$record->loft_number} · {$record->participant_name}")
-                            ->searchable(['loft_number', 'participant_name', 'phone'])
-                            ->preload()
-                            ->live()
-                            ->afterStateUpdated(function (Set $set, ?int $state): void {
-                                $member = $state ? Member::query()->find($state) : null;
-                                if ($member) {
-                                    $set('buyer_name', $member->participant_name);
-                                    $set('loft_number', $member->loft_number);
-                                }
-                            }),
-                        DatePicker::make('sale_date')
-                            ->label('售环日期')
-                            ->default(today())
-                            ->maxDate(today())
-                            ->required(),
-                        TextInput::make('buyer_name')
-                            ->label('姓名')
-                            ->required()
-                            ->maxLength(100),
-                        TextInput::make('loft_number')
-                            ->label('棚号（可选）')
-                            ->maxLength(100),
-                    ]),
+                    Grid::make(2)
+                        ->extraAttributes(['class' => 'ring-sale-paired-grid'])
+                        ->schema([
+                            Select::make('member_id')
+                                ->label('关联会员（可选）')
+                                ->relationship('member', 'loft_number')
+                                ->getOptionLabelFromRecordUsing(fn (Member $record): string => "{$record->loft_number} · {$record->participant_name}")
+                                ->searchable(['loft_number', 'participant_name', 'phone'])
+                                ->preload()
+                                ->live()
+                                ->afterStateUpdated(function (Set $set, ?int $state): void {
+                                    $member = $state ? Member::query()->find($state) : null;
+                                    if ($member) {
+                                        $set('buyer_name', $member->participant_name);
+                                        $set('loft_number', $member->loft_number);
+                                    }
+                                }),
+                            DatePicker::make('sale_date')
+                                ->label('售环日期')
+                                ->default(today())
+                                ->maxDate(today())
+                                ->required(),
+                        ]),
+                    Grid::make(2)
+                        ->extraAttributes(['class' => 'ring-sale-paired-grid'])
+                        ->schema([
+                            TextInput::make('buyer_name')
+                                ->label('姓名')
+                                ->required()
+                                ->maxLength(100),
+                            TextInput::make('loft_number')
+                                ->label('棚号（可选）')
+                                ->maxLength(100),
+                        ]),
                 ]),
             Section::make('号码段明细')
                 ->compact()
-                ->description('每行记录一个“类别＋号码段”；数量和金额自动计算。')
                 ->schema([
                     Repeater::make('items')
                         ->hiddenLabel()
                         ->schema([
-                            Grid::make(['default' => 1, 'md' => 2])->schema([
-                                Select::make('category_id')
-                                    ->label('足环类别')
-                                    ->options(fn (Get $get): array => RingSaleCategory::query()
-                                        ->where(function (Builder $query) use ($get): void {
-                                            $query->where('is_enabled', true);
-                                            if ($get('category_id')) {
-                                                $query->orWhere('id', $get('category_id'));
-                                            }
-                                        })
-                                        ->orderBy('name')
-                                        ->get()
-                                        ->mapWithKeys(fn (RingSaleCategory $category): array => [
-                                            $category->id => "{$category->name} · ".self::formatYuan($category->unit_price_cent).'/枚'
-                                                .($category->is_enabled ? '' : '（已停用）'),
-                                        ])
-                                        ->all())
-                                    ->searchable()
-                                    ->required()
-                                    ->live(),
-                                ToggleButtons::make('entry_mode')
-                                    ->label('录入方式')
-                                    ->options(['prefix' => '前缀＋尾号', 'full' => '完整号码'])
-                                    ->default('prefix')
-                                    ->inline()
-                                    ->required()
-                                    ->live(),
-                                Select::make('prefix_id')
-                                    ->label('号码前缀')
-                                    ->options(fn (Get $get): array => RingNumberPrefix::query()
-                                        ->where(function (Builder $query) use ($get): void {
-                                            $query->where('is_enabled', true);
-                                            if ($get('prefix_id')) {
-                                                $query->orWhere('id', $get('prefix_id'));
-                                            }
-                                        })
-                                        ->orderBy('id')
-                                        ->get()
-                                        ->mapWithKeys(fn (RingNumberPrefix $prefix): array => [
-                                            $prefix->id => "{$prefix->prefix}（{$prefix->suffix_width} 位尾号）"
-                                                .($prefix->is_enabled ? '' : '（已停用）'),
-                                        ])
-                                        ->all())
-                                    ->searchable()
-                                    ->required(fn (Get $get): bool => $get('entry_mode') !== 'full')
-                                    ->visible(fn (Get $get): bool => $get('entry_mode') !== 'full')
-                                    ->live(),
-                                TextInput::make('start_suffix')
-                                    ->label('起始尾号')
-                                    ->inputMode('numeric')
-                                    ->placeholder('0001')
-                                    ->required(fn (Get $get): bool => $get('entry_mode') !== 'full')
-                                    ->visible(fn (Get $get): bool => $get('entry_mode') !== 'full')
-                                    ->live(onBlur: true),
-                                TextInput::make('end_suffix')
-                                    ->label('结束尾号')
-                                    ->inputMode('numeric')
-                                    ->placeholder('0020')
-                                    ->required(fn (Get $get): bool => $get('entry_mode') !== 'full')
-                                    ->visible(fn (Get $get): bool => $get('entry_mode') !== 'full')
-                                    ->live(onBlur: true),
-                                TextInput::make('start_ring')
-                                    ->label('完整起始号')
-                                    ->required(fn (Get $get): bool => $get('entry_mode') === 'full')
-                                    ->visible(fn (Get $get): bool => $get('entry_mode') === 'full')
-                                    ->live(onBlur: true),
-                                TextInput::make('end_ring')
-                                    ->label('完整结束号')
-                                    ->required(fn (Get $get): bool => $get('entry_mode') === 'full')
-                                    ->visible(fn (Get $get): bool => $get('entry_mode') === 'full')
-                                    ->live(onBlur: true),
-                            ]),
-                            Grid::make(['default' => 2, 'md' => 4])->schema([
-                                Placeholder::make('range_preview')
-                                    ->label('完整号码段')
-                                    ->content(fn (Get $get): string => self::itemPreview($get)),
-                                Placeholder::make('quantity_preview')
-                                    ->label('数量')
-                                    ->content(fn (Get $get): string => (string) (self::itemMetrics($get)['quantity'] ?? '—')),
-                                Placeholder::make('price_preview')
-                                    ->label('单价')
-                                    ->content(fn (Get $get): string => self::itemMetrics($get)['unit_price'] ?? '—'),
-                                Placeholder::make('line_amount_preview')
-                                    ->label('明细金额')
-                                    ->content(fn (Get $get): string => self::itemMetrics($get)['line_amount'] ?? '—'),
-                            ]),
+                            Grid::make(2)
+                                ->extraAttributes(['class' => 'ring-sale-paired-grid'])
+                                ->schema([
+                                    Select::make('category_id')
+                                        ->label('足环类别')
+                                        ->options(fn (Get $get): array => RingSaleCategory::query()
+                                            ->where(function (Builder $query) use ($get): void {
+                                                $query->where('is_enabled', true);
+                                                if ($get('category_id')) {
+                                                    $query->orWhere('id', $get('category_id'));
+                                                }
+                                            })
+                                            ->orderBy('name')
+                                            ->get()
+                                            ->mapWithKeys(fn (RingSaleCategory $category): array => [
+                                                $category->id => "{$category->name} · ".self::formatYuan($category->unit_price_cent).'/枚'
+                                                    .($category->is_enabled ? '' : '（已停用）'),
+                                            ])
+                                            ->all())
+                                        ->searchable()
+                                        ->required()
+                                        ->live(),
+                                    ToggleButtons::make('entry_mode')
+                                        ->label('录入方式')
+                                        ->options(['prefix' => '前缀＋尾号', 'full' => '完整号码'])
+                                        ->default('prefix')
+                                        ->inline()
+                                        ->required()
+                                        ->live(),
+                                ]),
+                            Select::make('prefix_id')
+                                ->label('号码前缀')
+                                ->options(fn (Get $get): array => RingNumberPrefix::query()
+                                    ->where(function (Builder $query) use ($get): void {
+                                        $query->where('is_enabled', true);
+                                        if ($get('prefix_id')) {
+                                            $query->orWhere('id', $get('prefix_id'));
+                                        }
+                                    })
+                                    ->orderBy('id')
+                                    ->get()
+                                    ->mapWithKeys(fn (RingNumberPrefix $prefix): array => [
+                                        $prefix->id => "{$prefix->prefix}（{$prefix->suffix_width} 位尾号）"
+                                            .($prefix->is_enabled ? '' : '（已停用）'),
+                                    ])
+                                    ->all())
+                                ->searchable()
+                                ->required(fn (Get $get): bool => $get('entry_mode') !== 'full')
+                                ->visible(fn (Get $get): bool => $get('entry_mode') !== 'full')
+                                ->live()
+                                ->columnSpanFull(),
+                            Grid::make(2)
+                                ->extraAttributes(['class' => 'ring-sale-paired-grid'])
+                                ->visible(fn (Get $get): bool => $get('entry_mode') !== 'full')
+                                ->schema([
+                                    TextInput::make('start_suffix')
+                                        ->label('起始尾号')
+                                        ->inputMode('numeric')
+                                        ->placeholder('0001')
+                                        ->required(fn (Get $get): bool => $get('entry_mode') !== 'full')
+                                        ->live(onBlur: true),
+                                    TextInput::make('end_suffix')
+                                        ->label('结束尾号')
+                                        ->inputMode('numeric')
+                                        ->placeholder('0020')
+                                        ->required(fn (Get $get): bool => $get('entry_mode') !== 'full')
+                                        ->live(onBlur: true),
+                                ]),
+                            Grid::make(2)
+                                ->extraAttributes(['class' => 'ring-sale-paired-grid'])
+                                ->visible(fn (Get $get): bool => $get('entry_mode') === 'full')
+                                ->schema([
+                                    TextInput::make('start_ring')
+                                        ->label('完整起始号')
+                                        ->required(fn (Get $get): bool => $get('entry_mode') === 'full')
+                                        ->live(onBlur: true),
+                                    TextInput::make('end_ring')
+                                        ->label('完整结束号')
+                                        ->required(fn (Get $get): bool => $get('entry_mode') === 'full')
+                                        ->live(onBlur: true),
+                                ]),
+                            Placeholder::make('item_summary_preview')
+                                ->hiddenLabel()
+                                ->content(fn (Get $get): string => self::itemSummaryPreview($get))
+                                ->extraAttributes([
+                                    'class' => 'ring-sale-item-summary',
+                                    'tabindex' => '0',
+                                ]),
                         ])
                         ->defaultItems(1)
                         ->minItems(1)
@@ -386,21 +418,6 @@ class RingSaleResource extends Resource
                             ];
                         })
                         ->columnSpanFull(),
-                ]),
-            Section::make()
-                ->extraAttributes(['class' => 'ring-sale-mobile-summary'])
-                ->schema([
-                    Grid::make(3)->schema([
-                        Placeholder::make('mobile_total_quantity')
-                            ->label('总数量')
-                            ->content(fn (Get $get): string => (string) self::formSummary($get, $existingPaidAmountCent)['quantity']),
-                        Placeholder::make('mobile_total_amount')
-                            ->label('总金额')
-                            ->content(fn (Get $get): string => self::formatYuan(self::formSummary($get, $existingPaidAmountCent)['total_amount_cent'])),
-                        Placeholder::make('mobile_unpaid_amount')
-                            ->label('未付')
-                            ->content(fn (Get $get): string => self::formatYuan(self::formSummary($get, $existingPaidAmountCent)['unpaid_amount_cent'])),
-                    ]),
                 ]),
         ];
     }
@@ -663,6 +680,17 @@ class RingSaleResource extends Resource
         }
     }
 
+    private static function itemSummaryPreview(Get $get): string
+    {
+        $range = self::itemPreview($get);
+        $metrics = self::itemMetrics($get);
+        if ($metrics === []) {
+            return $range;
+        }
+
+        return "{$range} · {$metrics['quantity']} 枚 · {$metrics['unit_price']}/枚 · {$metrics['line_amount']}";
+    }
+
     private static function rangeFromGet(Get $get): ?RingNumberRange
     {
         return self::rangeFromState([
@@ -701,13 +729,9 @@ class RingSaleResource extends Resource
 
     private static function itemsSummary(RingSale $sale): string
     {
-        $segments = $sale->items->take(2)
+        return $sale->items
             ->map(fn ($item): string => "{$item->category_name_snapshot}：{$item->start_ring}–{$item->end_ring}")
             ->implode('；');
-
-        return $sale->items->count() > 2
-            ? "{$segments} 等 {$sale->items->count()} 段"
-            : $segments;
     }
 
     private static function detailView(RingSale $sale): View
