@@ -11,6 +11,7 @@ namespace Tests\Feature;
 use App\Enums\RaceStatus;
 use App\Enums\RegistrationStatus;
 use App\Filament\Resources\RegistrationResource;
+use App\Filament\Resources\RegistrationResource\Pages\ListRegistrations;
 use App\Models\Member;
 use App\Models\Pigeon;
 use App\Models\ProgressiveStageEntry;
@@ -25,7 +26,9 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Livewire\Livewire;
 use Mockery;
+use ReflectionMethod;
 use Tests\TestCase;
 
 class RegistrationListSummaryTest extends TestCase
@@ -61,7 +64,13 @@ class RegistrationListSummaryTest extends TestCase
             ->assertSee('未确认金额')
             ->assertSee('200 元')
             ->assertSee('报名总棚数')
-            ->assertSee('2 棚');
+            ->assertSee('2 棚')
+            ->assertSee('刷新报名记录');
+
+        Livewire::test(ListRegistrations::class)
+            ->assertActionVisible('refreshRegistrations')
+            ->callAction('refreshRegistrations')
+            ->assertNotified('报名记录已刷新');
     }
 
     public function test_registration_list_defaults_to_latest_submissions_and_filters_confirmation_status(): void
@@ -90,6 +99,28 @@ class RegistrationListSummaryTest extends TestCase
         $this->assertSame('未确认', $filter->getFalseLabel());
         $this->assertSame([$newerConfirmed->id], $filter->apply(Registration::query(), ['value' => true])->pluck('id')->all());
         $this->assertSame([$olderPending->id], $filter->apply(Registration::query(), ['value' => false])->pluck('id')->all());
+    }
+
+    public function test_admin_can_run_the_manual_registration_refresh_action(): void
+    {
+        $admin = User::query()->create([
+            'name' => '报名刷新管理员',
+            'email' => 'registration-refresh@example.com',
+            'password' => 'password',
+        ]);
+        $admin->assignRole('super-admin');
+        $this->actingAs($admin);
+
+        $method = new ReflectionMethod(ListRegistrations::class, 'getHeaderActions');
+        $actions = collect($method->invoke(new ListRegistrations))->keyBy(fn ($action): string => $action->getName());
+        $refreshAction = $actions->get('refreshRegistrations');
+
+        $this->assertSame('刷新报名记录', $refreshAction?->getLabel());
+        $this->assertTrue($refreshAction?->isVisible() ?? false);
+
+        $refreshAction?->call();
+
+        $this->assertNotEmpty(session('filament.notifications'));
     }
 
     public function test_admin_can_confirm_multiple_registrations_at_once(): void

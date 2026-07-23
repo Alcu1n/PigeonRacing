@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Administrator account identifier and password / 管理员账号标识与密码
-// [OUT]: Phone-or-email password-only Filament login / 手机号或邮箱的纯密码 Filament 登录
+// [OUT]: Phone-or-email password-only Filament login with persistent sign-in enabled by default / 默认启用持久登录的手机号或邮箱纯密码 Filament 登录
 // [POS]: Backend administrator login page / 后台管理员登录页
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -13,6 +13,7 @@ use DanHarrin\LivewireRateLimiting\Exceptions\TooManyRequestsException;
 use Filament\Auth\Http\Responses\LoginResponse;
 use Filament\Auth\Pages\Login as BaseLogin;
 use Filament\Facades\Filament;
+use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -40,7 +41,7 @@ class Login extends BaseLogin
             $this->throwFailureValidationException();
         }
 
-        Filament::auth()->login($user, (bool) ($data['remember'] ?? false));
+        Filament::auth()->login($user, (bool) ($data['remember'] ?? true));
         session()->regenerate();
         session()->put('password_hash_'.Filament::getAuthGuard(), $user->getAuthPassword());
 
@@ -54,6 +55,13 @@ class Login extends BaseLogin
             ->required()
             ->autocomplete('username')
             ->autofocus();
+    }
+
+    protected function getRememberFormComponent(): Checkbox
+    {
+        return Checkbox::make('remember')
+            ->label('保持登录')
+            ->default(true);
     }
 
     protected function throwFailureValidationException(): never

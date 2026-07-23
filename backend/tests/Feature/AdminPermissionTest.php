@@ -15,7 +15,9 @@ use App\Filament\Resources\AdminUserResource\Pages\CreateAdminUser;
 use App\Filament\Resources\AdminUserResource\Pages\EditAdminUser;
 use App\Filament\Resources\MemberResource;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Permission;
@@ -112,6 +114,27 @@ class AdminPermissionTest extends TestCase
             ->assertRedirect('/admin');
 
         $this->assertAuthenticatedAs($admin);
+    }
+
+    public function test_admin_login_remembers_the_administrator_by_default(): void
+    {
+        $admin = User::query()->create([
+            'name' => '持久登录管理员',
+            'email' => 'remember-admin@example.com',
+            'password' => 'password',
+        ]);
+        $admin->assignRole('admin');
+
+        Livewire::test(Login::class)
+            ->assertSet('data.remember', true)
+            ->fillForm([
+                'account' => 'remember-admin@example.com',
+                'password' => 'password',
+            ])
+            ->call('authenticate')
+            ->assertRedirect('/admin');
+
+        $this->assertTrue(Cookie::hasQueued(Filament::auth()->getRecallerName()));
     }
 
     public function test_super_admin_cannot_be_edited_or_deleted_through_permission_management(): void

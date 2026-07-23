@@ -1,7 +1,7 @@
 <?php
 
-// [IN]: RegistrationResource table, summary service, race selector, and delete-all action / RegistrationResource 表格、汇总服务、赛事选择器与全部删除动作
-// [OUT]: Filament registration list page with inline summary, Excel export, and registration cleanup / 带内联汇总、Excel 导出与报名清理的 Filament 报名列表页面
+// [IN]: RegistrationResource table, summary service, race selector, manual refresh, and delete-all action / RegistrationResource 表格、汇总服务、赛事选择器、手动刷新与全部删除动作
+// [OUT]: Filament registration list page with inline summary, manual refresh, Excel export, and registration cleanup / 带内联汇总、手动刷新、Excel 导出与报名清理的 Filament 报名列表页面
 // [POS]: Backend admin registration index route / 后端后台报名索引路由
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -46,6 +46,20 @@ class ListRegistrations extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('refreshRegistrations')
+                ->label('刷新报名记录')
+                ->icon('heroicon-o-arrow-path')
+                ->visible(fn (): bool => RegistrationResource::hasModulePermission('view'))
+                ->action(function (): void {
+                    abort_unless(RegistrationResource::hasModulePermission('view'), 403);
+
+                    $this->flushCachedTableRecords();
+
+                    Notification::make()
+                        ->title('报名记录已刷新')
+                        ->success()
+                        ->send();
+                }),
             Action::make('exportExcel')
                 ->label('导出 Excel')
                 ->visible(fn (): bool => RegistrationResource::hasModulePermission('view'))
