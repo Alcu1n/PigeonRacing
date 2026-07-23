@@ -57,7 +57,10 @@ class RingSaleFilamentTest extends TestCase
             ->assertSchemaComponentExists('items')
             ->assertSchemaComponentExists('receipt_paths');
 
-        $component->assertDontSee('每行记录一个“类别＋号码段”');
+        $component
+            ->assertSee('前缀')
+            ->assertDontSee('前缀＋尾号')
+            ->assertDontSee('每行记录一个“类别＋号码段”');
 
         $this->assertSame(
             [

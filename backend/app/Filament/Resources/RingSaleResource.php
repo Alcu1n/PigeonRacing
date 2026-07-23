@@ -274,11 +274,12 @@ class RingSaleResource extends Resource
                                         ->live(),
                                     ToggleButtons::make('entry_mode')
                                         ->label('录入方式')
-                                        ->options(['prefix' => '前缀＋尾号', 'full' => '完整号码'])
+                                        ->options(['prefix' => '前缀', 'full' => '完整号码'])
                                         ->default('prefix')
                                         ->inline()
                                         ->required()
-                                        ->live(),
+                                        ->live()
+                                        ->extraAttributes(['class' => 'ring-sale-entry-mode']),
                                 ]),
                             Select::make('prefix_id')
                                 ->label('号码前缀')

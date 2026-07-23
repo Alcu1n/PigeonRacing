@@ -1,5 +1,5 @@
 {{-- [IN]: Filter-aware active ring-sale totals / 随筛选变化的有效售环汇总 --}}
-{{-- [OUT]: Integrated reconciliation cards, single-line ledger cells, and compact mobile modal styling / 融合式对账卡片、单行台账单元格与紧凑手机弹层样式 --}}
+{{-- [OUT]: Integrated reconciliation cards, single-line ledger cells, and aligned compact mobile modal styling / 融合式对账卡片、单行台账单元格与对齐紧凑手机弹层样式 --}}
 {{-- [POS]: Ring-sale table summary / 售环列表汇总 --}}
 {{-- Protocol: When updating me, sync this header + parent folder's .folder.md --}}
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
@@ -193,12 +193,13 @@
 
         .ring-sale-entry-modal .fi-modal-heading {
             position: absolute;
+            top: 50%;
             inset-inline-start: 50%;
             max-width: calc(100% - 12rem);
             overflow: hidden;
             text-align: center;
             text-overflow: ellipsis;
-            transform: translateX(-50%);
+            transform: translate(-50%, -50%);
             white-space: nowrap;
         }
 
@@ -254,6 +255,21 @@
 
         .ring-sale-entry-modal .ring-sale-paired-grid > .fi-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+
+        .ring-sale-entry-modal .ring-sale-entry-mode {
+            flex-wrap: nowrap !important;
+        }
+
+        .ring-sale-entry-modal .ring-sale-entry-mode .fi-fo-toggle-buttons-btn-ctn {
+            min-width: 0;
+            flex: 1 1 0;
+        }
+
+        .ring-sale-entry-modal .ring-sale-entry-mode .fi-btn {
+            width: 100%;
+            padding-inline: .55rem;
+            white-space: nowrap;
         }
 
         .ring-sale-entry-modal .fi-fo-repeater-item {
