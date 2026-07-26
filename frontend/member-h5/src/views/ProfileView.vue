@@ -169,7 +169,7 @@ const visiblePigeons = computed(() => activeLibrary.value?.pigeons ?? pigeons.va
               <small>{{ yuan(item.total_amount_cent) }} · 单羽 {{ item.single_count }} 项 · 多羽 {{ item.multi_group_count }} 组 · 递进 {{ item.progressive_count ?? 0 }} 组</small>
             </div>
             <div class="history-list-actions">
-              <button type="button" class="history-detail-action" @click="router.push(`/profile/registrations/${item.registration_id}`)">查看明细</button>
+              <button type="button" class="history-detail-action" @click="router.push(`/profile/registrations/${item.registration_id}`)">查看全部明细</button>
               <RegistrationReceiptDownload compact :registration-id="item.registration_id" />
             </div>
           </article>

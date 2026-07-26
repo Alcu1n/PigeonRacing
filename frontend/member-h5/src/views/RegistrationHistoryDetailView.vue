@@ -1,5 +1,5 @@
 <!-- [IN]: Registration history route param and backend detail API / 报名历史路由参数与后端详情 API -->
-<!-- [OUT]: Read-only mobile-friendly registration history detail with receipt download / 带报名凭证下载的移动端友好只读报名历史详情 -->
+<!-- [OUT]: Read-only mobile-friendly registration history detail with receipt download and sticky table headers / 带报名凭证下载与吸顶表格行头的移动端友好只读报名历史详情 -->
 <!-- [POS]: Frontend member registration history detail screen / 前端会员报名历史详情页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -99,16 +99,18 @@ onMounted(async () => {
           <span>{{ matrix.multi.reduce((sum, project) => sum + project.group_count, 0) }} 组</span>
         </div>
         <p v-if="matrix.multi.length === 0" class="empty-note">暂无多羽组报名</p>
-        <article v-for="project in matrix.multi" :key="project.project_id" class="history-multi-block">
-          <header>
-            <strong>{{ project.project_name }}</strong>
-            <span>{{ project.group_count }} 组 / {{ yuan(project.amount_cent) }}</span>
-          </header>
-          <div v-for="group in project.groups" :key="group.group_index" class="history-group-row">
-            <b>第 {{ group.group_index }} 组</b>
-            <span>{{ group.rings.join(' / ') }}</span>
-          </div>
-        </article>
+        <div v-else class="history-blocks-scroll">
+          <article v-for="project in matrix.multi" :key="project.project_id" class="history-multi-block">
+            <header>
+              <strong>{{ project.project_name }}</strong>
+              <span>{{ project.group_count }} 组 / {{ yuan(project.amount_cent) }}</span>
+            </header>
+            <div v-for="group in project.groups" :key="group.group_index" class="history-group-row">
+              <b>第 {{ group.group_index }} 组</b>
+              <span>{{ group.rings.join(' / ') }}</span>
+            </div>
+          </article>
+        </div>
       </section>
 
       <section class="profile-card history-card">
@@ -117,16 +119,18 @@ onMounted(async () => {
           <span>{{ matrix.progressive.reduce((sum, group) => sum + group.count, 0) }} 组</span>
         </div>
         <p v-if="matrix.progressive.length === 0" class="empty-note">暂无递进阶段报名</p>
-        <article v-for="group in matrix.progressive" :key="group.category_id + '-' + group.stage_project_id" class="history-multi-block">
-          <header>
-            <strong>{{ group.category_name }} · {{ group.stage_project_name }}</strong>
-            <span>{{ group.count }} 组 / {{ yuan(group.amount_cent) }}</span>
-          </header>
-          <div v-for="item in group.groups" :key="item.group_index" class="history-group-row">
-            <b>{{ item.status === 'confirmed' ? '已确认' : '未确认' }}</b>
-            <span>{{ item.rings.join(' / ') }}</span>
-          </div>
-        </article>
+        <div v-else class="history-blocks-scroll">
+          <article v-for="group in matrix.progressive" :key="group.category_id + '-' + group.stage_project_id" class="history-multi-block">
+            <header>
+              <strong>{{ group.category_name }} · {{ group.stage_project_name }}</strong>
+              <span>{{ group.count }} 组 / {{ yuan(group.amount_cent) }}</span>
+            </header>
+            <div v-for="item in group.groups" :key="item.group_index" class="history-group-row">
+              <b>{{ item.status === 'confirmed' ? '已确认' : '未确认' }}</b>
+              <span>{{ item.rings.join(' / ') }}</span>
+            </div>
+          </article>
+        </div>
       </section>
 
       <RegistrationReceiptDownload :registration="registration" />

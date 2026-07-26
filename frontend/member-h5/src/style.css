@@ -1,5 +1,5 @@
 /* [IN]: Member H5 markup and design tokens / 会员 H5 标记与设计令牌 */
-/* [OUT]: Mobile-first UI styles with public pages, registration matrices, downloadable history actions, and compact workflows / 公开页面、报名矩阵、可下载历史动作与紧凑流程的移动优先 UI 样式 */
+/* [OUT]: Mobile-first UI styles with public pages, registration matrices, downloadable history actions, sticky history table headers, and compact workflows / 公开页面、报名矩阵、可下载历史动作、吸顶历史表格行头与紧凑流程的移动优先 UI 样式 */
 /* [POS]: Frontend global stylesheet / 前端全局样式 */
 /* Protocol: When updating me, sync this header + parent folder's .folder.md */
 /* 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md */
@@ -2056,6 +2056,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .history-matrix-wrap {
   overflow-x: auto;
+  max-height: 62vh;
   margin: 0 -16px -16px;
   border-top: 1px solid var(--border);
 }
@@ -2122,6 +2123,18 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   gap: 8px;
   padding: 11px 0;
   border-top: 1px solid var(--border);
+}
+
+.history-blocks-scroll {
+  max-height: 62vh;
+  overflow-y: auto;
+}
+
+.history-multi-block header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface);
 }
 
 .history-multi-block header,
