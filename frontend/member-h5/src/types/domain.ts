@@ -18,6 +18,7 @@ export interface Race {
   registration_start_at?: string
   registration_end_at: string
   status: string
+  registration_state?: 'pending' | 'open' | 'ended'
   config_version: number
   allow_member_edit?: boolean
   has_published_details?: boolean

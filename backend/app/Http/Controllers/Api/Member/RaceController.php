@@ -29,6 +29,7 @@ class RaceController extends Controller
                 'name' => $race->name,
                 'registration_end_at' => $race->registration_end_at->toDateTimeString(),
                 'status' => $race->isOpenForRegistration() ? 'open' : $race->status->value,
+                'registration_state' => $race->registrationState(),
                 'has_published_details' => $race->hasPublishedRegistrationDetails(),
                 'registration_details_scope' => $race->registration_details_scope,
             ]);

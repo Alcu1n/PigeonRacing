@@ -68,6 +68,23 @@ class Race extends Model
             && $this->registration_end_at >= $now;
     }
 
+    public function registrationState(): string
+    {
+        if ($this->isOpenForRegistration()) {
+            return 'open';
+        }
+
+        if (
+            $this->status === RaceStatus::Published
+            && $this->is_visible
+            && $this->registration_start_at > now()
+        ) {
+            return 'pending';
+        }
+
+        return 'ended';
+    }
+
     public function hasPublishedRegistrationDetails(): bool
     {
         return $this->registration_details_published_at !== null;

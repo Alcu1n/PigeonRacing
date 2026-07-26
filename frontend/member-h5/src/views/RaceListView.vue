@@ -30,7 +30,7 @@ const categories: Array<{ value: InformationCategory | 'all'; label: string }> =
   { value: 'notice', label: '通知公告' },
 ]
 
-const openRaceCount = computed(() => races.value.filter((race) => !isRaceEnded(race)).length)
+const openRaceCount = computed(() => races.value.filter((race) => raceListState(race) === 'open').length)
 const visibleInformation = computed(() => informationItems.value.slice(0, 6))
 const registrationsByRace = computed(() => {
   const map = new Map<number, RegistrationHistoryItem>()
@@ -92,6 +92,20 @@ function isRaceEnded(race: Race): boolean {
   return race.status !== 'open' || (Number.isFinite(endTime) && endTime <= Date.now())
 }
 
+type RaceListState = 'pending' | 'open' | 'ended'
+
+function raceListState(race: Race): RaceListState {
+  if (race.registration_state === 'pending' || race.registration_state === 'open' || race.registration_state === 'ended') {
+    return race.registration_state
+  }
+
+  return isRaceEnded(race) ? 'ended' : 'open'
+}
+
+function raceStateText(state: RaceListState): string {
+  return state === 'pending' ? '未开始' : state === 'open' ? '报名中' : '报名已结束'
+}
+
 function parseRaceEndAt(value: string): Date {
   return new Date(value.replace(' ', 'T'))
 }
@@ -143,10 +157,10 @@ function categoryClass(category: InformationCategory): string {
         <p v-if="loading" class="empty-note">加载赛事中...</p>
         <p v-else-if="races.length === 0" class="race-home-empty">暂无可报名赛事，请留意信息发布</p>
         <section v-else class="race-list">
-          <article v-for="race in races" :key="race.id" :class="['race-card', { ended: isRaceEnded(race) }]">
+          <article v-for="race in races" :key="race.id" :class="['race-card', { ended: raceListState(race) === 'ended' }]">
             <div class="race-card-top">
-              <span :class="['race-status-pill', isRaceEnded(race) ? 'ended' : 'open']">
-                {{ isRaceEnded(race) ? '报名已结束' : '报名中' }}
+              <span :class="['race-status-pill', raceListState(race)]">
+                {{ raceStateText(raceListState(race)) }}
               </span>
               <span class="race-card-deadline">
                 截止 {{ raceEndDate(race.registration_end_at) }} {{ raceEndTime(race.registration_end_at) }}
@@ -155,11 +169,11 @@ function categoryClass(category: InformationCategory): string {
             <h3>{{ race.name }}</h3>
             <div class="race-card-actions">
               <button
-                :class="['race-entry-action', { ended: isRaceEnded(race) }]"
-                :disabled="isRaceEnded(race)"
+                :class="['race-entry-action', raceListState(race) === 'open' ? '' : raceListState(race)]"
+                :disabled="raceListState(race) !== 'open'"
                 @click="router.push(`/races/${race.id}/register`)"
               >
-                {{ isRaceEnded(race) ? '报名已结束' : '进入报名' }}
+                {{ raceListState(race) === 'open' ? '进入报名' : raceStateText(raceListState(race)) }}
               </button>
               <button
                 v-if="race.has_published_details"

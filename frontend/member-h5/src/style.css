@@ -1266,6 +1266,12 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   box-shadow: none;
 }
 
+.race-status-pill.pending {
+  background: #fff2d8;
+  color: #9a5c00;
+  box-shadow: none;
+}
+
 .race-card-deadline {
   color: var(--danger);
   font-size: 12px;
@@ -1304,7 +1310,9 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 }
 
 .race-entry-action.ended,
-.race-entry-action.ended:disabled {
+.race-entry-action.ended:disabled,
+.race-entry-action.pending,
+.race-entry-action.pending:disabled {
   background: #eef2ef;
   color: #7a8a80;
   opacity: 1;
@@ -1608,7 +1616,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   z-index: 2;
 }
 
-.published-corner-cell {
+.published-sticky-cell.published-corner-cell {
   top: 0;
   z-index: 4;
 }
@@ -2080,7 +2088,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .history-header-row {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 4;
   background: #eef6f1;
 }
 
