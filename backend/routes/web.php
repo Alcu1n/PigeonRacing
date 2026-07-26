@@ -20,6 +20,11 @@ Route::get('/admin/ring-sale-receipts/{receipt}', [RingSaleReceiptController::cl
     ->middleware('auth')
     ->name('admin.ring-sale-receipts.show');
 
+Route::get('/admin/registrations/receipt-assets/html2canvas.min.js', [RegistrationReceiptController::class, 'html2canvas'])
+    ->middleware('auth')
+    ->name('admin.registrations.receipt-assets.html2canvas');
+
 Route::get('/admin/registrations/{registration}/receipt', [RegistrationReceiptController::class, 'show'])
     ->middleware('auth')
+    ->whereNumber('registration')
     ->name('admin.registrations.receipt');

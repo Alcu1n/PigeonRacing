@@ -242,7 +242,7 @@
 <div class="receipt-stage">
   <article id="receipt" class="registration-receipt"></article>
 </div>
-<script src="/js/html2canvas.min.js"></script>
+<script src="{{ route('admin.registrations.receipt-assets.html2canvas') }}"></script>
 <script>
 (function () {
   'use strict';
@@ -516,10 +516,28 @@
 
     var statusText = document.getElementById('statusText');
     var button = document.getElementById('downloadButton');
-    var node = document.getElementById('receipt');
+
+    if (typeof html2canvas !== 'function') {
+      statusText.textContent = '渲染组件加载失败，请刷新页面重试';
+      button.disabled = false;
+      generating = false;
+      return;
+    }
+
     statusText.textContent = '正在生成报名明细图片…';
     button.disabled = true;
 
+    try {
+      attemptDownload(0, statusText, button);
+    } catch (error) {
+      statusText.textContent = '报名明细图片生成失败，请重试';
+      button.disabled = false;
+      generating = false;
+    }
+  }
+
+  function attemptDownload(index, statusText, button) {
+    var node = document.getElementById('receipt');
     var width = Math.ceil(node.scrollWidth || node.getBoundingClientRect().width);
     var height = Math.ceil(node.scrollHeight || node.getBoundingClientRect().height);
     var preferredScale = receiptCanvasScale(width, height);
@@ -527,45 +545,41 @@
     var scales = preferredScale === retryScale ? [preferredScale] : [preferredScale, retryScale];
     var fileName = receiptFileName(receiptData);
 
-    var attempt = function (index) {
-      if (index >= scales.length) {
-        statusText.textContent = '报名明细图片生成失败，请重试';
+    if (index >= scales.length) {
+      statusText.textContent = '报名明细图片生成失败，请重试';
+      button.disabled = false;
+      generating = false;
+      return;
+    }
+
+    html2canvas(node, {
+      backgroundColor: '#ffffff',
+      height: height,
+      logging: false,
+      scale: scales[index],
+      useCORS: true,
+      width: width,
+      windowWidth: Math.max(document.documentElement.clientWidth, width + 80),
+    }).then(function (canvas) {
+      canvas.toBlob(function (blob) {
+        if (!blob) { attemptDownload(index + 1, statusText, button); return; }
+
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
+
+        statusText.textContent = '报名明细图片已开始下载，可关闭本页';
         button.disabled = false;
         generating = false;
-        return;
-      }
-
-      html2canvas(node, {
-        backgroundColor: '#ffffff',
-        height: height,
-        logging: false,
-        scale: scales[index],
-        useCORS: true,
-        width: width,
-        windowWidth: Math.max(document.documentElement.clientWidth, width + 80),
-      }).then(function (canvas) {
-        canvas.toBlob(function (blob) {
-          if (!blob) { attempt(index + 1); return; }
-
-          var url = URL.createObjectURL(blob);
-          var link = document.createElement('a');
-          link.href = url;
-          link.download = fileName;
-          document.body.appendChild(link);
-          link.click();
-          link.remove();
-          setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
-
-          statusText.textContent = '报名明细图片已下载，如未开始请再次点击按钮';
-          button.disabled = false;
-          generating = false;
-        }, 'image/png');
-      }).catch(function () {
-        attempt(index + 1);
-      });
-    };
-
-    attempt(0);
+      }, 'image/png');
+    }).catch(function () {
+      attemptDownload(index + 1, statusText, button);
+    });
   }
 
   var receiptData = buildReceipt(payload);
