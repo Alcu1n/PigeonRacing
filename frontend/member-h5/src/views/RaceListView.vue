@@ -1,5 +1,5 @@
-<!-- [IN]: Authenticated member session, visible race API, and public information API / 已鉴权会员会话、可见赛事 API 与公开信息 API -->
-<!-- [OUT]: Modern member home with hero greeting, prominent race list, sibling profile card, and embedded information feed / 现代化会员主页：问候 Hero、突出赛事列表、平级个人信息卡片与内嵌信息流 -->
+<!-- [IN]: Authenticated member session, visible race API, member registration history API, and public information API / 已鉴权会员会话、可见赛事 API、会员报名历史 API 与公开信息 API -->
+<!-- [OUT]: Modern compact member home with hero greeting, prominent race list with receipt download, sibling profile card, and embedded information feed / 现代化紧凑会员主页：问候 Hero、带报名明细下载的突出赛事列表、平级个人信息卡片与内嵌信息流 -->
 <!-- [POS]: Frontend member home (race list) screen / 前端会员主页（赛事列表）页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -7,15 +7,18 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { api } from '../api/client'
-import type { InformationCategory, InformationPostListItem, Race } from '../types/domain'
+import type { InformationCategory, InformationPostListItem, Race, RegistrationHistoryItem } from '../types/domain'
+import { registrationStatusText, registrationStatusTone } from '../types/domain'
 import { informationCategoryLabel } from '../utils/information'
 import { useAuthStore } from '../stores/auth'
 import MemberLogoutButton from '../components/MemberLogoutButton.vue'
+import RegistrationReceiptDownload from '../components/RegistrationReceiptDownload.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
 const races = ref<Race[]>([])
 const loading = ref(true)
+const myRegistrations = ref<RegistrationHistoryItem[]>([])
 const informationItems = ref<InformationPostListItem[]>([])
 const informationLoading = ref(true)
 const activeCategory = ref<InformationCategory | 'all'>('all')
@@ -29,9 +32,17 @@ const categories: Array<{ value: InformationCategory | 'all'; label: string }> =
 
 const openRaceCount = computed(() => races.value.filter((race) => !isRaceEnded(race)).length)
 const visibleInformation = computed(() => informationItems.value.slice(0, 6))
+const registrationsByRace = computed(() => {
+  const map = new Map<number, RegistrationHistoryItem>()
+  for (const item of myRegistrations.value) {
+    map.set(item.race_id, item)
+  }
+
+  return map
+})
 
 onMounted(async () => {
-  await Promise.all([loadRaces(), loadInformation()])
+  await Promise.all([loadRaces(), loadInformation(), loadMyRegistrations()])
 })
 
 async function loadRaces(): Promise<void> {
@@ -40,6 +51,15 @@ async function loadRaces(): Promise<void> {
     races.value = response.data
   } finally {
     loading.value = false
+  }
+}
+
+async function loadMyRegistrations(): Promise<void> {
+  try {
+    const response = await api.get('/api/member/registrations')
+    myRegistrations.value = response.data
+  } catch {
+    myRegistrations.value = []
   }
 }
 
@@ -60,6 +80,10 @@ async function selectCategory(category: InformationCategory | 'all'): Promise<vo
   if (activeCategory.value === category) return
   activeCategory.value = category
   await loadInformation()
+}
+
+function registrationFor(race: Race): RegistrationHistoryItem | undefined {
+  return registrationsByRace.value.get(race.id)
 }
 
 function isRaceEnded(race: Race): boolean {
@@ -91,31 +115,33 @@ function categoryClass(category: InformationCategory): string {
 
 <template>
   <main class="page race-home">
-    <header class="race-home-hero">
-      <div class="race-home-hero-top">
-        <span class="race-home-brand">赛鸽会员系统</span>
-        <MemberLogoutButton class="race-home-logout" />
+    <header class="member-hero">
+      <div class="member-hero-top">
+        <span class="member-hero-brand">赛鸽会员系统</span>
+        <MemberLogoutButton class="member-hero-logout" />
       </div>
-      <div class="race-home-hero-title">
-        <p>你好，{{ auth.member?.participant_name || '会员' }}</p>
-        <h1>今日赛事报名</h1>
-        <span>棚号 {{ auth.member?.loft_number || '-' }} · 选择赛事即可进入报名</span>
-      </div>
-      <div class="race-home-hero-stats" aria-label="赛事概览">
-        <span>
-          <b>{{ openRaceCount }}</b>
-          <small>报名中赛事</small>
-        </span>
-        <span>
-          <b>{{ races.length }}</b>
-          <small>可见赛事</small>
-        </span>
+      <div class="member-hero-main">
+        <div class="member-hero-title">
+          <p>你好，{{ auth.member?.participant_name || '会员' }}</p>
+          <h1>今日赛事报名</h1>
+          <span>棚号 {{ auth.member?.loft_number || '-' }} · 选择赛事即可进入报名</span>
+        </div>
+        <div class="member-hero-stats" aria-label="赛事概览">
+          <span>
+            <b>{{ openRaceCount }}</b>
+            <small>报名中</small>
+          </span>
+          <span>
+            <b>{{ races.length }}</b>
+            <small>可见赛事</small>
+          </span>
+        </div>
       </div>
     </header>
 
     <div class="race-home-grid">
       <section class="race-home-races" aria-label="可报名赛事">
-        <div class="race-home-section-head">
+        <div class="race-home-section-head featured">
           <h2>可报名赛事</h2>
           <span class="race-home-section-badge">{{ races.length }} 场</span>
         </div>
@@ -149,6 +175,15 @@ function categoryClass(category: InformationCategory): string {
                 报名明细
               </button>
             </div>
+            <div v-if="registrationFor(race)" class="race-card-registration">
+              <span class="race-card-registration-meta">
+                <b :class="['registration-status-pill', registrationStatusTone(registrationFor(race)!.status)]">
+                  {{ registrationStatusText(registrationFor(race)!.status) }}
+                </b>
+                <small>报名号 {{ registrationFor(race)!.registration_no }}</small>
+              </span>
+              <RegistrationReceiptDownload compact :registration-id="registrationFor(race)!.registration_id" />
+            </div>
           </article>
         </section>
       </section>
@@ -159,13 +194,13 @@ function categoryClass(category: InformationCategory): string {
             <h2>个人信息</h2>
           </div>
           <div class="race-home-member-identity">
-            <span class="race-home-member-avatar">{{ (auth.member?.participant_name || '会').slice(0, 1) }}</span>
+            <span class="member-avatar">{{ (auth.member?.participant_name || '会').slice(0, 1) }}</span>
             <div>
               <strong>{{ auth.member?.participant_name || '会员' }}</strong>
               <small>棚号 {{ auth.member?.loft_number || '-' }}</small>
             </div>
           </div>
-          <dl class="race-home-member-rows">
+          <dl class="member-rows">
             <div>
               <dt>手机号</dt>
               <dd>{{ auth.member?.phone || '未设置' }}</dd>
