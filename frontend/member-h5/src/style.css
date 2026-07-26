@@ -922,6 +922,10 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   gap: 10px;
 }
 
+.member-hero-top.end {
+  justify-content: flex-end;
+}
+
 .member-hero-brand {
   font-size: 12px;
   font-weight: 900;
@@ -952,11 +956,8 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 }
 
 .member-hero-main {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 10px 14px;
+  display: grid;
+  gap: 10px;
 }
 
 .member-hero-identity {
@@ -975,7 +976,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .member-hero-title span {
   margin: 0;
   color: rgba(255, 255, 255, .82);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
 }
 
@@ -988,13 +989,14 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 }
 
 .member-hero-stats {
-  flex: 0 0 auto;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
 }
 
 .member-hero-stats span {
   display: grid;
+  justify-items: center;
   gap: 1px;
   border: 1px solid rgba(255, 255, 255, .22);
   border-radius: 12px;
@@ -1040,13 +1042,6 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .member-hero.compact .member-hero-title h1 {
   font-size: 22px;
-}
-
-@media (max-width: 399px) {
-  .member-hero-main {
-    align-items: flex-start;
-    flex-direction: column;
-  }
 }
 
 .race-home-grid {
@@ -1812,19 +1807,19 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   font-weight: 900;
 }
 
-.profile-card dl {
+.history-summary-card dl {
   display: grid;
   grid-template-columns: 72px 1fr;
   gap: 10px 12px;
   margin: 0;
 }
 
-.profile-card dt {
+.history-summary-card dt {
   color: var(--muted);
   font-weight: 700;
 }
 
-.profile-card dd {
+.history-summary-card dd {
   margin: 0;
   font-weight: 800;
 }
@@ -1928,7 +1923,6 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   border-color: #0b7a4b;
   background: #0b7a4b;
   color: #fff;
-  box-shadow: 0 10px 20px rgba(11, 122, 75, .22);
 }
 
 .history-list {
@@ -1990,7 +1984,7 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 .history-detail-action {
   min-height: 34px;
   border: 1px solid rgba(6, 63, 42, .65);
-  border-radius: 999px;
+  border-radius: 7px;
   padding: 0 14px;
   background: #fff;
   color: #063f2a;

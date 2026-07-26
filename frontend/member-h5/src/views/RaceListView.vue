@@ -116,15 +116,13 @@ function categoryClass(category: InformationCategory): string {
 <template>
   <main class="page race-home">
     <header class="member-hero">
-      <div class="member-hero-top">
-        <span class="member-hero-brand">赛鸽会员系统</span>
+      <div class="member-hero-top end">
         <MemberLogoutButton class="member-hero-logout" />
       </div>
       <div class="member-hero-main">
         <div class="member-hero-title">
-          <p>你好，{{ auth.member?.participant_name || '会员' }}</p>
+          <p>你好，{{ auth.member?.participant_name || '会员' }} · 棚号 {{ auth.member?.loft_number || '-' }}</p>
           <h1>今日赛事报名</h1>
-          <span>棚号 {{ auth.member?.loft_number || '-' }} · 选择赛事即可进入报名</span>
         </div>
         <div class="member-hero-stats" aria-label="赛事概览">
           <span>
