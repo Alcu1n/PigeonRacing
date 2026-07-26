@@ -1,5 +1,5 @@
-{{-- [IN]: Registration summary totals from ListRegistrations / 来自 ListRegistrations 的报名汇总 --}}
-{{-- [OUT]: Inline registration amount and loft cards / 内联报名金额与棚数卡片 --}}
+{{-- [IN]: Registration summary totals and active race scope label from ListRegistrations / 来自 ListRegistrations 的报名汇总与当前赛事范围标签 --}}
+{{-- [OUT]: Inline registration amount and loft cards with active scope hint / 带当前范围提示的内联报名金额与棚数卡片 --}}
 {{-- [POS]: Backend admin registration list summary view / 后端后台报名列表汇总视图 --}}
 {{-- Protocol: When updating me, sync this header + parent folder's .folder.md --}}
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
@@ -11,7 +11,7 @@
         [
             'label' => '已报名总金额',
             'value' => RegistrationSummaryService::formatYuan($summary['total_amount_cent']).' 元',
-            'description' => '所有报名记录金额合计',
+            'description' => '当前范围报名记录金额合计',
             'accent' => '#10b981',
         ],
         [
@@ -29,13 +29,25 @@
         [
             'label' => '报名总棚数',
             'value' => number_format($summary['loft_count']).' 棚',
-            'description' => '已有报名记录的会员棚数',
+            'description' => '当前范围已有报名记录的会员棚数',
             'accent' => '#38bdf8',
         ],
     ];
 @endphp
 
 <style>
+    .registration-summary-scope {
+        margin-bottom: 10px;
+        color: #64748b;
+        font-size: 13px;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+
+    .dark .registration-summary-scope {
+        color: #a1a1aa;
+    }
+
     .registration-summary-grid {
         display: grid;
         gap: 12px;
@@ -109,6 +121,8 @@
         line-height: 1.4;
     }
 </style>
+
+<div class="registration-summary-scope">当前统计范围：{{ $scopeLabel }}</div>
 
 <div class="registration-summary-grid">
     @foreach ($cards as $card)

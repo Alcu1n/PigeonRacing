@@ -1,7 +1,7 @@
 <?php
 
-// [IN]: RegistrationResource table, summary service, race selector, manual refresh, and delete-all action / RegistrationResource 表格、汇总服务、赛事选择器、手动刷新与全部删除动作
-// [OUT]: Filament registration list page with inline summary, manual refresh, Excel export, and registration cleanup / 带内联汇总、手动刷新、Excel 导出与报名清理的 Filament 报名列表页面
+// [IN]: RegistrationResource table, summary service, race tabs, manual refresh, and delete-all action / RegistrationResource 表格、汇总服务、赛事切换页签、手动刷新与全部删除动作
+// [OUT]: Filament registration list page with race-scoped tabs, inline summary, manual refresh, Excel export, and registration cleanup / 带赛事范围页签、内联汇总、手动刷新、Excel 导出与报名清理的 Filament 报名列表页面
 // [POS]: Backend admin registration index route / 后端后台报名索引路由
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -19,9 +19,11 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\RenderHook;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ListRegistrations extends ListRecords
@@ -35,12 +37,32 @@ class ListRegistrations extends ListRecords
                 $this->getTabsContentComponent(),
                 View::make('filament.resources.registration-resource.registration-summary')
                     ->viewData(fn (): array => [
-                        'summary' => app(RegistrationSummaryService::class)->totals(),
+                        'summary' => app(RegistrationSummaryService::class)->totals($this->activeRaceId()),
+                        'scopeLabel' => $this->activeScopeLabel(),
                     ]),
                 RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_BEFORE),
                 EmbeddedTable::make(),
                 RenderHook::make(PanelsRenderHook::RESOURCE_PAGES_LIST_RECORDS_TABLE_AFTER),
             ]);
+    }
+
+    public function getTabs(): array
+    {
+        $tabs = [
+            'all' => Tab::make('全部赛事')
+                ->badge(Registration::query()->count()),
+        ];
+
+        Race::query()
+            ->orderByDesc('registration_end_at')
+            ->get()
+            ->each(function (Race $race) use (&$tabs): void {
+                $tabs['race-'.$race->id] = Tab::make($race->name)
+                    ->badge(Registration::query()->where('race_id', $race->id)->count())
+                    ->modifyQueryUsing(fn (Builder $query): Builder => $query->where('race_id', $race->id));
+            });
+
+        return $tabs;
     }
 
     protected function getHeaderActions(): array
@@ -87,6 +109,28 @@ class ListRegistrations extends ListRecords
                 ->modalSubmitActionLabel('确认删除')
                 ->action(fn () => $this->deleteAllRegistrations()),
         ];
+    }
+
+    private function activeRaceId(): ?int
+    {
+        if (blank($this->activeTab) || ! preg_match('/^race-(\d+)$/', (string) $this->activeTab, $matches)) {
+            return null;
+        }
+
+        if (! array_key_exists($this->activeTab, $this->getCachedTabs())) {
+            return null;
+        }
+
+        return (int) $matches[1];
+    }
+
+    private function activeScopeLabel(): string
+    {
+        if ($this->activeRaceId() === null) {
+            return '全部赛事';
+        }
+
+        return (string) $this->getCachedTabs()[$this->activeTab]->getLabel();
     }
 
     private function deleteAllRegistrations(): void

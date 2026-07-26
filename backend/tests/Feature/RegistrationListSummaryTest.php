@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Filament admin session and registration totals / Filament 后台会话与报名汇总
-// [OUT]: Registration list summary, latest-submission order, confirmation filtering, and pagination defaults assertions / 报名列表汇总、最近提交排序、确认状态筛选与分页默认值断言
+// [OUT]: Registration list summary, race tab scoping, latest-submission order, confirmation filtering, and pagination defaults assertions / 报名列表汇总、赛事页签范围切换、最近提交排序、确认状态筛选与分页默认值断言
 // [POS]: Backend admin registration list summary feature test / 后端后台报名列表汇总功能测试
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -22,6 +22,7 @@ use App\Models\RegistrationCategory;
 use App\Models\RegistrationEntry;
 use App\Models\RegistrationEntryPigeon;
 use App\Models\User;
+use App\Services\RegistrationSummaryService;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -99,6 +100,65 @@ class RegistrationListSummaryTest extends TestCase
         $this->assertSame('未确认', $filter->getFalseLabel());
         $this->assertSame([$newerConfirmed->id], $filter->apply(Registration::query(), ['value' => true])->pluck('id')->all());
         $this->assertSame([$olderPending->id], $filter->apply(Registration::query(), ['value' => false])->pluck('id')->all());
+    }
+
+    public function test_registration_list_tabs_scope_summary_and_records_by_race(): void
+    {
+        $springRace = Race::query()->create([
+            'name' => '春季大奖赛',
+            'registration_start_at' => now()->subDay(),
+            'registration_end_at' => now()->addDay(),
+            'status' => RaceStatus::Published,
+            'is_visible' => true,
+        ]);
+        $autumnRace = Race::query()->create([
+            'name' => '秋季大奖赛',
+            'registration_start_at' => now()->subDay(),
+            'registration_end_at' => now()->addDays(2),
+            'status' => RaceStatus::Published,
+            'is_visible' => true,
+        ]);
+        $springRegistration = $this->registration($springRace, 'B001', RegistrationStatus::Confirmed, 5000);
+        $autumnRegistration = $this->registration($autumnRace, 'B002', RegistrationStatus::PendingConfirmation, 30000);
+
+        $tabs = (new ListRegistrations())->getTabs();
+
+        $this->assertSame(
+            ['all', 'race-'.$autumnRace->id, 'race-'.$springRace->id],
+            array_keys($tabs),
+        );
+        $this->assertSame('全部赛事', $tabs['all']->getLabel());
+        $this->assertSame('春季大奖赛', $tabs['race-'.$springRace->id]->getLabel());
+        $this->assertSame('秋季大奖赛', $tabs['race-'.$autumnRace->id]->getLabel());
+        $this->assertEquals(2, $tabs['all']->getBadge());
+        $this->assertEquals(1, $tabs['race-'.$springRace->id]->getBadge());
+        $this->assertEquals(1, $tabs['race-'.$autumnRace->id]->getBadge());
+        $this->assertSame(
+            [$springRegistration->id],
+            $tabs['race-'.$springRace->id]->modifyQuery(Registration::query())->pluck('id')->all(),
+        );
+        $this->assertSame(
+            [$autumnRegistration->id],
+            $tabs['race-'.$autumnRace->id]->modifyQuery(Registration::query())->pluck('id')->all(),
+        );
+
+        $summary = app(RegistrationSummaryService::class);
+        $allTotals = $summary->totals();
+        $springTotals = $summary->totals($springRace->id);
+        $autumnTotals = $summary->totals($autumnRace->id);
+
+        $this->assertSame(35000, $allTotals['total_amount_cent']);
+        $this->assertSame(5000, $allTotals['confirmed_amount_cent']);
+        $this->assertSame(30000, $allTotals['unconfirmed_amount_cent']);
+        $this->assertSame(2, $allTotals['loft_count']);
+        $this->assertSame(5000, $springTotals['total_amount_cent']);
+        $this->assertSame(5000, $springTotals['confirmed_amount_cent']);
+        $this->assertSame(0, $springTotals['unconfirmed_amount_cent']);
+        $this->assertSame(1, $springTotals['loft_count']);
+        $this->assertSame(30000, $autumnTotals['total_amount_cent']);
+        $this->assertSame(0, $autumnTotals['confirmed_amount_cent']);
+        $this->assertSame(30000, $autumnTotals['unconfirmed_amount_cent']);
+        $this->assertSame(1, $autumnTotals['loft_count']);
     }
 
     public function test_admin_can_run_the_manual_registration_refresh_action(): void
