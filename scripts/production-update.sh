@@ -15,6 +15,7 @@ FRONTEND_ASSET_MODE="${FRONTEND_ASSET_MODE:-auto}"
 STRICT_GIT_STATUS="${STRICT_GIT_STATUS:-0}"
 OSS_ENV_FILE="${OSS_ENV_FILE:-$ROOT_DIR/.env.oss.local}"
 NODE_IMAGE="${NODE_IMAGE:-node:22-alpine}"
+RUN_TYPECHECK="${RUN_TYPECHECK:-0}"
 
 fail() {
     printf 'ERROR: %s\n' "$1" >&2
@@ -35,6 +36,7 @@ Environment variables:
   FRONTEND_ASSET_MODE=auto|oss|local    Default: auto (oss when OSS credentials exist, otherwise local).
   OSS_ENV_FILE=/path/.env.oss.local     OSS credential file checked by auto mode.
   NODE_IMAGE=node:22-alpine             Node image used to build the frontend when host npm is missing.
+  RUN_TYPECHECK=1                       Run vue-tsc typecheck before vite build (off by default).
   STRICT_GIT_STATUS=1                   Fail before pull when local changes exist.
 USAGE
 }
@@ -112,19 +114,29 @@ build_frontend_local() {
     if command -v npm >/dev/null 2>&1; then
         cd "$ROOT_DIR/frontend/member-h5"
         npm ci --include=dev
-        npm run build
+
+        if [[ "$RUN_TYPECHECK" == "1" ]]; then
+            npm run typecheck
+        fi
+
+        npx vite build
         cd "$ROOT_DIR"
         return
     fi
 
     command -v docker >/dev/null 2>&1 || fail "npm not found on host and docker is unavailable: install Node.js or Docker to build the frontend"
 
+    local typecheck_cmd=""
+    if [[ "$RUN_TYPECHECK" == "1" ]]; then
+        typecheck_cmd="npm run typecheck && "
+    fi
+
     printf 'npm not found on host; building frontend inside %s container.\n' "$NODE_IMAGE"
     docker run --rm \
         -v "$ROOT_DIR/frontend/member-h5":/app \
         -w /app \
         "$NODE_IMAGE" \
-        sh -c "npm ci --include=dev && npm run build"
+        sh -c "npm ci --include=dev && ${typecheck_cmd}npx vite build"
 }
 
 deploy_frontend() {
