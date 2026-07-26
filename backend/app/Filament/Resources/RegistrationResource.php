@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Registration model records, snapshot matrix service, confirmation action, and deletion requests / 报名模型记录、快照矩阵服务、确认动作与删除请求
-// [OUT]: Filament registration review table, latest-submission order, confirmation filter, identity-aware confirmation/deletion prompts, bulk confirm/delete, edit entry, localized status badges, prioritized overview, and dense detail matrix / 带最近提交排序、确认状态筛选、含身份信息的确认/删除提示、批量确认/删除、编辑入口、本地化状态徽标、重点概览与高密度详情矩阵的 Filament 报名审核表格
+// [OUT]: Filament registration review table, latest-submission order, confirmation filter, identity-aware confirmation/deletion prompts, bulk confirm/delete, edit entry, localized status badges, prioritized overview, dense detail matrix, and receipt download column / 带最近提交排序、确认状态筛选、含身份信息的确认/删除提示、批量确认/删除、编辑入口、本地化状态徽标、重点概览、高密度详情矩阵与明细下载列的 Filament 报名审核表格
 // [POS]: Backend admin registration resource / 后端后台报名资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -87,6 +87,13 @@ class RegistrationResource extends Resource
             TextColumn::make('total_amount_cent')
                 ->label('金额（元）')
                 ->formatStateUsing(fn (?int $state): string => rtrim(rtrim(number_format(($state ?? 0) / 100, 2, '.', ''), '0'), '.')),
+            TextColumn::make('receipt_download')
+                ->label('下载')
+                ->badge()
+                ->color('gray')
+                ->state(fn (): string => '下载明细')
+                ->visible(fn (): bool => self::hasModulePermission('view'))
+                ->url(fn (Registration $record): string => route('admin.registrations.receipt', ['registration' => $record]), shouldOpenInNewTab: true),
             TextColumn::make('registration_no')->label('报名编号')->searchable(),
             TextColumn::make('race.name')->label('赛事'),
             TextColumn::make('status_text')
