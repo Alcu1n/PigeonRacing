@@ -27,6 +27,7 @@ VITE_ASSET_BASE_URL="${VITE_ASSET_BASE_URL:-https://cdn.feilesg.com/}"
 RUN_TYPECHECK="${RUN_TYPECHECK:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 OSS_DELETE_EXTRA="${OSS_DELETE_EXTRA:-0}"
+NODE_IMAGE="${NODE_IMAGE:-node:22-alpine}"
 
 fail() {
     printf 'ERROR: %s\n' "$1" >&2
@@ -63,15 +64,33 @@ oss_destination() {
 }
 
 build_member_h5() {
-    cd "$FRONTEND_DIR"
+    if command -v npm >/dev/null 2>&1; then
+        cd "$FRONTEND_DIR"
 
-    npm ci --include=dev
+        npm ci --include=dev
 
-    if [[ "$RUN_TYPECHECK" == "1" ]]; then
-        npm run typecheck
+        if [[ "$RUN_TYPECHECK" == "1" ]]; then
+            npm run typecheck
+        fi
+
+        VITE_ASSET_BASE_URL="$VITE_ASSET_BASE_URL" npx vite build
+        return
     fi
 
-    VITE_ASSET_BASE_URL="$VITE_ASSET_BASE_URL" npx vite build
+    require_command docker
+
+    local typecheck_cmd=""
+    if [[ "$RUN_TYPECHECK" == "1" ]]; then
+        typecheck_cmd="npm run typecheck && "
+    fi
+
+    printf 'npm not found on host; building member H5 inside %s container.\n' "$NODE_IMAGE"
+    docker run --rm \
+        -v "$FRONTEND_DIR":/app \
+        -w /app \
+        -e VITE_ASSET_BASE_URL="$VITE_ASSET_BASE_URL" \
+        "$NODE_IMAGE" \
+        sh -c "npm ci --include=dev && ${typecheck_cmd}npx vite build"
 }
 
 verify_build() {
@@ -120,8 +139,11 @@ main() {
         printf 'Loaded OSS env file: %s\n' "$OSS_ENV_FILE"
     fi
 
-    require_command node
-    require_command npm
+    if command -v npm >/dev/null 2>&1; then
+        require_command node
+    else
+        require_command docker
+    fi
     require_command "$OSSUTIL_BIN"
 
     build_member_h5

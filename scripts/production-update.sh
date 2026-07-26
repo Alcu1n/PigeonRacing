@@ -14,6 +14,7 @@ PULL_CODE="${PULL_CODE:-1}"
 FRONTEND_ASSET_MODE="${FRONTEND_ASSET_MODE:-auto}"
 STRICT_GIT_STATUS="${STRICT_GIT_STATUS:-0}"
 OSS_ENV_FILE="${OSS_ENV_FILE:-$ROOT_DIR/.env.oss.local}"
+NODE_IMAGE="${NODE_IMAGE:-node:22-alpine}"
 
 fail() {
     printf 'ERROR: %s\n' "$1" >&2
@@ -33,6 +34,7 @@ Environment variables:
   PULL_CODE=0                         Skip git fetch/pull.
   FRONTEND_ASSET_MODE=auto|oss|local    Default: auto (oss when OSS credentials exist, otherwise local).
   OSS_ENV_FILE=/path/.env.oss.local     OSS credential file checked by auto mode.
+  NODE_IMAGE=node:22-alpine             Node image used to build the frontend when host npm is missing.
   STRICT_GIT_STATUS=1                   Fail before pull when local changes exist.
 USAGE
 }
@@ -106,6 +108,25 @@ resolve_frontend_asset_mode() {
     fi
 }
 
+build_frontend_local() {
+    if command -v npm >/dev/null 2>&1; then
+        cd "$ROOT_DIR/frontend/member-h5"
+        npm ci --include=dev
+        npm run build
+        cd "$ROOT_DIR"
+        return
+    fi
+
+    command -v docker >/dev/null 2>&1 || fail "npm not found on host and docker is unavailable: install Node.js or Docker to build the frontend"
+
+    printf 'npm not found on host; building frontend inside %s container.\n' "$NODE_IMAGE"
+    docker run --rm \
+        -v "$ROOT_DIR/frontend/member-h5":/app \
+        -w /app \
+        "$NODE_IMAGE" \
+        sh -c "npm ci --include=dev && npm run build"
+}
+
 deploy_frontend() {
     local restart_nginx="${1:-1}"
 
@@ -114,10 +135,7 @@ deploy_frontend() {
             bash "$ROOT_DIR/scripts/deploy-member-assets-to-oss.sh"
             ;;
         local)
-            cd "$ROOT_DIR/frontend/member-h5"
-            npm ci --include=dev
-            npm run build
-            cd "$ROOT_DIR"
+            build_frontend_local
             ;;
         *)
             fail "FRONTEND_ASSET_MODE must be auto, oss or local"
