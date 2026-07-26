@@ -8,6 +8,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Resources\AdminUserResource;
 use App\Filament\Resources\InformationPostResource;
 use App\Filament\Resources\MemberResource;
 use App\Filament\Resources\PigeonLibraryResource;
@@ -16,6 +17,7 @@ use App\Filament\Resources\RaceProjectResource;
 use App\Filament\Resources\RaceResource;
 use App\Filament\Resources\RegistrationCategoryResource;
 use App\Filament\Resources\RegistrationResource;
+use App\Filament\Resources\RingSaleResource;
 use Filament\Pages\Dashboard;
 
 class AdminDashboard extends Dashboard
@@ -59,6 +61,22 @@ class AdminDashboard extends Dashboard
                 'visible' => PigeonResource::canViewAny(),
             ],
             [
+                'label' => '售环记录',
+                'description' => '售环快速录入、收款与台账管理',
+                'icon' => 'heroicon-o-shopping-bag',
+                'href' => RingSaleResource::getUrl('index'),
+                'accent' => 'oklch(0.75 0.14 60)',
+                'visible' => RingSaleResource::canViewAny(),
+            ],
+            [
+                'label' => '赛事管理',
+                'description' => '管理赛事、报名时间',
+                'icon' => 'heroicon-o-flag',
+                'href' => RaceResource::getUrl('index'),
+                'accent' => 'oklch(0.69 0.16 38)',
+                'visible' => RaceResource::canViewAny(),
+            ],
+            [
                 'label' => '报名项目',
                 'description' => '配置单羽、多羽组、阶段项目、金额、规则',
                 'icon' => 'heroicon-o-squares-2x2',
@@ -75,20 +93,28 @@ class AdminDashboard extends Dashboard
                 'visible' => RegistrationCategoryResource::canViewAny(),
             ],
             [
-                'label' => '赛事管理',
-                'description' => '管理赛事、报名时间',
-                'icon' => 'heroicon-o-flag',
-                'href' => RaceResource::getUrl('index'),
-                'accent' => 'oklch(0.69 0.16 38)',
-                'visible' => RaceResource::canViewAny(),
-            ],
-            [
                 'label' => '报名记录',
                 'description' => '查看报名明细、确认报名并导出 Excel',
                 'icon' => 'heroicon-o-clipboard-document-check',
                 'href' => RegistrationResource::getUrl('index'),
                 'accent' => 'oklch(0.7 0.16 145)',
                 'visible' => RegistrationResource::canViewAny(),
+            ],
+            [
+                'label' => '信息发布',
+                'description' => '发布赛事规程、成绩与通知公告',
+                'icon' => 'heroicon-o-newspaper',
+                'href' => InformationPostResource::getUrl('index'),
+                'accent' => 'oklch(0.73 0.14 210)',
+                'visible' => InformationPostResource::canViewAny(),
+            ],
+            [
+                'label' => '权限管理',
+                'description' => '管理员账号与模块权限分配',
+                'icon' => 'heroicon-o-key',
+                'href' => AdminUserResource::getUrl('index'),
+                'accent' => 'oklch(0.71 0.13 250)',
+                'visible' => AdminUserResource::canViewAny(),
             ],
             [
                 'label' => '品牌设置',
@@ -99,12 +125,12 @@ class AdminDashboard extends Dashboard
                 'visible' => BrandSettings::canAccess(),
             ],
             [
-                'label' => '信息发布',
-                'description' => '发布赛事规程、成绩与通知公告',
-                'icon' => 'heroicon-o-newspaper',
-                'href' => InformationPostResource::getUrl('index'),
-                'accent' => 'oklch(0.73 0.14 210)',
-                'visible' => InformationPostResource::canViewAny(),
+                'label' => '使用教程',
+                'description' => '后台各模块操作流程与上手指引',
+                'icon' => 'heroicon-o-book-open',
+                'href' => UsageTutorial::getUrl(),
+                'accent' => 'oklch(0.73 0.12 175)',
+                'visible' => true,
             ],
         ];
 
