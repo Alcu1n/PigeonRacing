@@ -103,8 +103,8 @@ sync_assets() {
 
     "$OSSUTIL_BIN" sync "$ASSETS_DIR/" "$destination" \
         -f \
-        "${dry_run_flags[@]}" \
-        "${delete_flags[@]}"
+        ${dry_run_flags[@]+"${dry_run_flags[@]}"} \
+        ${delete_flags[@]+"${delete_flags[@]}"}
 }
 
 main() {

@@ -11,8 +11,9 @@ ROOT_DIR="${PIGEON_ROOT:-/opt/pigeon-racing}"
 COMPOSE_FILE="${COMPOSE_FILE:-$ROOT_DIR/docker-compose.yml}"
 MODE="${1:-}"
 PULL_CODE="${PULL_CODE:-1}"
-FRONTEND_ASSET_MODE="${FRONTEND_ASSET_MODE:-oss}"
+FRONTEND_ASSET_MODE="${FRONTEND_ASSET_MODE:-auto}"
 STRICT_GIT_STATUS="${STRICT_GIT_STATUS:-0}"
+OSS_ENV_FILE="${OSS_ENV_FILE:-$ROOT_DIR/.env.oss.local}"
 
 fail() {
     printf 'ERROR: %s\n' "$1" >&2
@@ -30,8 +31,9 @@ Environment variables:
   PIGEON_ROOT=/opt/pigeon-racing      Production project directory.
   COMPOSE_FILE=/path/docker-compose.yml
   PULL_CODE=0                         Skip git fetch/pull.
-  FRONTEND_ASSET_MODE=oss|local       Default: oss.
-  STRICT_GIT_STATUS=1                 Fail before pull when local changes exist.
+  FRONTEND_ASSET_MODE=auto|oss|local    Default: auto (oss when OSS credentials exist, otherwise local).
+  OSS_ENV_FILE=/path/.env.oss.local     OSS credential file checked by auto mode.
+  STRICT_GIT_STATUS=1                   Fail before pull when local changes exist.
 USAGE
 }
 
@@ -79,6 +81,31 @@ prepare_workspace() {
     git pull --ff-only --autostash
 }
 
+resolve_frontend_asset_mode() {
+    if [[ "$MODE" != "frontend" && "$MODE" != "full" ]]; then
+        return
+    fi
+
+    if [[ "$FRONTEND_ASSET_MODE" != "auto" ]]; then
+        return
+    fi
+
+    if [[ -f "$OSS_ENV_FILE" ]]; then
+        set -a
+        # shellcheck source=/dev/null
+        source "$OSS_ENV_FILE"
+        set +a
+    fi
+
+    if [[ -n "${OSS_ACCESS_KEY_ID:-}" && -n "${OSS_ACCESS_KEY_SECRET:-}" ]]; then
+        FRONTEND_ASSET_MODE="oss"
+        printf 'OSS credentials detected; frontend assets will be deployed to OSS/CDN.\n'
+    else
+        FRONTEND_ASSET_MODE="local"
+        printf 'OSS credentials not found; falling back to local frontend build (FRONTEND_ASSET_MODE=local).\n'
+    fi
+}
+
 deploy_frontend() {
     local restart_nginx="${1:-1}"
 
@@ -93,7 +120,7 @@ deploy_frontend() {
             cd "$ROOT_DIR"
             ;;
         *)
-            fail "FRONTEND_ASSET_MODE must be oss or local"
+            fail "FRONTEND_ASSET_MODE must be auto, oss or local"
             ;;
     esac
 
@@ -128,6 +155,7 @@ verify_services() {
 main() {
     ensure_mode
     prepare_workspace
+    resolve_frontend_asset_mode
 
     case "$MODE" in
         frontend)
