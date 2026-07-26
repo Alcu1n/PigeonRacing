@@ -1,5 +1,5 @@
 <!-- [IN]: Published race id route param and member API / 已发布赛事 ID 路由参数与会员 API -->
-<!-- [OUT]: Read-only mobile registration detail publication with searchable tabs / 支持搜索与标签切换的移动端只读报名明细发布页 -->
+<!-- [OUT]: Read-only mobile registration detail publication with searchable tabs and sticky aligned tables / 支持搜索标签切换与吸顶对齐表格的移动端只读报名明细发布页 -->
 <!-- [POS]: Frontend race published details screen / 前端赛事已发布明细页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -142,30 +142,25 @@ function dateText(value?: string | null): string {
         </div>
         <p v-if="filteredSingleRows.length === 0" class="empty-note">暂无匹配的单羽明细</p>
         <div v-else class="published-table-wrap single-publication-wrap">
-          <div class="published-single-grid published-header-row" :style="{ '--published-project-count': details.single.projects.length }">
-            <div class="published-sticky-cell">棚号 / 参赛名 / 足环</div>
+          <div class="published-single-grid" :style="{ '--published-project-count': details.single.projects.length }">
+            <div class="published-sticky-cell published-corner-cell">棚号 / 参赛名 / 足环</div>
             <div v-for="project in details.single.projects" :key="project.id" class="published-project-head">{{ project.name }}</div>
-          </div>
-          <div
-            v-for="row in filteredSingleRows"
-            :key="`${row.loft_number}-${row.ring_number}`"
-            class="published-single-grid published-body-row"
-            :style="{ '--published-project-count': details.single.projects.length }"
-          >
-            <div class="published-sticky-cell identity-cell">
-              <b>{{ row.loft_number }}</b>
-              <span>{{ row.participant_name }}</span>
-              <strong>{{ row.ring_number }}</strong>
-            </div>
-            <div v-for="project in details.single.projects" :key="project.id" class="published-check-cell">
-              <span
-                v-if="row.selected_projects[String(project.id)]"
-                :class="['registration-status-pill', registrationStatusTone(row.selected_projects[String(project.id)])]"
-              >
-                {{ details.scope === 'all_submitted' ? registrationStatusText(row.selected_projects[String(project.id)]) : '★' }}
-              </span>
-              <span v-else class="empty-check">○</span>
-            </div>
+            <template v-for="row in filteredSingleRows" :key="`${row.loft_number}-${row.ring_number}`">
+              <div class="published-sticky-cell identity-cell">
+                <b>{{ row.loft_number }}</b>
+                <span>{{ row.participant_name }}</span>
+                <strong>{{ row.ring_number }}</strong>
+              </div>
+              <div v-for="project in details.single.projects" :key="project.id" class="published-check-cell">
+                <span
+                  v-if="row.selected_projects[String(project.id)]"
+                  :class="['registration-status-pill', registrationStatusTone(row.selected_projects[String(project.id)])]"
+                >
+                  {{ details.scope === 'all_submitted' ? registrationStatusText(row.selected_projects[String(project.id)]) : '★' }}
+                </span>
+                <span v-else class="empty-check">○</span>
+              </div>
+            </template>
           </div>
         </div>
       </section>

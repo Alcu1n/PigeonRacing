@@ -166,7 +166,7 @@ function categoryClass(category: InformationCategory): string {
                 class="race-detail-action"
                 @click="router.push(`/races/${race.id}/details`)"
               >
-                报名明细
+                全部明细
               </button>
             </div>
             <div v-if="registrationFor(race)" class="race-card-registration">

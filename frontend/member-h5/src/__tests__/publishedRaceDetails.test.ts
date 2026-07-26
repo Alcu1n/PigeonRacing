@@ -47,7 +47,7 @@ describe('published race details', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('已发布赛事')
-    expect(wrapper.findAll('button').filter((button) => button.text() === '报名明细')).toHaveLength(1)
+    expect(wrapper.findAll('button').filter((button) => button.text() === '全部明细')).toHaveLength(1)
   })
 
   it('renders searchable single, multi, and progressive sections', async () => {

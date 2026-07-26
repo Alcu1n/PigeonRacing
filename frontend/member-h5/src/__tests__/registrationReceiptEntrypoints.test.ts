@@ -101,7 +101,7 @@ describe('registration receipt entrypoints', () => {
     expect(download.exists()).toBe(true)
     expect(download.props('registrationId')).toBe(10)
     expect(download.props('compact')).toBe(true)
-    expect(wrapper.text()).toContain('查看全部明细')
+    expect(wrapper.text()).toContain('查看明细')
 
     vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
       callback(0)
