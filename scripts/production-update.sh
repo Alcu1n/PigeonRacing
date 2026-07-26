@@ -65,7 +65,7 @@ prepare_workspace() {
         return
     fi
 
-    git fetch origin
+    timeout 60 git fetch origin || fail "git fetch timed out: cannot reach origin (check network/proxy, or use PULL_CODE=0)"
 
     if [[ -n "$(git status --short)" ]]; then
         printf 'Production worktree has local changes; git pull will use --autostash for tracked files:\n'
