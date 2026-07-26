@@ -61,8 +61,8 @@ async function submit(): Promise<void> {
       <section class="login-panel">
         <div class="login-brand">
           <img v-if="logoUrl" class="login-logo" :src="logoUrl" alt="飞乐赛鸽 Logo" @error="logoUrl = null" />
-          <h1>赛鸽赛事报名</h1>
-          <p>会员专属报名入口</p>
+          <h1>会员登陆</h1>
+          <p>赛事报名、会员信息、信息查看</p>
         </div>
         <label>
           <span>手机号</span>
