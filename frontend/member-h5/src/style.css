@@ -922,8 +922,25 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   gap: 10px;
 }
 
-.member-hero-top.end {
-  justify-content: flex-end;
+.member-hero-greeting {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: rgba(255, 255, 255, .82);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  -webkit-mask-image: linear-gradient(90deg, #000 76%, transparent 99%);
+  mask-image: linear-gradient(90deg, #000 76%, transparent 99%);
+}
+
+.member-hero-heading {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.1;
+  font-weight: 950;
+  letter-spacing: 0;
 }
 
 .member-hero-brand {
@@ -953,11 +970,6 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .member-hero-back:active {
   transform: translateY(1px) scale(.98);
-}
-
-.member-hero-main {
-  display: grid;
-  gap: 10px;
 }
 
 .member-hero-identity {

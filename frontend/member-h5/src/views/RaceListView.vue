@@ -116,24 +116,20 @@ function categoryClass(category: InformationCategory): string {
 <template>
   <main class="page race-home">
     <header class="member-hero">
-      <div class="member-hero-top end">
+      <div class="member-hero-top">
+        <p class="member-hero-greeting">你好，{{ auth.member?.participant_name || '会员' }} · 棚号 {{ auth.member?.loft_number || '-' }}</p>
         <MemberLogoutButton class="member-hero-logout" />
       </div>
-      <div class="member-hero-main">
-        <div class="member-hero-title">
-          <p>你好，{{ auth.member?.participant_name || '会员' }} · 棚号 {{ auth.member?.loft_number || '-' }}</p>
-          <h1>今日赛事报名</h1>
-        </div>
-        <div class="member-hero-stats" aria-label="赛事概览">
-          <span>
-            <b>{{ openRaceCount }}</b>
-            <small>报名中</small>
-          </span>
-          <span>
-            <b>{{ races.length }}</b>
-            <small>可见赛事</small>
-          </span>
-        </div>
+      <h1 class="member-hero-heading">今日赛事报名</h1>
+      <div class="member-hero-stats" aria-label="赛事概览">
+        <span>
+          <b>{{ openRaceCount }}</b>
+          <small>报名中</small>
+        </span>
+        <span>
+          <b>{{ races.length }}</b>
+          <small>可见赛事</small>
+        </span>
       </div>
     </header>
 
