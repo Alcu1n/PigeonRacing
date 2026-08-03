@@ -293,6 +293,17 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   display: block;
 }
 
+.filing-record-link {
+  color: inherit;
+  font-size: inherit;
+  text-decoration: none;
+}
+
+.filing-record-link:hover,
+.filing-record-link:focus-visible {
+  text-decoration: underline;
+}
+
 .information-entry {
   width: min(100%, 420px);
   position: relative;

@@ -1,5 +1,5 @@
 <!-- [IN]: Branding API plus blank member phone and password input / 品牌 API 与空白会员手机号、密码输入 -->
-<!-- [OUT]: Polished logo login screen, public information entry, footer contact, and race-list navigation / 视觉优化后的 Logo 登录页、公开信息入口、页脚联系信息与赛事列表导航 -->
+<!-- [OUT]: Polished logo login screen, public information entry, ICP filing link, footer contact, and race-list navigation / 视觉优化后的 Logo 登录页、公开信息入口、ICP备案链接、页脚联系信息与赛事列表导航 -->
 <!-- [POS]: Frontend member login screen / 前端会员登录页面 -->
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
@@ -84,6 +84,11 @@ async function submit(): Promise<void> {
     <footer class="login-footer">
       <span>© 飞乐赛鸽 2026 联系电话：18650024626</span>
       <span>开发 微信：lemonrere</span>
+      <span>
+        <a class="filing-record-link" href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer">
+          闽ICP备2026029044号-1
+        </a>
+      </span>
     </footer>
   </main>
 </template>
