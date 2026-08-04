@@ -1,5 +1,5 @@
 {{-- [IN]: Filter-aware active ring-sale totals / 随筛选变化的有效售环汇总 --}}
-{{-- [OUT]: Integrated reconciliation cards, single-line ledger cells, and aligned compact mobile modal styling / 融合式对账卡片、单行台账单元格与对齐紧凑手机弹层样式 --}}
+{{-- [OUT]: Integrated reconciliation cards, inline financial totals, single-line ledger cells, and aligned compact mobile modal styling / 融合式对账卡片、行内金额汇总、单行台账单元格与对齐紧凑手机弹层样式 --}}
 {{-- [POS]: Ring-sale table summary / 售环列表汇总 --}}
 {{-- Protocol: When updating me, sync this header + parent folder's .folder.md --}}
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
@@ -93,6 +93,54 @@
     .ring-sale-nowrap,
     .ring-sale-segments-scroll {
         white-space: nowrap;
+    }
+
+    .ring-sale-entry-modal > .fi-modal-content {
+        gap: .5rem;
+    }
+
+    .ring-sale-entry-modal .fi-sc-section {
+        gap: .25rem;
+    }
+
+    .ring-sale-entry-modal .fi-section > .fi-section-header {
+        padding: .5rem .75rem !important;
+    }
+
+    .ring-sale-entry-modal .fi-section > .fi-section-content-ctn > .fi-section-content {
+        gap: .5rem;
+        padding: .75rem !important;
+    }
+
+    .ring-sale-entry-modal .ring-sale-paired-grid > .fi-grid,
+    .ring-sale-entry-modal .ring-sale-amount-summary-grid {
+        gap: .6rem !important;
+    }
+
+    .ring-sale-entry-modal .fi-fo-field-has-inline-label:has(.ring-sale-summary-value) {
+        display: flex;
+        align-items: center;
+        column-gap: .5rem;
+    }
+
+    .ring-sale-entry-modal .fi-fo-field-has-inline-label:has(.ring-sale-summary-value) > .fi-fo-field-label-col {
+        display: block;
+        flex: 0 0 auto;
+    }
+
+    .ring-sale-entry-modal .fi-fo-field-has-inline-label:has(.ring-sale-summary-value) > .fi-fo-field-content-col {
+        display: block;
+        min-width: 0;
+    }
+
+    .ring-sale-entry-modal .fi-fo-field-has-inline-label:has(.ring-sale-summary-value) .fi-fo-field-label,
+    .ring-sale-entry-modal .ring-sale-summary-value {
+        white-space: nowrap;
+    }
+
+    .ring-sale-entry-modal .fi-fo-repeater-item-content {
+        gap: .6rem;
+        padding: .75rem;
     }
 
     .ring-sale-segments-scroll {
@@ -211,7 +259,7 @@
 
         .ring-sale-entry-modal > .fi-modal-content {
             flex: 1;
-            gap: .55rem !important;
+            gap: .5rem !important;
             overflow-y: auto;
             padding: .65rem .7rem 1rem !important;
         }
@@ -250,7 +298,7 @@
         }
 
         .ring-sale-entry-modal .fi-section-content {
-            gap: .55rem;
+            gap: .5rem;
         }
 
         .ring-sale-entry-modal .ring-sale-paired-grid > .fi-grid {
@@ -277,8 +325,8 @@
         }
 
         .ring-sale-entry-modal .fi-fo-repeater-item-content {
-            gap: .55rem;
-            padding: .65rem;
+            gap: .5rem;
+            padding: .55rem;
         }
 
         .ring-sale-item-summary {

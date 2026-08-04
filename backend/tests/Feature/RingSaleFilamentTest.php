@@ -83,6 +83,37 @@ class RingSaleFilamentTest extends TestCase
         );
     }
 
+    public function test_new_sale_modal_defaults_to_latest_prefix_and_keeps_only_general_remark(): void
+    {
+        $admin = User::query()->create([
+            'name' => '录入管理员',
+            'email' => 'ring-modal-default@example.com',
+            'password' => 'password',
+        ]);
+        $admin->assignRole('super-admin');
+        RingNumberPrefix::query()->create([
+            'prefix' => '2026-13-054',
+            'suffix_width' => 4,
+            'is_enabled' => true,
+        ]);
+        $latestPrefix = RingNumberPrefix::query()->create([
+            'prefix' => '2026-13-055',
+            'suffix_width' => 4,
+            'is_enabled' => true,
+        ]);
+        $this->actingAs($admin);
+
+        $component = Livewire::test(ListRingSales::class)
+            ->mountAction('createSale')
+            ->assertSchemaComponentExists('remark')
+            ->assertSchemaComponentDoesNotExist('initial_payment_remark');
+
+        $itemKey = array_key_first($component->get('mountedActions.0.data.items'));
+
+        $this->assertSame('prefix', $component->get("mountedActions.0.data.items.{$itemKey}.entry_mode"));
+        $this->assertEquals($latestPrefix->id, $component->get("mountedActions.0.data.items.{$itemKey}.prefix_id"));
+    }
+
     public function test_ordinary_admin_without_view_permission_cannot_open_ring_sales(): void
     {
         Role::findOrCreate('admin', 'web');

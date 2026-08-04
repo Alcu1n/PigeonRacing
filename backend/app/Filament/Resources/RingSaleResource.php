@@ -1,7 +1,7 @@
 <?php
 
 // [IN]: Ring-sale aggregate, quick-entry form state, payments, and filtered list query / 售环聚合、快速录入表单状态、收款与筛选查询
-// [OUT]: Compact mobile-first modal workflow, single-line ledger, payment actions, filters, and details / 紧凑移动优先弹层、单行台账、收款动作、筛选与详情
+// [OUT]: Compact mobile-first modal workflow, latest-prefix defaults, inline totals, single-line ledger, payment actions, filters, and details / 紧凑移动优先弹层、最新前缀默认值、行内汇总、单行台账、收款动作、筛选与详情
 // [POS]: Ring-sale Filament resource / 售环记录 Filament 资源
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
@@ -298,6 +298,10 @@ class RingSaleResource extends Resource
                                     ])
                                     ->all())
                                 ->searchable()
+                                ->default(fn (): ?int => RingNumberPrefix::query()
+                                    ->where('is_enabled', true)
+                                    ->latest('id')
+                                    ->value('id'))
                                 ->required(fn (Get $get): bool => $get('entry_mode') !== 'full')
                                 ->visible(fn (Get $get): bool => $get('entry_mode') !== 'full')
                                 ->live()
@@ -353,36 +357,38 @@ class RingSaleResource extends Resource
             Section::make('金额与凭证')
                 ->compact()
                 ->schema([
-                    Grid::make(['default' => 2, 'md' => 4])->schema([
-                        Placeholder::make('total_quantity_preview')
-                            ->label('足环总数')
-                            ->content(fn (Get $get): string => (string) self::formSummary($get, $existingPaidAmountCent)['quantity']),
-                        Placeholder::make('total_amount_preview')
-                            ->label('总金额')
-                            ->content(fn (Get $get): string => self::formatYuan(self::formSummary($get, $existingPaidAmountCent)['total_amount_cent'])),
-                        TextInput::make('initial_paid_amount_cent')
-                            ->label('首付款')
-                            ->prefix('¥')
-                            ->numeric()
-                            ->step(0.01)
-                            ->minValue(0)
-                            ->default(0)
-                            ->visible($includeInitialPayment)
-                            ->required($includeInitialPayment)
-                            ->live(onBlur: true),
-                        DatePicker::make('initial_payment_date')
-                            ->label('首付款日期')
-                            ->default(today())
-                            ->maxDate(today())
-                            ->visible($includeInitialPayment),
-                        Placeholder::make('unpaid_amount_preview')
-                            ->label('未付金额')
-                            ->content(fn (Get $get): string => self::formatYuan(self::formSummary($get, $existingPaidAmountCent)['unpaid_amount_cent'])),
-                    ]),
-                    TextInput::make('initial_payment_remark')
-                        ->label('首付款备注')
-                        ->visible($includeInitialPayment)
-                        ->maxLength(255),
+                    Grid::make(['default' => 2, 'md' => 4])
+                        ->extraAttributes(['class' => 'ring-sale-amount-summary-grid'])
+                        ->schema([
+                            Placeholder::make('total_quantity_preview')
+                                ->label('足环总数')
+                                ->content(fn (Get $get): string => (string) self::formSummary($get, $existingPaidAmountCent)['quantity'])
+                                ->inlineLabel()
+                                ->extraAttributes(['class' => 'ring-sale-summary-value']),
+                            Placeholder::make('total_amount_preview')
+                                ->label('总金额')
+                                ->content(fn (Get $get): string => self::formatYuan(self::formSummary($get, $existingPaidAmountCent)['total_amount_cent']))
+                                ->inlineLabel()
+                                ->extraAttributes(['class' => 'ring-sale-summary-value']),
+                            TextInput::make('initial_paid_amount_cent')
+                                ->label('首付款')
+                                ->prefix('¥')
+                                ->numeric()
+                                ->step(0.01)
+                                ->minValue(0)
+                                ->default(0)
+                                ->visible($includeInitialPayment)
+                                ->required($includeInitialPayment)
+                                ->live(onBlur: true),
+                            DatePicker::make('initial_payment_date')
+                                ->label('首付款日期')
+                                ->default(today())
+                                ->maxDate(today())
+                                ->visible($includeInitialPayment),
+                            Placeholder::make('unpaid_amount_preview')
+                                ->label('未付金额')
+                                ->content(fn (Get $get): string => self::formatYuan(self::formSummary($get, $existingPaidAmountCent)['unpaid_amount_cent'])),
+                        ]),
                     Textarea::make('remark')
                         ->label('备注')
                         ->rows(2)
