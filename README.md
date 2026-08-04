@@ -785,7 +785,7 @@ pigeon-back    # 只更新 Laravel 后端
 pigeon-full    # 前后端都更新
 ```
 
-脚本默认会执行 `git fetch origin && git pull --ff-only --autostash`。如果服务器本地有未提交修改，例如生产环境本地化的 `docker-compose.yml`，脚本会打印这些改动，并让 Git 临时保存 tracked 改动、拉取代码后再恢复。确实要跳过拉代码时才使用：
+脚本默认会执行 `git fetch origin && git pull --ff-only --autostash`。如果服务器本地有未提交修改，例如生产环境本地化的 `docker-compose.yml`，脚本会打印这些改动，并让 Git 临时保存 tracked 改动、拉取代码后再恢复。后端更新还会按 Git 记录归一化 PHP 源码权限，以 `www-data` 执行 Laravel 路由预检，并检查 `/up`、`/admin/login`、`/admin` 和 branding API 的真实 HTTP 状态；健康检查失败时不会报告更新成功，并在未涉及数据库迁移时尝试恢复上一版本。确实要跳过拉代码时才使用：
 
 ```bash
 ssh pigeon-prod 'PULL_CODE=0 bash /opt/pigeon-racing/scripts/production-update.sh backend'
