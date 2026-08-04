@@ -21,6 +21,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Throwable;
@@ -178,6 +179,113 @@ class RingSaleService
             ]);
 
             return $payment;
+        });
+    }
+
+    /**
+     * Register one buyer-level payment and distribute it across active sales in FIFO order.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array{operation_id: string, amount_cent: int, affected_sale_ids: array<int, int>, payment_ids: array<int, int>}
+     */
+    public function addPaymentForBuyer(string $buyerName, array $data, User $admin): array
+    {
+        $buyerName = trim($buyerName);
+        if ($buyerName === '') {
+            throw ValidationException::withMessages([
+                'buyer_name' => '缺少有效的购买人姓名。',
+            ]);
+        }
+
+        $normalized = $this->normalizePayment($data);
+
+        return DB::transaction(function () use ($buyerName, $normalized, $admin): array {
+            $sales = RingSale::query()
+                ->where('buyer_name', $buyerName)
+                ->where('status', 'active')
+                ->withFinancials()
+                ->orderBy('sale_date')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+
+            $unpaidAmountCent = (int) $sales->sum(
+                fn (RingSale $sale): int => $sale->unpaid_amount_cent,
+            );
+            if ($unpaidAmountCent <= 0) {
+                throw ValidationException::withMessages([
+                    'amount_cent' => '此姓名下没有可收款的有效未付款金额。',
+                ]);
+            }
+
+            if ($normalized['amount_cent'] > $unpaidAmountCent) {
+                throw ValidationException::withMessages([
+                    'amount_cent' => '收款金额不能超过此姓名下的有效未付款合计。',
+                ]);
+            }
+
+            $operationId = (string) Str::uuid();
+            $remainingAmountCent = $normalized['amount_cent'];
+            $affectedSaleIds = [];
+            $paymentIds = [];
+
+            foreach ($sales as $allocationOrder => $sale) {
+                if ($remainingAmountCent <= 0) {
+                    break;
+                }
+
+                $saleUnpaidAmountCent = $sale->unpaid_amount_cent;
+                if ($saleUnpaidAmountCent <= 0) {
+                    continue;
+                }
+
+                $allocatedAmountCent = min($remainingAmountCent, $saleUnpaidAmountCent);
+                $payment = $this->createPaymentRow($sale, [
+                    ...$normalized,
+                    'amount_cent' => $allocatedAmountCent,
+                ], $admin);
+                $this->assertPaymentTotal($sale);
+
+                $affectedSaleIds[] = $sale->id;
+                $paymentIds[] = $payment->id;
+                $remainingAmountCent -= $allocatedAmountCent;
+
+                $this->audit($admin, 'ring_sale_payment.created', $payment, [
+                    'ring_sale_id' => $sale->id,
+                    'amount_cent' => $allocatedAmountCent,
+                    'payment_date' => $payment->payment_date->toDateString(),
+                    'source' => 'buyer_summary',
+                    'buyer_name' => $buyerName,
+                    'operation_id' => $operationId,
+                    'allocation_order' => $allocationOrder,
+                    'requested_amount_cent' => $normalized['amount_cent'],
+                ]);
+            }
+
+            if ($remainingAmountCent > 0) {
+                throw ValidationException::withMessages([
+                    'amount_cent' => '当前有效未付款金额已发生变化，请刷新后重试。',
+                ]);
+            }
+
+            $firstSale = $sales->firstWhere('id', $affectedSaleIds[0] ?? null);
+            if ($firstSale instanceof RingSale) {
+                $this->audit($admin, 'ring_sale.aggregate_payment.created', $firstSale, [
+                    'buyer_name' => $buyerName,
+                    'operation_id' => $operationId,
+                    'amount_cent' => $normalized['amount_cent'],
+                    'affected_sale_ids' => $affectedSaleIds,
+                    'payment_ids' => $paymentIds,
+                    'allocation_rule' => 'sale_date_asc_then_id_asc',
+                ]);
+            }
+
+            return [
+                'operation_id' => $operationId,
+                'amount_cent' => $normalized['amount_cent'],
+                'affected_sale_ids' => $affectedSaleIds,
+                'payment_ids' => $paymentIds,
+            ];
         });
     }
 

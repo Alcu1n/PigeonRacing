@@ -101,6 +101,10 @@ class RingSaleResource extends Resource
                 TextColumn::make('buyer_name')
                     ->label('姓名')
                     ->searchable()
+                    ->url(fn (RingSale $record): string => self::getUrl('buyer-summary', [
+                        'buyer_name' => $record->buyer_name,
+                    ]))
+                    ->color('primary')
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('loft_number')
                     ->label('棚号')
@@ -740,7 +744,7 @@ class RingSaleResource extends Resource
             ->implode('；');
     }
 
-    private static function detailView(RingSale $sale): View
+    public static function detailView(RingSale $sale): View
     {
         $sale->load(['items', 'payments.creator', 'receipts', 'creator', 'voider']);
         $paymentIds = $sale->payments->modelKeys();
@@ -774,7 +778,7 @@ class RingSaleResource extends Resource
         return '¥'.number_format($amountCent / 100, 2);
     }
 
-    private static function yuanInputToCent(mixed $amount): int
+    public static function yuanInputToCent(mixed $amount): int
     {
         return max(0, (int) round(((float) $amount) * 100));
     }
@@ -791,6 +795,7 @@ class RingSaleResource extends Resource
     {
         return [
             'index' => Pages\ListRingSales::route('/'),
+            'buyer-summary' => Pages\BuyerRingSaleSummary::route('/buyer-summary'),
         ];
     }
 }
