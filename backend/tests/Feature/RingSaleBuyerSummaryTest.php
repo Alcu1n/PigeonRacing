@@ -283,7 +283,13 @@ class RingSaleBuyerSummaryTest extends TestCase
             ->assertSee($sale->sale_no)
             ->assertSee('足环数量')
             ->assertSee('收据照片')
-            ->assertSee('登记总收款');
+            ->assertSee('登记总收款')
+            ->assertSee('grid-template-columns: repeat(2, minmax(0, 1fr));', false);
+
+        $this->assertMatchesRegularExpression(
+            '/<span>应收金额<\/span>\s*<strong>¥2<\/strong>/',
+            $response->getContent(),
+        );
     }
 
     public function test_fully_paid_buyer_keeps_a_disabled_paid_in_full_action(): void

@@ -6,6 +6,7 @@
 
 @php
     $money = static fn (int $cent): string => '¥'.number_format($cent / 100, 2);
+    $summaryMoney = static fn (int $cent): string => '¥'.number_format($cent / 100, 0);
     $receiptGroups = $summary['sales']
         ->map(fn ($sale): array => ['sale' => $sale, 'receipts' => $sale->receipts])
         ->filter(fn (array $group): bool => $group['receipts']->isNotEmpty())
@@ -104,15 +105,15 @@
                 <div class="ring-sale-buyer-summary__financial-grid">
                     <div class="ring-sale-buyer-summary__financial-card">
                         <span>应收金额</span>
-                        <strong>{{ $money($summary['total_amount_cent']) }}</strong>
+                        <strong>{{ $summaryMoney($summary['total_amount_cent']) }}</strong>
                     </div>
                     <div class="ring-sale-buyer-summary__financial-card ring-sale-buyer-summary__financial-card--paid">
                         <span>已付金额</span>
-                        <strong>{{ $money($summary['paid_amount_cent']) }}</strong>
+                        <strong>{{ $summaryMoney($summary['paid_amount_cent']) }}</strong>
                     </div>
                     <div class="ring-sale-buyer-summary__financial-card ring-sale-buyer-summary__financial-card--unpaid">
                         <span>未付金额</span>
-                        <strong>{{ $money($summary['unpaid_amount_cent']) }}</strong>
+                        <strong>{{ $summaryMoney($summary['unpaid_amount_cent']) }}</strong>
                     </div>
                 </div>
             </div>
@@ -483,7 +484,7 @@
 
         .ring-sale-buyer-summary__overview {
             display: grid;
-            grid-template-columns: minmax(0, 1.25fr) minmax(20rem, .75fr);
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: .8rem;
         }
 
