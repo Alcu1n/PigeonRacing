@@ -206,9 +206,9 @@ main() {
 
     if [[ "$MODE" == "frontend" || "$MODE" == "full" ]] && [[ "$FRONTEND_ASSET_MODE" == "oss" ]]; then
         cat <<'NOTICE'
-CDN refresh still needs to be triggered in Alibaba Cloud:
-  Type: Directory refresh
-  URL:  https://cdn.feilesg.com/assets/
+Hashed assets were published to OSS/CDN; routine directory refresh is not required.
+Verify the new hashed asset URLs from the origin HTML.
+Use an exact-file refresh only for an emergency same-name resource update.
 NOTICE
     fi
 

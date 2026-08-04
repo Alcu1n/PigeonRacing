@@ -324,8 +324,8 @@ http://localhost:5173/races/1/register
 公开访问地址：
 
 ```text
-https://feilesg.com/information
-https://feilesg.com/information/{slug}
+https://feilesaige.cn/information
+https://feilesaige.cn/information/{slug}
 ```
 
 兼容错误拼写：
@@ -371,7 +371,7 @@ GET /api/public/information/{slug}
 
 ## 7. 生产环境从零部署
 
-下面命令假设项目目录是 `/opt/pigeon-racing`，域名示例是 `feilesg.com`，请替换成你的真实配置。
+下面命令假设项目目录是 `/opt/pigeon-racing`，域名示例是 `feilesaige.cn`，请替换成你的真实配置。
 
 ### 7.1 服务器与域名准备
 
@@ -524,10 +524,10 @@ APP_NAME="赛鸽赛事报名系统"
 APP_ENV=production
 APP_KEY=
 APP_DEBUG=false
-APP_URL=https://feilesg.com
-FRONTEND_URL=https://feilesg.com
+APP_URL=https://feilesaige.cn
+FRONTEND_URL=https://feilesaige.cn
 PUBLIC_STORAGE_URL=/storage
-VITE_ASSET_BASE_URL=https://cdn.feilesg.com/
+VITE_ASSET_BASE_URL=https://cdn.feilesaige.cn/
 
 LOG_CHANNEL=stack
 LOG_LEVEL=warning
@@ -543,7 +543,7 @@ CACHE_STORE=redis
 QUEUE_CONNECTION=redis
 SESSION_DRIVER=redis
 SESSION_DOMAIN=
-SANCTUM_STATEFUL_DOMAINS=feilesg.com,www.feilesg.com
+SANCTUM_STATEFUL_DOMAINS=feilesaige.cn,www.feilesaige.cn
 
 REDIS_CLIENT=predis
 REDIS_HOST=redis
@@ -600,7 +600,7 @@ cd /opt/pigeon-racing
 ```bash
 cd /opt/pigeon-racing/frontend/member-h5
 npm ci
-VITE_ASSET_BASE_URL=https://cdn.feilesg.com/ npx vite build
+VITE_ASSET_BASE_URL=https://cdn.feilesaige.cn/ npx vite build
 cd /opt/pigeon-racing
 ```
 
@@ -685,8 +685,8 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml exec -T app php -r 'requ
 访问：
 
 ```text
-后台：https://feilesg.com/admin
-会员端：https://feilesg.com/login
+后台：https://feilesaige.cn/admin
+会员端：https://feilesaige.cn/login
 ```
 
 ### 7.13 宿主机 Nginx 和 HTTPS
@@ -709,7 +709,7 @@ sudo nano /etc/nginx/sites-available/pigeon-racing.conf
 ```nginx
 server {
     listen 80;
-    server_name feilesg.com www.feilesg.com;
+    server_name feilesaige.cn www.feilesaige.cn;
 
     client_max_body_size 100m;
 
@@ -735,16 +735,16 @@ sudo systemctl reload nginx
 申请 HTTPS：
 
 ```bash
-sudo certbot --nginx -d feilesg.com -d www.feilesg.com
+sudo certbot --nginx -d feilesaige.cn -d www.feilesaige.cn
 sudo certbot renew --dry-run
 ```
 
 HTTPS 生效后确认 `backend/.env`：
 
 ```env
-APP_URL=https://feilesg.com
-FRONTEND_URL=https://feilesg.com
-SANCTUM_STATEFUL_DOMAINS=feilesg.com,www.feilesg.com
+APP_URL=https://feilesaige.cn
+FRONTEND_URL=https://feilesaige.cn
+SANCTUM_STATEFUL_DOMAINS=feilesaige.cn,www.feilesaige.cn
 ```
 
 刷新缓存：
@@ -825,13 +825,7 @@ ssh pigeon-prod 'cd /opt/pigeon-racing && git fetch origin && git pull --ff-only
 pigeon-front
 ```
 
-然后到阿里云 CDN 控制台刷新：
-
-```text
-操作类型：刷新
-操作方式：目录
-URL：https://cdn.feilesg.com/assets/
-```
+由于 Vite 资源文件名带 hash，正常发布不需要刷新整个 CDN 目录；确认入口 HTML 已引用新的 hash 文件即可。
 
 如果没有启用 OSS/CDN，执行：
 
@@ -842,10 +836,10 @@ ssh pigeon-prod 'FRONTEND_ASSET_MODE=local bash /opt/pigeon-racing/scripts/produ
 验证：
 
 ```text
-https://feilesg.com/login
+https://feilesaige.cn/login
 ```
 
-如果看不到新页面，先强制刷新浏览器；启用 CDN 时再确认 CDN 是否已经刷新。
+如果看不到新页面，先强制刷新浏览器，并检查入口 HTML 与 Network 中的新 hash 资源 URL。
 
 ### 8.2 只更新后端代码
 
@@ -864,8 +858,8 @@ pigeon-back
 验证：
 
 ```text
-https://feilesg.com/admin
-https://feilesg.com/login
+https://feilesaige.cn/admin
+https://feilesaige.cn/login
 ```
 
 ### 8.3 前后端都更新
@@ -882,13 +876,7 @@ https://feilesg.com/login
 pigeon-full
 ```
 
-然后刷新 CDN：
-
-```text
-操作类型：刷新
-操作方式：目录
-URL：https://cdn.feilesg.com/assets/
-```
+由于 Vite 资源文件名带 hash，正常发布不需要刷新整个 CDN 目录；确认入口 HTML 已引用新的 hash 文件即可。
 
 未启用 OSS/CDN 时执行：
 
@@ -911,24 +899,24 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml logs --tail=100 queue
 浏览器验证：
 
 ```text
-https://feilesg.com/login
-https://feilesg.com/admin
-https://feilesg.com/information
-https://feilesg.com/races/{raceId}/details
+https://feilesaige.cn/login
+https://feilesaige.cn/admin
+https://feilesaige.cn/information
+https://feilesaige.cn/races/{raceId}/details
 ```
 
 启用 OSS/CDN 时，还要确认：
 
 ```text
-1. 用户入口仍然是 https://feilesg.com/login。
-2. JS/CSS/图片请求来自 https://cdn.feilesg.com/assets/。
-3. /api、/sanctum、/admin 请求仍然走 https://feilesg.com。
+1. 用户入口仍然是 https://feilesaige.cn/login。
+2. JS/CSS/图片请求来自 https://cdn.feilesaige.cn/assets/。
+3. /api、/sanctum、/admin 请求仍然走 https://feilesaige.cn。
 4. 会员登录、赛事列表、报名提交、后台登录、信息发布都正常。
 ```
 
 ## 9. 阿里云 OSS 与 CDN 静态资源发布
 
-本项目推荐只加速会员端静态资源。用户仍访问 `https://feilesg.com/login`，Laravel API、Sanctum Cookie、后台 `/admin` 都继续走主域名；Vite 构建出的 JS/CSS/图片从 `https://cdn.feilesg.com/assets/` 加载。
+本项目推荐只加速会员端静态资源。用户仍访问 `https://feilesaige.cn/login`，Laravel API、Sanctum Cookie、后台 `/admin` 都继续走主域名；Vite 构建出的 JS/CSS/图片从 `https://cdn.feilesaige.cn/assets/` 加载。
 
 ### 9.1 安装 ossutil
 
@@ -949,17 +937,18 @@ ossutil version
 ```bash
 cd /opt/pigeon-racing
 cat > .env.oss.local <<'EOF'
-export OSS_BUCKET='filesg'
-export OSS_REGION='cn-hongkong'
+export OSS_BUCKET='feilesaigecn'
+export OSS_REGION='cn-shenzhen'
 export OSS_PREFIX='assets/'
-export VITE_ASSET_BASE_URL='https://cdn.feilesg.com/'
+export VITE_ASSET_BASE_URL='https://cdn.feilesaige.cn/'
+export OSS_CACHE_CONTROL='public, max-age=31536000, immutable'
 export OSS_ACCESS_KEY_ID='替换为RAM用户AccessKeyId'
 export OSS_ACCESS_KEY_SECRET='替换为RAM用户AccessKeySecret'
 EOF
 chmod 600 .env.oss.local
 ```
 
-`OSS_REGION` 必须写阿里云 Region ID。香港是 `cn-hongkong`，不是 `oss-cn-hongkong`。如果写错成 `oss-cn-hongkong`，ossutil 会拼出错误域名 `filesg.oss-oss-cn-hongkong.aliyuncs.com`。
+`OSS_REGION` 必须写阿里云 Region ID。深圳是 `cn-shenzhen`，不是 `oss-cn-shenzhen`。如果写错成 `oss-cn-shenzhen`，ossutil 会拼出错误域名 `feilesaigecn.oss-oss-cn-shenzhen.aliyuncs.com`。
 
 如果 AccessKey 曾出现在聊天记录、截图、日志或命令历史中，应视为已泄露。请在阿里云 RAM 中禁用旧 Key，重新生成最小权限 Key。
 
@@ -987,8 +976,9 @@ bash scripts/deploy-member-assets-to-oss.sh
 
 1. 读取 `/opt/pigeon-racing/.env.oss.local`。
 2. 进入 `frontend/member-h5`。
-3. 执行 `VITE_ASSET_BASE_URL=https://cdn.feilesg.com/ npx vite build`。
-4. 同步 `dist/assets/` 到 `oss://filesg/assets/`。
+3. 执行 `VITE_ASSET_BASE_URL=https://cdn.feilesaige.cn/ npx vite build`。
+4. 同步 `dist/assets/` 到 `oss://feilesaigecn/assets/`。
+5. 为上传对象写入 `Cache-Control: public, max-age=31536000, immutable`。
 
 脚本默认不删除 OSS 上旧的 hash 文件，避免仍持有旧 HTML 的浏览器资源断裂。如果确定要完全镜像，可以执行：
 
@@ -996,41 +986,137 @@ bash scripts/deploy-member-assets-to-oss.sh
 OSS_DELETE_EXTRA=1 bash scripts/deploy-member-assets-to-oss.sh
 ```
 
-### 9.4 CDN 刷新填写方式
+### 9.4 CDN 缓存策略与必要刷新
 
-OSS 同步成功后，到阿里云 CDN 控制台刷新缓存：
+`/assets/*` 使用长期缓存和 `immutable` 策略。Vite 生成的新文件带 hash，发布新版本时会生成新的 URL，因此不需要例行刷新整个 CDN 目录；旧 hash 文件也不要删除，以兼容仍在使用旧入口 HTML 的浏览器。
 
-```text
-操作类型：刷新
-操作方式：目录
-URL：https://cdn.feilesg.com/assets/
-```
+只有以下情况才执行 CDN 刷新：
 
-注意：
+- 非 hash 文件发生了同名覆盖；
+- 发现 CDN 节点返回了错误内容；
+- 需要紧急撤下某个资源。
 
-- 必须填写完整 URL。
-- 必须以 `/` 结尾。
-- 不要选择“预热 + 目录”，阿里云 CDN 预热只支持具体文件 URL，不支持目录。
-- Vite 文件名带 hash，新文件通常不会命中旧缓存；目录刷新主要用于清掉同名图片、CSS 或异常缓存。
+此时优先刷新具体文件 URL，不要刷新整个 `/assets/` 目录。
 
 ### 9.5 CDN 验收
 
 打开：
 
 ```text
-https://feilesg.com/login
+https://feilesaige.cn/login
 ```
 
 在浏览器开发者工具 Network 中确认：
 
 ```text
-JS/CSS/图片：来自 https://cdn.feilesg.com/assets/
-API：来自 https://feilesg.com/api/
-CSRF：来自 https://feilesg.com/sanctum/csrf-cookie
-后台：仍然访问 https://feilesg.com/admin
+JS/CSS/图片：来自 https://cdn.feilesaige.cn/assets/
+API：来自 https://feilesaige.cn/api/
+CSRF：来自 https://feilesaige.cn/sanctum/csrf-cookie
+后台：仍然访问 https://feilesaige.cn/admin
 ```
 
 如果出现 `502 Bad Gateway`，优先排查源站 Nginx、Docker 容器和宿主机反向代理，不要先怀疑 CDN 跨域。CDN 跨域错误通常表现为浏览器控制台脚本加载失败，不会让主域名直接返回 502。
+
+### 9.6 首次配置 OSS、CDN、HTTPS 与 CNAME
+
+首次上线按下面顺序操作。`feilesaigecn` 保持私有，客户端只访问 CDN 域名，不直接访问 OSS 域名。
+如果 CDN 域名列表中已经存在 `cdn.feilesaige.cn`，不要重复添加，直接按下面步骤核对源站、私有回源、HTTPS 和缓存配置。
+
+1. 在 OSS 控制台创建 Bucket：
+
+   ```text
+   Bucket：feilesaigecn
+   地域：深圳（cn-shenzhen）
+   读写权限：私有
+   静态网站托管：不启用
+   ```
+
+2. 在 CDN 控制台添加加速域名：
+
+   ```text
+   加速域名：cdn.feilesaige.cn
+   加速区域：中国内地
+   业务类型：静态内容
+   源站类型：OSS域名
+   源站：feilesaigecn.oss-cn-shenzhen.aliyuncs.com
+   源站路径：保持为空或 /，不要填写 /assets
+   ```
+
+3. 在 CDN 的“回源配置”中打开“阿里云 OSS 私有 Bucket 回源”，类型选择“同账号回源”。不要把 Bucket 改成公共读；CDN 会代表客户端对私有 OSS 发起带授权的回源请求。
+
+4. 在 CDN 的“HTTPS 配置”中为 `cdn.feilesaige.cn` 开启 HTTPS 安全加速，并选择绑定该完整域名的有效证书；同时打开 HTTP 强制跳转 HTTPS。证书可使用“数字证书管理服务”中的个人测试证书，或把之前免费证书网站签发的“完整证书链 + 无密码私钥”以 PEM 格式上传。
+
+   证书申请域名必须明确填写 `cdn.feilesaige.cn`，不能只申请 `feilesaige.cn`。若使用阿里云 DNS，优先选择自动 DNS 验证。
+
+5. 在 CDN 域名详情中复制系统分配的 CNAME 值，然后在阿里云 DNS 为 `feilesaige.cn` 添加：
+
+   ```text
+   记录类型：CNAME
+   主机记录：cdn
+   记录值：CDN 控制台分配的 CNAME（例如 xxx.alicdn.com）
+   ```
+
+   `cdn` 不要再配置 A 记录指向轻量服务器；主域名 `feilesaige.cn` 的 A 记录仍指向原站服务器。
+
+6. 在 CDN 缓存规则中新增 `/assets/*`：缓存时间 1 年；响应头保持 `public, max-age=31536000, immutable`。不要为 `/api/*`、`/sanctum/*`、`/admin/*` 或入口 HTML 设置长期缓存。
+
+阿里云的官方流程说明了 OSS 源站、CNAME、私有 Bucket 回源和 HTTPS 配置的对应位置；完成后先执行只读检查：
+
+```bash
+dig +short cdn.feilesaige.cn
+bash scripts/verify-member-cdn.sh
+```
+
+检查脚本会从 `https://feilesaige.cn/login` 提取 CDN JS/CSS URL，并重复读取这些 URL，打印 `X-Cache`、`Age`、`Via` 等边缘响应头。资源返回 2xx 且第二次读取显示命中/缓存迹象后，再继续正式发布。
+
+### 9.7 无测试服务器时的受控生产容量测试
+
+没有独立测试服务器时，只使用合成账号，并把压测发起端放在当前电脑或另一台外部机器上，不要在生产轻量服务器本机运行压测脚本。这样服务器收到真实外部 HTTP 流量，而压测客户端 CPU 不会和应用服务器争抢资源。
+
+在服务器项目目录执行一次准备命令；输出是合成账号 JSON，数据会保留，不会自动删除：
+
+```bash
+cd /opt/pigeon-racing
+umask 077
+mkdir -p .load-test
+docker compose exec -T app php artisan load-test:provision \
+  --count=200 \
+  --submitters=30 \
+  --phone-prefix=1999000 \
+  --run-id=20260805-cdn \
+  > .load-test/20260805-cdn.json
+chmod 600 .load-test/20260805-cdn.json
+```
+
+把这份 JSON 通过已有的 SSH Key 安全复制到当前电脑，然后从当前电脑运行：
+
+```bash
+node scripts/member-load-test.mjs \
+  --base-url=https://feilesaige.cn \
+  --data=/安全位置/20260805-cdn.json \
+  --read-ramp-seconds=60 \
+  --submitter-count=30 \
+  > /安全位置/20260805-cdn-report.json
+```
+
+运行器会模拟 200 个会员依次打开入口、读取品牌、获取 CSRF、登录、读取赛事并打开报名页；随后让 30 个不同会员并发提交一次合成报名。它只提交一次，不会重试成重复报名。
+
+测试期间另开 SSH 窗口观察：
+
+```bash
+docker stats --no-stream
+free -h
+docker compose logs --tail=100 app nginx mysql redis
+```
+
+先运行预览清理，确认测试报告和服务器指标后，再由负责人决定是否删除：
+
+```bash
+docker compose exec -T app php artisan load-test:cleanup 20260805-cdn
+docker compose exec -T app php artisan load-test:cleanup 20260805-cdn --force
+```
+
+第二条命令才会删除该运行标识对应的赛事、会员和足环；如果检测到这些会员被其他赛事使用，命令会拒绝清理。
 
 ## 10. 宝塔面板部署方式
 
@@ -1040,7 +1126,7 @@ CSRF：来自 https://feilesg.com/sanctum/csrf-cookie
 
 1. 按第 7 节在 SSH 中完成 Docker Compose 部署。
 2. `docker-compose.yml` 中保持 `127.0.0.1:8080:80`。
-3. 宝塔面板添加站点，域名填 `feilesg.com` 和 `www.feilesg.com`。
+3. 宝塔面板添加站点，域名填 `feilesaige.cn` 和 `www.feilesaige.cn`。
 4. PHP 版本可以选纯静态，因为真实应用由 Docker 承载。
 5. 在站点设置中打开反向代理，目标 URL 填：
 
@@ -1266,7 +1352,7 @@ dump(Illuminate\Support\Facades\Storage::disk("public")->mimeType($path));
 再测试公网访问：
 
 ```bash
-curl -I https://feilesg.com/storage/这里替换为上面输出的路径
+curl -I https://feilesaige.cn/storage/这里替换为上面输出的路径
 ```
 
 正常应返回 `200`，并且 `Content-Type` 是 `image/png` 或 `image/jpeg`。如果容器内文件正常但公网返回 `403`、`404` 或 HTML，重点检查 Docker Nginx 的 `/storage` 配置和 Laravel 路由缓存。
@@ -1300,9 +1386,9 @@ docker compose -f /opt/pigeon-racing/docker-compose.yml restart app queue schedu
 检查：
 
 ```env
-APP_URL=https://feilesg.com
-FRONTEND_URL=https://feilesg.com
-SANCTUM_STATEFUL_DOMAINS=feilesg.com,www.feilesg.com
+APP_URL=https://feilesaige.cn
+FRONTEND_URL=https://feilesaige.cn
+SANCTUM_STATEFUL_DOMAINS=feilesaige.cn,www.feilesaige.cn
 SESSION_DOMAIN=
 ```
 

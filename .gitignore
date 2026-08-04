@@ -7,6 +7,8 @@
 .playwright-mcp/
 .env.oss.local
 .ossutil-snapshot/
+feilesaigecn.pem
+.load-test/
 backend/vendor/
 backend/.env
 backend/.phpunit.result.cache

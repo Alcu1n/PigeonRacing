@@ -20,10 +20,11 @@ if [[ -f "$OSS_ENV_FILE" ]]; then
 fi
 
 OSSUTIL_BIN="${OSSUTIL_BIN:-ossutil}"
-OSS_BUCKET="${OSS_BUCKET:-filesg}"
+OSS_BUCKET="${OSS_BUCKET:-feilesaigecn}"
 OSS_PREFIX="${OSS_PREFIX:-assets/}"
-OSS_REGION="${OSS_REGION:-cn-hongkong}"
-VITE_ASSET_BASE_URL="${VITE_ASSET_BASE_URL:-https://cdn.feilesg.com/}"
+OSS_REGION="${OSS_REGION:-cn-shenzhen}"
+VITE_ASSET_BASE_URL="${VITE_ASSET_BASE_URL:-https://cdn.feilesaige.cn/}"
+OSS_CACHE_CONTROL="${OSS_CACHE_CONTROL:-public, max-age=31536000, immutable}"
 RUN_TYPECHECK="${RUN_TYPECHECK:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 OSS_DELETE_EXTRA="${OSS_DELETE_EXTRA:-0}"
@@ -107,6 +108,7 @@ sync_assets() {
     local destination
     local dry_run_flags=()
     local delete_flags=()
+    local cache_flags=(--cache-control "$OSS_CACHE_CONTROL")
 
     destination="$(oss_destination)"
 
@@ -122,8 +124,9 @@ sync_assets() {
 
     "$OSSUTIL_BIN" sync "$ASSETS_DIR/" "$destination" \
         -f \
-        ${dry_run_flags[@]+"${dry_run_flags[@]}"} \
-        ${delete_flags[@]+"${delete_flags[@]}"}
+        "${cache_flags[@]}" \
+        "${dry_run_flags[@]}" \
+        "${delete_flags[@]}"
 }
 
 main() {
