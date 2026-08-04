@@ -1015,7 +1015,58 @@ CSRF：来自 https://feilesaige.cn/sanctum/csrf-cookie
 后台：仍然访问 https://feilesaige.cn/admin
 ```
 
+Network 面板如果只看到 JS，先检查顶部过滤器是否选中了 `JS`。切换到 `All` 或 `CSS`，并在需要排查缓存时勾选 `Disable cache` 后重新加载。Vite 产物会在入口 HTML 中同时生成独立的 JS `<script>` 和 CSS `<link>`；CSS 不会因为 JS 已经从 CDN 加载就被合并或自动消失。
+
 如果出现 `502 Bad Gateway`，优先排查源站 Nginx、Docker 容器和宿主机反向代理，不要先怀疑 CDN 跨域。CDN 跨域错误通常表现为浏览器控制台脚本加载失败，不会让主域名直接返回 502。
+
+### 9.5.1 本次上线的实际验收与踩坑
+
+本次生产配置最终采用以下链路：
+
+```text
+入口 HTML、Laravel API、Sanctum Cookie、后台 -> https://feilesaige.cn
+会员端 dist/assets/ -> 私有 OSS feilesaigecn/assets/
+浏览器静态资源 -> https://cdn.feilesaige.cn/assets/
+```
+
+实际排查中遇到的问题和结论如下：
+
+1. **私有 OSS 回源没有授权会返回 403。** CDN 可以正常解析 CNAME、HTTPS 证书也可以正常工作，但访问静态文件仍可能返回 `You have no right to access this object because of bucket acl.`。解决方法是在 CDN 域名的“回源配置”中完成“阿里云 OSS 私有 Bucket 回源”授权；不要为了绕过问题把 Bucket 改成公共读。
+2. **HTTPS 证书开启不等于 HTTP 已强制跳转。** HTTPS 证书只负责建立 TLS 连接；还要单独打开“HTTP -> HTTPS”协议重定向。验收应确认：
+
+   ```bash
+   curl -I http://cdn.feilesaige.cn/
+   # 应看到 HTTP/1.1 301 和 Location: https://cdn.feilesaige.cn/
+   ```
+
+3. **跨域模块脚本缺少 CORS 会导致页面空白。** `curl` 看到 CDN JS 返回 `200`，不代表浏览器一定会执行。浏览器 Console 如果出现 `No 'Access-Control-Allow-Origin' header`，Vue 入口模块会被浏览器拦截，页面只剩空白。OSS 可以在“数据安全 -> 跨域设置”中配置：
+
+   ```text
+   来源：https://feilesaige.cn
+   允许 Methods：GET、HEAD
+   允许 Headers：*
+   暴露 Headers：ETag、Content-Length、Content-Type（可选）
+   缓存时间：3600
+   返回 Vary: Origin：单一固定来源时不勾选
+   ```
+
+   由于用户实际访问的是 CDN，仍应在 CDN 的 CORS/出站响应头中增加：
+
+   ```text
+   Access-Control-Allow-Origin: https://feilesaige.cn
+   Access-Control-Allow-Methods: GET,HEAD,OPTIONS
+   ```
+
+   静态资源不需要 `Access-Control-Allow-Credentials: true`；也不要把 `*` 与凭据模式混用。修改 CORS 响应头后，应刷新实际的 hash 文件或等待 CDN 配置传播，再用真实浏览器复测。
+4. **遇到 CDN 403 时要先保护生产可用性。** 可以临时执行 `FRONTEND_ASSET_MODE=local ... production-update.sh frontend`，让入口 HTML 恢复使用源站相对路径；确认私有回源和 CORS 修好后，再执行 OSS 模式切回 CDN。回滚不删除 OSS 中已上传的文件。
+5. **验收必须包含浏览器，而不只是 curl。** 至少检查入口 HTML、JS、CSS、API 和 Console；静态文件需要看到 `200`、正确的 `Content-Type`、`X-Cache: HIT`/`Age`/`Via` 等 CDN 迹象。当前项目的 `scripts/verify-member-cdn.sh` 可以检查 HTML、HTTPS 跳转和 JS/CSS 状态；如果某些 macOS `awk` 版本把大小写敏感导致响应头显示为“未返回”，再用下面的命令直接查看响应头：
+
+   ```bash
+   curl -H 'Origin: https://feilesaige.cn' -D - -o /dev/null \
+     https://cdn.feilesaige.cn/assets/实际的hash文件.css
+   ```
+
+6. **Network 面板只显示 JS 通常是过滤器问题。** 本次真实浏览器请求中，CSS 请求为 `type: stylesheet`、HTTP `200`，并且同样从 CDN 命中。截图中 `JS` 过滤器处于选中状态时，CSS 请求不会显示；切换 `All` 或 `CSS` 后即可看到。
 
 ### 9.6 首次配置 OSS、CDN、HTTPS 与 CNAME
 
