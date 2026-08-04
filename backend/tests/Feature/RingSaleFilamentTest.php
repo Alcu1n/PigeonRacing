@@ -57,6 +57,10 @@ class RingSaleFilamentTest extends TestCase
             ->assertSchemaComponentExists('items')
             ->assertSchemaComponentExists('receipt_paths');
 
+        $schema = $component->instance()->{$component->instance()->getMountedActionSchemaName()};
+        $receiptUpload = $schema->getFlatComponents(withHidden: true)['receipt_paths'];
+        $this->assertSame([], $receiptUpload->getExtraInputAttributes());
+
         $component
             ->assertSee('前缀')
             ->assertDontSee('前缀＋尾号')

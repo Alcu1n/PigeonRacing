@@ -389,7 +389,7 @@ class RingSaleResource extends Resource
                         ->columnSpanFull(),
                     FileUpload::make('receipt_paths')
                         ->label('收据照片')
-                        ->helperText('最多 3 张，每张不超过 10 MB；手机可直接调用后置摄像头。')
+                        ->helperText('最多 3 张，每张不超过 10 MB；手机可直接拍摄或从相册选择。')
                         ->disk('local')
                         ->directory('ring-sale-receipts')
                         ->visibility('private')
@@ -404,7 +404,6 @@ class RingSaleResource extends Resource
                             'image/heic',
                             'image/heif',
                         ])
-                        ->extraInputAttributes(['capture' => 'environment'])
                         ->getUploadedFileUsing(function (string $file): ?array {
                             $receipt = RingSaleReceipt::query()->where('path', $file)->first();
                             if (! $receipt || ! Storage::disk($receipt->disk)->exists($receipt->path)) {
