@@ -286,6 +286,12 @@ apply_backend() {
         abort_backend_update "Backend containers failed to start"
     fi
 
+    # Re-resolve the recreated app container before probing through Nginx.
+    # Nginx keeps the old Compose service IP until it is restarted.
+    if ! compose restart nginx; then
+        abort_backend_update "Nginx failed to reload the recreated app upstream"
+    fi
+
     # Check the live bind-mounted source before migrations and cache writes.
     # This is the earliest point where the real web stack can be rejected.
     if ! verify_http; then
