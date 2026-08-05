@@ -2844,3 +2844,630 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 
 .result-panel dt { color: var(--muted); }
 .result-panel dd { margin: 0; font-weight: 800; }
+
+/* Desktop layout overrides. Keep the mobile-first rules above unchanged. */
+@media (min-width: 1024px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  .page,
+  .registration-page {
+    width: min(100%, 1280px);
+    padding: 28px 32px 120px;
+  }
+
+  .login-screen {
+    padding-inline: 24px;
+  }
+
+  .login-main {
+    width: min(100%, 520px);
+    gap: 18px;
+    padding-block: 28px;
+  }
+
+  .login-panel,
+  .information-entry,
+  .login-footer {
+    width: min(100%, 520px);
+  }
+
+  .login-panel {
+    padding: 30px 30px 26px;
+  }
+
+  .login-panel h1 {
+    font-size: 30px;
+  }
+
+  .information-entry {
+    padding: 16px 18px 17px 20px;
+  }
+
+  .login-footer {
+    padding-bottom: 4px;
+  }
+
+  .information-page {
+    width: min(100%, 1200px);
+    padding: 28px 32px 72px;
+  }
+
+  .information-list-page {
+    width: min(100%, 1200px);
+    padding: 0 32px 72px;
+  }
+
+  .information-list-hero {
+    gap: 22px;
+    padding: 30px 0 22px;
+  }
+
+  .information-list-hero-title h1 {
+    font-size: 52px;
+  }
+
+  .information-list-stats {
+    max-width: 520px;
+    gap: 16px;
+  }
+
+  .information-list-tabs {
+    gap: 10px;
+    margin: 0 0 20px;
+    padding: 0 0 4px;
+  }
+
+  .information-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .information-list-skeleton {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .information-list-empty {
+    grid-column: 1 / -1;
+  }
+
+  .information-list-card {
+    min-height: 168px;
+    padding: 20px 22px;
+  }
+
+  .information-list-card strong {
+    font-size: 22px;
+  }
+
+  .information-detail-page {
+    width: min(100%, 1080px);
+  }
+
+  .information-back.inline {
+    margin: 0 0 14px;
+  }
+
+  .information-detail header {
+    padding: 24px 28px;
+  }
+
+  .information-detail h1 {
+    font-size: 32px;
+  }
+
+  .information-prose {
+    padding: 22px 28px 30px;
+    font-size: 16px;
+  }
+
+  .race-home {
+    width: min(100%, 1200px);
+    padding: 28px 32px 84px;
+  }
+
+  .member-hero {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 360px);
+    gap: 16px 24px;
+    margin-top: 0;
+    padding: 22px 24px 24px;
+  }
+
+  .member-hero-top {
+    grid-column: 1 / -1;
+  }
+
+  .member-hero-heading {
+    align-self: end;
+    font-size: 32px;
+  }
+
+  .member-hero-stats {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    gap: 12px;
+  }
+
+  .member-hero-stats span {
+    padding: 10px 14px;
+  }
+
+  .member-hero-stats b {
+    font-size: 20px;
+  }
+
+  .profile-page .member-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .profile-page .member-hero-identity {
+    grid-column: 1;
+  }
+
+  .race-home-grid {
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+    gap: 24px;
+    margin-top: 24px;
+  }
+
+  .race-home-races,
+  .race-home-side {
+    min-width: 0;
+  }
+
+  .race-home-side {
+    position: sticky;
+    top: 24px;
+  }
+
+  .race-home-section-head {
+    margin-bottom: 14px;
+  }
+
+  .race-card {
+    gap: 14px;
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .race-card h3 {
+    font-size: 22px;
+  }
+
+  .race-entry-action,
+  .race-detail-action {
+    min-height: 46px;
+  }
+
+  .race-home-info {
+    margin-top: 24px;
+    padding: 20px;
+  }
+
+  .race-home-info-tabs {
+    margin-inline: -20px;
+    padding-inline: 20px;
+  }
+
+  .race-home-info-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .race-home-info-row {
+    min-height: 50px;
+    padding: 12px 14px;
+  }
+
+  .published-details-page {
+    width: min(100%, 1280px);
+  }
+
+  .compact-detail-header {
+    padding: 8px 0 10px;
+  }
+
+  .compact-detail-header h1 {
+    font-size: 30px;
+  }
+
+  .compact-detail-header p {
+    max-width: min(70vw, 760px);
+  }
+
+  .published-summary-card {
+    margin-top: 14px;
+  }
+
+  .published-summary-card div {
+    padding: 16px 18px;
+  }
+
+  .published-summary-card strong {
+    font-size: 14px;
+  }
+
+  .published-tabs {
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin-top: 16px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .published-tabs::-webkit-scrollbar,
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .published-tabs button {
+    flex: 0 0 auto;
+    min-width: 112px;
+    min-height: 40px;
+  }
+
+  .published-search {
+    max-width: 560px;
+    min-height: 44px;
+    margin: 6px 0 16px;
+  }
+
+  .published-card {
+    margin-bottom: 16px;
+    border-radius: 14px;
+  }
+
+  .published-card-head {
+    padding: 16px 18px;
+  }
+
+  .published-table-wrap,
+  .published-group-table {
+    max-height: 68vh;
+  }
+
+  .published-single-grid {
+    grid-template-columns: 220px repeat(var(--published-project-count), minmax(96px, 1fr));
+  }
+
+  .published-sticky-cell,
+  .published-project-head,
+  .published-check-cell {
+    min-height: 48px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .published-group-block {
+    padding: 16px 18px 18px;
+  }
+
+  .published-group-row {
+    grid-template-columns: 110px 180px minmax(260px, 1fr) 96px;
+    min-width: 646px;
+  }
+
+  .profile-page {
+    width: min(100%, 1120px);
+    padding: 28px 32px 84px;
+  }
+
+  .profile-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 20px;
+  }
+
+  .profile-card {
+    margin-top: 20px;
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .profile-card .wide {
+    margin-top: 20px;
+  }
+
+  .profile-pigeon-list {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+
+  .profile-pigeon-card {
+    max-height: min(520px, calc(100vh - 180px));
+  }
+
+  .history-list-item {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 18px;
+  }
+
+  .history-list-actions {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  .history-matrix-wrap {
+    max-height: 68vh;
+    margin: 0 -20px -20px;
+  }
+
+  .history-matrix-grid {
+    grid-template-columns: 180px repeat(var(--history-project-count), 160px);
+  }
+
+  .history-ring-cell,
+  .history-project-head,
+  .history-check-cell {
+    min-height: 46px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+
+  .history-blocks-scroll {
+    max-height: 68vh;
+  }
+
+  .registration-page {
+    padding-bottom: 128px;
+  }
+
+  .registration-header {
+    padding: 18px 20px;
+    border-radius: 14px;
+  }
+
+  .registration-title-row {
+    align-items: center;
+    gap: 20px;
+  }
+
+  .registration-header h1 {
+    font-size: 24px;
+  }
+
+  .registration-header p {
+    font-size: 13px;
+  }
+
+  .member-line {
+    gap: 6px;
+  }
+
+  .member-line span {
+    min-height: 26px;
+    padding: 0 9px;
+    border-radius: 999px;
+    font-size: 12px;
+  }
+
+  .registration-header .logout-action,
+  .registration-header .profile-action {
+    min-height: 34px;
+    padding-inline: 12px;
+    font-size: 13px;
+  }
+
+  .registration-header .member-actions-panel {
+    width: 180px;
+    gap: 6px;
+  }
+
+  .registration-header .race-list-return-action {
+    min-height: 30px;
+    font-size: 12px;
+  }
+
+  .tabs {
+    flex-wrap: nowrap;
+    gap: 8px;
+    margin: 12px 0;
+    overflow-x: auto;
+    padding: 2px 0 6px;
+    scrollbar-width: none;
+  }
+
+  .tabs button,
+  .project-switcher button {
+    flex: 0 0 auto;
+    min-width: 110px;
+    min-height: 40px;
+    padding-inline: 16px;
+  }
+
+  .search-box {
+    max-width: 520px;
+    margin: 0 0 12px;
+  }
+
+  .search-box input {
+    min-height: 40px;
+    font-size: 14px;
+  }
+
+  .project-stats,
+  .project-switcher {
+    gap: 8px;
+    padding: 6px 0 8px;
+  }
+
+  .stat-chip {
+    min-width: 140px;
+    gap: 3px;
+    padding: 9px 12px;
+    border-radius: 8px;
+  }
+
+  .stat-chip strong {
+    font-size: 12px;
+  }
+
+  .stat-chip span {
+    font-size: 11px;
+  }
+
+  .matrix-wrap {
+    max-height: calc(100vh - 300px);
+    border-radius: 12px;
+  }
+
+  .single-matrix-wrap {
+    width: 100%;
+    margin-inline: 0;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+
+  .matrix-grid {
+    grid-template-columns: 46px 180px repeat(var(--project-count), minmax(110px, 1fr));
+  }
+
+  .progressive-grid {
+    grid-template-columns: minmax(0, 1fr) 110px;
+  }
+
+  .ring-cell,
+  .select-all-cell,
+  .project-head,
+  .matrix-toggle {
+    min-height: 46px;
+  }
+
+  .sticky-ring-cell {
+    left: 46px;
+  }
+
+  .progressive-grid .sticky-ring-cell {
+    left: 0;
+  }
+
+  .header-row .ring-cell,
+  .header-row .select-all-cell,
+  .project-head {
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+
+  .ring-button {
+    padding-inline: 10px;
+    font-size: 11px;
+  }
+
+  .ring-button strong {
+    font-size: 16px;
+  }
+
+  .matrix-toggle {
+    font-size: 16px;
+  }
+
+  .matrix-selected-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .pigeon-pick-list,
+  .group-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .multi-current,
+  .group-card {
+    padding: 18px;
+    border-radius: 12px;
+  }
+
+  .detail-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 16px;
+  }
+
+  .detail-block {
+    min-width: 0;
+  }
+
+  .detail-block-scroll {
+    max-height: min(380px, calc(100vh - 280px));
+  }
+
+  .amount-bar {
+    width: min(100%, 1280px);
+    min-height: 72px;
+    padding: 12px 32px calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .amount-copy span {
+    font-size: 13px;
+  }
+
+  .amount-copy strong {
+    font-size: 22px;
+  }
+
+  .amount-bar .primary-action {
+    flex-basis: 180px;
+    min-height: 48px;
+    font-size: 16px;
+  }
+
+  .result-panel {
+    width: min(100%, 640px);
+    margin: 80px auto 0;
+    padding: 32px;
+  }
+
+  .result-panel h1 {
+    font-size: 32px;
+  }
+
+  .information-entry:hover,
+  .information-list-card:hover,
+  .race-card:hover,
+  .race-home-member-card:hover,
+  .race-home-info:hover,
+  .profile-card:hover,
+  .published-card:hover,
+  .result-panel:hover {
+    border-color: rgba(11, 122, 75, .24);
+  }
+
+  .information-entry:hover,
+  .information-list-card:hover,
+  .race-card:hover,
+  .race-home-member-card:hover,
+  .race-home-info:hover,
+  .profile-card:hover,
+  .published-card:hover,
+  .result-panel:hover {
+    box-shadow: 0 22px 48px rgba(16, 52, 35, .14);
+  }
+
+  .information-entry:hover,
+  .information-list-card:hover,
+  .race-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .information-list-tabs button:hover,
+  .race-home-info-tabs button:hover,
+  .tabs button:not(:disabled):hover,
+  .project-switcher button:not(:disabled):hover,
+  .race-entry-action:not(:disabled):hover,
+  .race-detail-action:hover,
+  .history-detail-action:hover,
+  .primary-action:not(:disabled):hover,
+  .secondary-action:not(:disabled):hover,
+  .member-hero-back:hover,
+  .logout-action:hover,
+  .profile-action:hover {
+    filter: brightness(1.04);
+  }
+}
