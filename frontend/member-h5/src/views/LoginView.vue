@@ -82,8 +82,10 @@ async function submit(): Promise<void> {
       </section>
 
       <RouterLink class="information-entry" to="/information">
-        <strong>{{ t('信息发布页面') }}</strong>
-        <span>{{ t('协会/俱乐部 赛事规程、成绩发布、通知公告入口') }}</span>
+        <span class="information-entry-copy">
+          <strong>{{ t('信息发布页面') }}</strong>
+          <span>{{ t('协会/俱乐部 赛事规程、成绩发布、通知公告入口') }}</span>
+        </span>
         <span class="information-entry-action">{{ t('进入') }}</span>
       </RouterLink>
     </div>

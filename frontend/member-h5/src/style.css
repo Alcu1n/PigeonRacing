@@ -338,13 +338,13 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   width: min(100%, 420px);
   position: relative;
   overflow: hidden;
-  display: grid;
-  grid-template-columns: 1fr auto;
+  display: flex;
   align-items: center;
-  gap: 5px 12px;
+  justify-content: space-between;
+  gap: 16px;
   border: 1px solid rgba(11, 122, 75, .14);
   border-radius: 16px;
-  padding: 14px 14px 14px 16px;
+  padding: 16px 16px 16px 20px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, .90), rgba(250, 253, 251, .82));
   color: var(--text);
@@ -353,6 +353,12 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   box-shadow: 0 18px 40px rgba(16, 52, 35, .10);
   transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
   backdrop-filter: blur(12px);
+}
+
+.information-entry-copy {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
 }
 
 .information-entry::before {
@@ -364,17 +370,20 @@ button:disabled { cursor: not-allowed; opacity: .5; }
 }
 
 .information-entry-action {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-  min-width: 50px;
-  min-height: 32px;
-  display: inline-grid;
-  place-items: center;
+  flex: 0 0 auto;
+  min-width: 64px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 16px;
   border-radius: 999px;
   background: var(--green);
   color: #fff;
   font-size: 12px;
   font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
   box-shadow: 0 8px 18px rgba(11, 122, 75, .22);
 }
 
@@ -383,20 +392,23 @@ button:disabled { cursor: not-allowed; opacity: .5; }
   box-shadow: 0 8px 20px rgba(13, 43, 30, .09);
 }
 
-.information-entry strong {
-  grid-column: 1;
+.information-entry-copy strong {
   color: #10261b;
   font-size: 16px;
   font-weight: 950;
-  line-height: 1.15;
+  line-height: 1.2;
 }
 
-.information-entry span {
-  grid-column: 1;
+.information-entry-copy > span {
   color: #61766b;
   font-size: 12px;
-  font-weight: 800;
-  line-height: 1.35;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.information-entry:focus-visible {
+  outline: 3px solid rgba(11, 122, 75, .24);
+  outline-offset: 3px;
 }
 
 @media (max-height: 740px) {
