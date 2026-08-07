@@ -50,6 +50,12 @@ Environment variables:
   FRONTEND_ASSET_MODE=auto|oss|local    Default: auto (oss when OSS credentials exist, otherwise local).
   OSS_ENV_FILE=/path/.env.oss.local     OSS credential file checked by auto mode.
   NODE_IMAGE=node:22-alpine             Node image used to build the frontend when host npm is missing.
+  FRONTEND_BUILD_TIMEOUT=1200           Maximum seconds for a container frontend build.
+  NODE_IMAGE_PULL_TIMEOUT=180           Maximum seconds allowed to pull NODE_IMAGE.
+  NPM_FETCH_TIMEOUT=120000              npm registry request timeout in milliseconds.
+  NPM_FETCH_RETRIES=2                   npm registry retry count inside the Node container.
+  NPM_CACHE_VOLUME=pigeon-member-h5-npm-cache
+                                      Persistent Docker volume used for npm downloads.
   RUN_TYPECHECK=1                       Run vue-tsc typecheck before vite build (off by default).
   STRICT_GIT_STATUS=1                   Fail before pull when local changes exist.
   HEALTHCHECK_URL=http://127.0.0.1:8080  Local application URL used by the post-update health check.
