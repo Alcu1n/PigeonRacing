@@ -4,9 +4,9 @@
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 
-const appTitle = '赛鸽会员系统'
+import { t } from '../i18n'
 
 export function setPageTitle(title?: string | null): void {
   const normalizedTitle = title?.trim()
-  document.title = normalizedTitle || appTitle
+  document.title = normalizedTitle || t('赛鸽会员系统')
 }

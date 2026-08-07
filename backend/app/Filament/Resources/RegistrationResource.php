@@ -14,6 +14,7 @@ use App\Filament\Resources\RegistrationResource\Pages;
 use App\Models\Registration;
 use App\Services\RaceCacheService;
 use App\Services\RegistrationDetailMatrixService;
+use App\Support\CurrencyFormatter;
 use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\ViewAction;
@@ -38,9 +39,19 @@ class RegistrationResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-check';
 
-    protected static ?string $navigationLabel = '报名记录';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '报名记录';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('报名记录');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('报名记录');
+    }
 
     public static function form(Schema $schema): Schema
     {
@@ -54,6 +65,7 @@ class RegistrationResource extends Resource
                 ->viewData(fn (Registration $record): array => ['registration' => $record]),
             View::make('filament.resources.registration-resource.registration-detail-matrix')
                 ->viewData(fn (Registration $record): array => [
+                    'registration' => $record,
                     'matrix' => app(RegistrationDetailMatrixService::class)->matrix($record),
                 ]),
         ]);
@@ -67,47 +79,47 @@ class RegistrationResource extends Resource
 
         return $table->columns([
             TextColumn::make('status')
-                ->label('确认报名')
+                ->label(__('确认报名'))
                 ->badge()
-                ->formatStateUsing(fn (RegistrationStatus $state): string => $state === RegistrationStatus::Confirmed ? '已确认' : '点击确认')
+                ->formatStateUsing(fn (RegistrationStatus $state): string => $state === RegistrationStatus::Confirmed ? __('已确认') : __('点击确认'))
                 ->color(fn (RegistrationStatus $state): string => Registration::statusColor($state))
                 ->action(
                     Action::make('confirmFromColumn')
-                        ->label('确认报名')
+                        ->label(__('确认报名'))
                         ->visible(fn (): bool => self::hasModulePermission('update'))
                         ->requiresConfirmation()
-                        ->modalHeading('确认报名')
+                        ->modalHeading(__('确认报名'))
                         ->modalDescription(fn (Registration $record): string => self::confirmationPrompt($record))
-                        ->modalSubmitActionLabel('确认报名')
+                        ->modalSubmitActionLabel(__('确认报名'))
                         ->disabled(fn (Registration $record): bool => $record->status === RegistrationStatus::Confirmed)
                         ->action(fn (Registration $record) => self::confirmRegistration($record)),
                 ),
-            TextColumn::make('member.loft_number')->label('棚号')->searchable(),
-            TextColumn::make('member.participant_name')->label('参赛名')->searchable(),
+            TextColumn::make('member.loft_number')->label(__('棚号'))->searchable(),
+            TextColumn::make('member.participant_name')->label(__('参赛名'))->searchable(),
             TextColumn::make('total_amount_cent')
-                ->label('金额（元）')
-                ->formatStateUsing(fn (?int $state): string => rtrim(rtrim(number_format(($state ?? 0) / 100, 2, '.', ''), '0'), '.')),
+                ->label(__('金额'))
+                ->formatStateUsing(fn (?int $state, Registration $record): string => CurrencyFormatter::format($state ?? 0, $record->currency_code)),
             TextColumn::make('receipt_download')
-                ->label('下载')
+                ->label(__('下载'))
                 ->badge()
                 ->color('gray')
-                ->state(fn (): string => '下载明细')
+                ->state(fn (): string => __('下载明细'))
                 ->visible(fn (): bool => self::hasModulePermission('view'))
                 ->url(fn (Registration $record): string => route('admin.registrations.receipt', ['registration' => $record]), shouldOpenInNewTab: true),
-            TextColumn::make('registration_no')->label('报名编号')->searchable(),
-            TextColumn::make('race.name')->label('赛事'),
+            TextColumn::make('registration_no')->label(__('报名编号'))->searchable(),
+            TextColumn::make('race.name')->label(__('赛事')),
             TextColumn::make('status_text')
-                ->label('状态')
+                ->label(__('状态'))
                 ->badge()
                 ->state(fn (Registration $record): string => Registration::statusLabel($record->status))
                 ->color(fn (Registration $record): string => Registration::statusColor($record->status)),
-            TextColumn::make('submitted_at')->label('提交时间')->dateTime(),
+            TextColumn::make('submitted_at')->label(__('提交时间'))->dateTime(),
         ])->filters([
             TernaryFilter::make('confirmation_status')
-                ->label('确认状态')
-                ->placeholder('全部')
-                ->trueLabel('已确认')
-                ->falseLabel('未确认')
+                ->label(__('确认状态'))
+                ->placeholder(__('全部'))
+                ->trueLabel(__('已确认'))
+                ->falseLabel(__('未确认'))
                 ->queries(
                     true: fn (Builder $query): Builder => $query->where('status', RegistrationStatus::Confirmed->value),
                     false: fn (Builder $query): Builder => $query->where('status', '!=', RegistrationStatus::Confirmed->value),
@@ -115,31 +127,31 @@ class RegistrationResource extends Resource
         ])->recordActions([
             ViewAction::make(),
             Action::make('editRegistrationData')
-                ->label('修改报名数据')
+                ->label(__('修改报名数据'))
                 ->visible(fn (): bool => self::hasModulePermission('update'))
                 ->icon('heroicon-o-pencil-square')
                 ->url(fn (Registration $record): string => self::getUrl('edit-data', ['record' => $record])),
             Action::make('deleteRegistration')
-                ->label('删除报名记录')
+                ->label(__('删除报名记录'))
                 ->visible(fn (): bool => self::hasModulePermission('delete'))
                 ->icon('heroicon-o-trash')
                 ->color('danger')
                 ->requiresConfirmation()
-                ->modalHeading('删除报名记录')
+                ->modalHeading(__('删除报名记录'))
                 ->modalDescription(fn (Registration $record): string => self::deletionPrompt($record))
-                ->modalSubmitActionLabel('确认删除')
+                ->modalSubmitActionLabel(__('确认删除'))
                 ->action(function (Registration $record): void {
                     abort_unless(self::hasModulePermission('delete'), 403);
                     $deleted = self::deleteRegistrations(collect([$record]));
 
                     Notification::make()
-                        ->title("已删除 {$deleted} 条报名记录")
+                        ->title(__('已删除 :count 条报名记录', ['count' => $deleted]))
                         ->success()
                         ->send();
                 }),
         ])->bulkActions([
             BulkAction::make('confirmSelected')
-                ->label('确认报名')
+                ->label(__('确认报名'))
                 ->visible(fn (): bool => self::hasModulePermission('update'))
                 ->icon('heroicon-o-check-circle')
                 ->color('success')
@@ -149,22 +161,22 @@ class RegistrationResource extends Resource
 
                     return self::confirmRegistrations($records);
                 })
-                ->successNotificationTitle('已批量确认报名'),
+                ->successNotificationTitle(__('已批量确认报名')),
             BulkAction::make('deleteSelectedRegistrations')
-                ->label('删除报名记录')
+                ->label(__('删除报名记录'))
                 ->visible(fn (): bool => self::hasModulePermission('delete'))
                 ->icon('heroicon-o-trash')
                 ->color('danger')
                 ->requiresConfirmation()
-                ->modalHeading('删除所选报名记录')
-                ->modalDescription('此操作会删除所选报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这些报名。')
-                ->modalSubmitActionLabel('确认删除')
+                ->modalHeading(__('删除所选报名记录'))
+                ->modalDescription(__('此操作会删除所选报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这些报名。'))
+                ->modalSubmitActionLabel(__('确认删除'))
                 ->action(function (Collection $records): void {
                     abort_unless(self::hasModulePermission('delete'), 403);
                     $deleted = self::deleteRegistrations($records);
 
                     Notification::make()
-                        ->title("已删除 {$deleted} 条报名记录")
+                        ->title(__('已删除 :count 条报名记录', ['count' => $deleted]))
                         ->success()
                         ->send();
                 }),
@@ -190,17 +202,17 @@ class RegistrationResource extends Resource
     private static function confirmationPrompt(Registration $record): string
     {
         return sprintf(
-            '请确认报名信息：棚号：%s；会员名：%s；总金额：%s 元。确认后将标记为已确认。',
+            __('请确认报名信息：棚号：%s；会员名：%s；总金额：%s。确认后将标记为已确认。'),
             self::loftNumber($record),
             self::memberName($record),
-            self::formatAmount($record->total_amount_cent),
+            self::formatAmount($record->total_amount_cent, $record),
         );
     }
 
     private static function deletionPrompt(Registration $record): string
     {
         return sprintf(
-            '即将删除报名记录：棚号：%s；会员名：%s。此操作会删除该报名记录、普通报名明细和递进报名明细，删除后会员端不再恢复这条报名。',
+            __('即将删除报名记录：棚号：%s；会员名：%s。此操作会删除该报名记录、普通报名明细和递进报名明细，删除后会员端不再恢复这条报名。'),
             self::loftNumber($record),
             self::memberName($record),
         );
@@ -220,9 +232,9 @@ class RegistrationResource extends Resource
         return $record->member?->participant_name ?? $record->participant_name_snapshot ?? '—';
     }
 
-    private static function formatAmount(?int $amountCent): string
+    private static function formatAmount(?int $amountCent, Registration $record): string
     {
-        return rtrim(rtrim(number_format(($amountCent ?? 0) / 100, 2, '.', ''), '0'), '.');
+        return CurrencyFormatter::format($amountCent ?? 0, $record->currency_code);
     }
 
     public static function confirmRegistrations(iterable $records): int

@@ -27,7 +27,7 @@ class ViewRegistration extends ViewRecord
     {
         return [
             Action::make('editRegistrationData')
-                ->label('修改报名数据')
+                ->label(__('修改报名数据'))
                 ->visible(fn (): bool => RegistrationResource::hasModulePermission('update'))
                 ->icon('heroicon-o-pencil-square')
                 ->url(fn (): string => RegistrationResource::getUrl('edit-data', ['record' => $this->record])),

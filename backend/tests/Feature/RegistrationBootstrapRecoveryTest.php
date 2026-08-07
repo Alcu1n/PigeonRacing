@@ -8,6 +8,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\CurrencyCode;
 use App\Enums\RaceStatus;
 use App\Models\Member;
 use App\Models\Pigeon;
@@ -136,7 +137,29 @@ class RegistrationBootstrapRecoveryTest extends TestCase
             ->assertJsonPath('error_code', 'pigeon_not_owned');
     }
 
-    private function fixtures(): array
+    public function test_registration_submit_returns_and_persists_the_race_currency_snapshot(): void
+    {
+        [$member, $race, $single, , $firstPigeon] = $this->fixtures(CurrencyCode::TWD);
+
+        $this->actingAs($member, 'member')
+            ->postJson("/api/member/races/{$race->id}/registrations", [
+                'config_version' => $race->fresh()->config_version,
+                'idempotency_key' => '44444444-4444-4444-8444-444444444444',
+                'entries' => [
+                    ['project_id' => $single->id, 'pigeon_ids' => [$firstPigeon->id]],
+                ],
+            ])
+            ->assertOk()
+            ->assertJsonPath('currency_code', CurrencyCode::TWD->value);
+
+        $this->assertDatabaseHas('registrations', [
+            'race_id' => $race->id,
+            'member_id' => $member->id,
+            'currency_code' => CurrencyCode::TWD->value,
+        ]);
+    }
+
+    private function fixtures(CurrencyCode $currency = CurrencyCode::CNY): array
     {
         $library = PigeonLibrary::default();
         $member = Member::query()->create([
@@ -153,6 +176,7 @@ class RegistrationBootstrapRecoveryTest extends TestCase
             'status' => RaceStatus::Published,
             'is_visible' => true,
             'require_admin_confirm' => false,
+            'currency_code' => $currency,
         ]);
         $single = RaceProject::query()->create([
             'race_id' => $race->id,

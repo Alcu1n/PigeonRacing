@@ -36,42 +36,52 @@ class RegistrationCategoryResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-path-rounded-square';
 
-    protected static ?string $navigationLabel = '递进报名类别';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '递进报名类别';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('递进报名类别');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('递进报名类别');
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Select::make('race_id')->label('赛事')->relationship('race', 'name')->required(),
-            TextInput::make('name')->label('类别名称')->placeholder('站站赛 / 月月赛')->required()->maxLength(128),
-            TextInput::make('sort_order')->label('排序')->numeric()->default(0),
-            Toggle::make('is_enabled')->label('启用')->default(true),
+            Select::make('race_id')->label(__('赛事'))->relationship('race', 'name')->required(),
+            TextInput::make('name')->label(__('类别名称'))->placeholder(__('站站赛 / 月月赛'))->required()->maxLength(128),
+            TextInput::make('sort_order')->label(__('排序'))->numeric()->default(0),
+            Toggle::make('is_enabled')->label(__('启用'))->default(true),
             Select::make('current_stage_project_id')
-                ->label('当前开放阶段')
+                ->label(__('当前开放阶段'))
                 ->options(fn (?RegistrationCategory $record): array => $record?->stageProjects()->pluck('name', 'id')->all() ?? [])
                 ->searchable()
-                ->helperText('先在“报名项目”中为本类别创建递进阶段项目，再回到这里选择当前开放阶段。'),
+                ->helperText(__('先在“报名项目”中为本类别创建递进阶段项目，再回到这里选择当前开放阶段。')),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table->columns([
-            TextColumn::make('race.name')->label('赛事')->searchable(),
-            TextColumn::make('name')->label('类别')->searchable(),
-            TextColumn::make('currentStage.name')->label('当前开放阶段')->placeholder('未设置'),
-            TextColumn::make('stage_projects_count')->label('阶段数')->counts('stageProjects'),
-            TextColumn::make('sort_order')->label('排序'),
-            IconColumn::make('is_enabled')->label('启用')->boolean(),
+            TextColumn::make('race.name')->label(__('赛事'))->searchable(),
+            TextColumn::make('name')->label(__('类别'))->searchable(),
+            TextColumn::make('currentStage.name')->label(__('当前开放阶段'))->placeholder(__('未设置')),
+            TextColumn::make('stage_projects_count')->label(__('阶段数'))->counts('stageProjects'),
+            TextColumn::make('sort_order')->label(__('排序')),
+            IconColumn::make('is_enabled')->label(__('启用'))->boolean(),
         ])->recordActions([
             Action::make('importFirstStage')
-                ->label('导入第一阶段')
+                ->label(__('导入第一阶段'))
                 ->visible(fn (): bool => self::hasModulePermission('create'))
                 ->icon('heroicon-o-arrow-up-tray')
                 ->url(fn (RegistrationCategory $record): string => self::getUrl('import-first-stage', ['record' => $record->getKey()])),
             Action::make('downloadFirstStageTemplate')
-                ->label('下载模板')
+                ->label(__('下载模板'))
                 ->visible(fn (): bool => self::hasModulePermission('create'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->color('gray')
@@ -79,10 +89,10 @@ class RegistrationCategoryResource extends Resource
                     abort_unless(self::hasModulePermission('create'), 403);
                     $stage = app(ProgressiveStageImportService::class)->firstStage($record);
 
-                    return Excel::download(new ProgressiveStageImportTemplateExport($stage->name, (int) $stage->group_size), "递进第一阶段导入模板-{$record->name}.xlsx");
+                    return Excel::download(new ProgressiveStageImportTemplateExport($stage->name, (int) $stage->group_size), __('递进第一阶段导入模板')."-{$record->name}.xlsx");
                 }),
             Action::make('manageStageData')
-                ->label('阶段数据管理')
+                ->label(__('阶段数据管理'))
                 ->visible(fn (): bool => self::hasModulePermission('update'))
                 ->icon('heroicon-o-table-cells')
                 ->url(fn (RegistrationCategory $record): string => self::getUrl('stage-data', ['record' => $record->getKey()])),

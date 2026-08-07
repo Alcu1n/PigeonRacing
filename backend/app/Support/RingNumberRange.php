@@ -32,7 +32,7 @@ final readonly class RingNumberRange
         self::assertPrefix($prefix);
 
         if ($suffixWidth < 1 || $suffixWidth > 12) {
-            throw new InvalidArgumentException('尾号位数必须在 1 到 12 位之间。');
+            throw new InvalidArgumentException(LocalizedMessage::get('尾号位数必须在 1 到 12 位之间。'));
         }
 
         $start = self::normalizeSuffix($startSuffix, $suffixWidth, '起始尾号');
@@ -47,7 +47,7 @@ final readonly class RingNumberRange
         [$endPrefix, $endSuffix] = self::splitFullRing($endRing, '结束足环号');
 
         if ($startPrefix !== $endPrefix || strlen($startSuffix) !== strlen($endSuffix)) {
-            throw new InvalidArgumentException('完整起止足环号的前缀和尾号位数必须一致。');
+            throw new InvalidArgumentException(LocalizedMessage::get('完整起止足环号的前缀和尾号位数必须一致。'));
         }
 
         return self::make(
@@ -79,19 +79,19 @@ final readonly class RingNumberRange
     private static function make(string $prefix, int $suffixWidth, int $start, int $end): self
     {
         if ($end < $start) {
-            throw new InvalidArgumentException('结束号码不能小于起始号码。');
+            throw new InvalidArgumentException(LocalizedMessage::get('结束号码不能小于起始号码。'));
         }
 
         $max = (10 ** $suffixWidth) - 1;
         if ($start > $max || $end > $max) {
-            throw new InvalidArgumentException("尾号不能超过 {$suffixWidth} 位。");
+            throw new InvalidArgumentException(LocalizedMessage::get('尾号不能超过 :width 位。', ['width' => $suffixWidth]));
         }
 
         $startRing = $prefix.str_pad((string) $start, $suffixWidth, '0', STR_PAD_LEFT);
         $endRing = $prefix.str_pad((string) $end, $suffixWidth, '0', STR_PAD_LEFT);
 
         if (mb_strlen($startRing) > 128 || mb_strlen($endRing) > 128) {
-            throw new InvalidArgumentException('完整足环号码不能超过 128 个字符。');
+            throw new InvalidArgumentException(LocalizedMessage::get('完整足环号码不能超过 128 个字符。'));
         }
 
         return new self($prefix, $suffixWidth, $start, $end, $startRing, $endRing);
@@ -102,11 +102,11 @@ final readonly class RingNumberRange
         $suffix = trim((string) $suffix);
 
         if ($suffix === '' || ! ctype_digit($suffix)) {
-            throw new InvalidArgumentException("{$label}只能包含数字。");
+            throw new InvalidArgumentException(LocalizedMessage::get(':label 只能包含数字。', ['label' => LocalizedMessage::get($label)]));
         }
 
         if (strlen($suffix) > $width) {
-            throw new InvalidArgumentException("{$label}不能超过 {$width} 位。");
+            throw new InvalidArgumentException(LocalizedMessage::get(':label 不能超过 :width 位。', ['label' => LocalizedMessage::get($label), 'width' => $width]));
         }
 
         return (int) $suffix;
@@ -118,13 +118,13 @@ final readonly class RingNumberRange
         $ring = trim($ring);
 
         if ($ring === '' || ! preg_match('/^(.*?)(\d+)$/u', $ring, $matches)) {
-            throw new InvalidArgumentException("{$label}必须以数字结尾。");
+            throw new InvalidArgumentException(LocalizedMessage::get(':label 必须以数字结尾。', ['label' => LocalizedMessage::get($label)]));
         }
 
         self::assertPrefix($matches[1], allowEmpty: true);
 
         if (strlen($matches[2]) > 12) {
-            throw new InvalidArgumentException('完整足环号末尾连续数字不能超过 12 位。');
+            throw new InvalidArgumentException(LocalizedMessage::get('完整足环号末尾连续数字不能超过 12 位。'));
         }
 
         return [$matches[1], $matches[2]];
@@ -133,11 +133,11 @@ final readonly class RingNumberRange
     private static function assertPrefix(string $prefix, bool $allowEmpty = false): void
     {
         if ((! $allowEmpty && $prefix === '') || preg_match('/[\x00-\x1F\x7F]/u', $prefix)) {
-            throw new InvalidArgumentException('足环前缀格式无效。');
+            throw new InvalidArgumentException(LocalizedMessage::get('足环前缀格式无效。'));
         }
 
         if (mb_strlen($prefix) > 116) {
-            throw new InvalidArgumentException('足环前缀不能超过 116 个字符。');
+            throw new InvalidArgumentException(LocalizedMessage::get('足环前缀不能超过 116 个字符。'));
         }
     }
 

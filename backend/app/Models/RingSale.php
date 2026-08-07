@@ -152,23 +152,26 @@ class RingSale extends Model
     public function getPaymentStatusLabelAttribute(): string
     {
         if ($this->status === 'void') {
-            return '作废';
+            return __('作废');
         }
 
         if ($this->paid_amount_cent === 0) {
-            return '未付款';
+            return __('未付款');
         }
 
-        return $this->unpaid_amount_cent === 0 ? '付清' : '部分付款';
+        return $this->unpaid_amount_cent === 0 ? __('付清') : __('部分付款');
     }
 
     public function getPaymentStatusColorAttribute(): string
     {
-        return match ($this->payment_status_label) {
-            '付清' => 'success',
-            '部分付款' => 'warning',
-            '未付款' => 'danger',
-            default => 'gray',
-        };
+        if ($this->status === 'void') {
+            return 'gray';
+        }
+
+        if ($this->paid_amount_cent === 0) {
+            return 'danger';
+        }
+
+        return $this->unpaid_amount_cent === 0 ? 'success' : 'warning';
     }
 }

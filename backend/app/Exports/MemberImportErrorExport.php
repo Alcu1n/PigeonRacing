@@ -16,7 +16,7 @@ class MemberImportErrorExport implements FromArray, WithHeadings
 
     public function headings(): array
     {
-        return ['行号', '序号', '棚号', '参赛名', '手机号', '密码', '错误原因'];
+        return [__('行号'), __('序号'), __('棚号'), __('参赛名'), __('手机号'), __('密码'), __('错误原因')];
     }
 
     public function array(): array
@@ -27,7 +27,7 @@ class MemberImportErrorExport implements FromArray, WithHeadings
             $row['data']['loft_number'],
             $row['data']['participant_name'],
             $row['data']['phone'],
-            $row['data']['password'] === '' ? '' : '已填写',
+            $row['data']['password'] === '' ? '' : __('已填写'),
             implode('；', $row['errors']),
         ])->values()->all();
     }

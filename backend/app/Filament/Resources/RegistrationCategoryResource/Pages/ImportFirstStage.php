@@ -53,7 +53,7 @@ class ImportFirstStage extends Page
 
     public function getTitle(): string
     {
-        return "导入 {$this->category()->name} 第一阶段";
+        return __('导入 :name 第一阶段', ['name' => $this->category()->name]);
     }
 
     public function previewUpload(ProgressiveStageImportService $service): void
@@ -88,7 +88,7 @@ class ImportFirstStage extends Page
         ];
 
         Notification::make()
-            ->title("导入完成：成功 {$batch->success_rows} 行，失败 {$batch->failed_rows} 行")
+            ->title(__('导入完成：成功 :success 行，失败 :failed 行', ['success' => $batch->success_rows, 'failed' => $batch->failed_rows]))
             ->success()
             ->send();
 
@@ -105,7 +105,10 @@ class ImportFirstStage extends Page
     {
         $stage = $service->firstStage($this->category());
 
-        return Excel::download(new ProgressiveStageImportTemplateExport($stage->name, (int) $stage->group_size), "递进第一阶段导入模板-{$this->category()->name}.xlsx");
+        return Excel::download(
+            new ProgressiveStageImportTemplateExport($stage->name, (int) $stage->group_size),
+            __('递进第一阶段导入模板-:name.xlsx', ['name' => $this->category()->name]),
+        );
     }
 
     public function downloadErrorReport(): ?BinaryFileResponse

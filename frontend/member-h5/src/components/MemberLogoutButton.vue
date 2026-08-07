@@ -7,6 +7,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { t } from '../i18n'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -27,6 +28,6 @@ async function logout(): Promise<void> {
 
 <template>
   <button class="logout-action" type="button" :disabled="loading" @click="logout">
-    {{ loading ? '退出中' : '退出' }}
+    {{ loading ? t('退出中') : t('退出') }}
   </button>
 </template>

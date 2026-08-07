@@ -26,7 +26,7 @@ class RingNumberPrefix extends Model
         static::saving(function (RingNumberPrefix $prefix): void {
             if ((int) $prefix->suffix_width < 1 || (int) $prefix->suffix_width > 12) {
                 throw ValidationException::withMessages([
-                    'suffix_width' => '尾号位数必须在 1 到 12 位之间。',
+                    'suffix_width' => __('尾号位数必须在 1 到 12 位之间。'),
                 ]);
             }
         });
@@ -34,7 +34,7 @@ class RingNumberPrefix extends Model
         static::updating(function (RingNumberPrefix $prefix): void {
             if ($prefix->isDirty(['prefix', 'suffix_width']) && $prefix->isUsed()) {
                 throw ValidationException::withMessages([
-                    'prefix' => '已用于售环记录的号码前缀不能修改文本或尾号位数，只能停用。',
+                    'prefix' => __('已用于售环记录的号码前缀不能修改文本或尾号位数，只能停用。'),
                 ]);
             }
         });

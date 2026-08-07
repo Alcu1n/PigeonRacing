@@ -40,7 +40,7 @@ class ImportMemberCredentials extends Page
 
     public function getTitle(): string
     {
-        return '导入会员手机号和密码';
+        return __('导入会员手机号和密码');
     }
 
     public function updatedUpload(): void
@@ -76,7 +76,7 @@ class ImportMemberCredentials extends Page
         ];
 
         Notification::make()
-            ->title("导入完成：成功 {$batch->success_rows} 行，跳过/错误 {$batch->failed_rows} 行")
+            ->title(__('导入完成：成功 :success 行，跳过/错误 :failed 行', ['success' => $batch->success_rows, 'failed' => $batch->failed_rows]))
             ->success()
             ->send();
 

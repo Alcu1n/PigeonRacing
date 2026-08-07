@@ -8,6 +8,7 @@
 namespace App\Http\Controllers\Api\Member;
 
 use App\Enums\RaceStatus;
+use App\Enums\CurrencyCode;
 use App\Models\Member;
 use App\Models\Race;
 use App\Services\RaceCacheService;
@@ -32,6 +33,7 @@ class RaceController extends Controller
                 'registration_state' => $race->registrationState(),
                 'has_published_details' => $race->hasPublishedRegistrationDetails(),
                 'registration_details_scope' => $race->registration_details_scope,
+                'currency_code' => CurrencyCode::fromValue($race->currency_code)->value,
             ]);
 
         return response()->json($races);
@@ -43,7 +45,7 @@ class RaceController extends Controller
         $member = auth('member')->user();
 
         if (! $race->is_visible) {
-            return response()->json(['error_code' => 'race_not_visible', 'message' => '赛事不可见。'], 404);
+            return response()->json(['error_code' => 'race_not_visible', 'message' => __('赛事不可见。')], 404);
         }
 
         return response()->json($cache->bootstrap($race, $member));
@@ -52,7 +54,7 @@ class RaceController extends Controller
     public function publishedDetails(Race $race, PublishedRaceDetailsService $details): JsonResponse
     {
         if (! $race->is_visible || ! $race->hasPublishedRegistrationDetails()) {
-            return response()->json(['error_code' => 'details_not_published', 'message' => '报名明细尚未发布。'], 404);
+            return response()->json(['error_code' => 'details_not_published', 'message' => __('报名明细尚未发布。')], 404);
         }
 
         return response()->json($details->payload($race));

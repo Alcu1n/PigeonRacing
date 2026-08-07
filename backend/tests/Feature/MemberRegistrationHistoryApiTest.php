@@ -50,6 +50,7 @@ class MemberRegistrationHistoryApiTest extends TestCase
             ->assertJsonPath('0.registration_id', $latest->id)
             ->assertJsonPath('0.race_name', '春赛')
             ->assertJsonPath('0.total_amount_cent', 25000)
+            ->assertJsonPath('0.currency_code', 'CNY')
             ->assertJsonPath('0.single_count', 1)
             ->assertJsonPath('0.multi_group_count', 1)
             ->assertJsonPath('1.registration_id', $older->id)

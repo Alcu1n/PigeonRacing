@@ -10,6 +10,7 @@ import { api } from '../api/client'
 import type { InformationPostDetail } from '../types/domain'
 import { informationCategoryLabel, sanitizeInformationHtml } from '../utils/information'
 import { setPageTitle } from '../utils/pageTitle'
+import { t } from '../i18n'
 
 const route = useRoute()
 const router = useRouter()
@@ -29,11 +30,11 @@ async function load(): Promise<void> {
   try {
     const response = await api.get(`/api/public/information/${String(route.params.slug)}`)
     post.value = response.data.post ?? null
-    setPageTitle(post.value?.title ?? '信息详情')
+    setPageTitle(post.value?.title ?? t('信息详情'))
   } catch {
-    error.value = '内容不存在或已下线'
+    error.value = t('内容不存在或已下线')
     post.value = null
-    setPageTitle('内容不存在')
+    setPageTitle(t('内容不存在'))
   } finally {
     loading.value = false
   }
@@ -46,13 +47,13 @@ function formatTime(value?: string | null): string {
 
 <template>
   <main class="information-page information-detail-page">
-    <button class="information-back inline" @click="router.push('/information')">返回列表</button>
+    <button class="information-back inline" @click="router.push('/information')">{{ t('返回列表') }}</button>
 
     <article v-if="post" class="information-detail">
       <header>
         <span class="information-card-meta">
           <b>{{ informationCategoryLabel(post.category) }}</b>
-          <em v-if="post.is_pinned">置顶</em>
+          <em v-if="post.is_pinned">{{ t('置顶') }}</em>
           <time>{{ formatTime(post.published_at) }}</time>
         </span>
         <h1>{{ post.title }}</h1>
@@ -61,6 +62,6 @@ function formatTime(value?: string | null): string {
       <section class="information-prose" v-html="sanitizedHtml"></section>
     </article>
 
-    <p v-else class="information-empty">{{ loading ? '加载中...' : error }}</p>
+    <p v-else class="information-empty">{{ loading ? t('加载中...') : error }}</p>
   </main>
 </template>

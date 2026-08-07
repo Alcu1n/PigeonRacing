@@ -24,7 +24,7 @@ class AuthController extends Controller
         if (! Auth::guard('member')->attempt(['phone' => $credentials['phone'], 'password' => $credentials['password'], 'status' => 'enabled'])) {
             $request->session()->regenerateToken();
 
-            return response()->json(['error_code' => 'invalid_credentials', 'message' => '手机号或密码错误。'], 422);
+            return response()->json(['error_code' => 'invalid_credentials', 'message' => __('手机号或密码错误。')], 422);
         }
 
         $request->session()->regenerate();

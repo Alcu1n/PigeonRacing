@@ -10,23 +10,23 @@
 
 <div class="ring-sale-summary">
     <div class="ring-sale-summary__item">
-        <span>售环单</span>
+        <span>{{ __('售环单') }}</span>
         <strong>{{ number_format($summary['sales']) }}</strong>
     </div>
     <div class="ring-sale-summary__item">
-        <span>足环数量</span>
+        <span>{{ __('足环数量') }}</span>
         <strong>{{ number_format($summary['quantity']) }}</strong>
     </div>
     <div class="ring-sale-summary__item">
-        <span>应收</span>
+        <span>{{ __('应收') }}</span>
         <strong>{{ $money($summary['total_amount_cent']) }}</strong>
     </div>
     <div class="ring-sale-summary__item ring-sale-summary__item--paid">
-        <span>已收</span>
+        <span>{{ __('已收') }}</span>
         <strong>{{ $money($summary['paid_amount_cent']) }}</strong>
     </div>
     <div class="ring-sale-summary__item ring-sale-summary__item--unpaid">
-        <span>未收</span>
+        <span>{{ __('未收') }}</span>
         <strong>{{ $money($summary['unpaid_amount_cent']) }}</strong>
     </div>
 </div>

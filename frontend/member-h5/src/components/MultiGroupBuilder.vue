@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
 import { useRegistrationStore } from '../stores/registration'
-import { yuan } from '../utils/money'
+import { formatMoney } from '../utils/money'
+import { t } from '../i18n'
 
 const store = useRegistrationStore()
 const { multiProjects, selectedMultiProject, pendingMultiPigeonIds, filteredPigeons, multiGroups } = storeToRefs(store)
@@ -28,11 +29,11 @@ const { multiProjects, selectedMultiProject, pendingMultiPigeonIds, filteredPige
 
     <div v-if="selectedMultiProject" class="multi-current">
       <div class="multi-current-head">
-        <strong>当前选择：{{ selectedMultiProject.name }}</strong>
-        <span class="multi-group-count">已成组 <b>{{ store.selectedMultiProjectGroupCount }}</b> 组</span>
+        <strong>{{ t('当前选择：{name}', { name: selectedMultiProject.name }) }}</strong>
+        <span class="multi-group-count">{{ t('已成组 {count} 组', { count: store.selectedMultiProjectGroupCount }) }}</span>
       </div>
-      <span>请选择 {{ selectedMultiProject.group_size }} 只赛鸽组成一组，已选 {{ pendingMultiPigeonIds.length }}/{{ selectedMultiProject.group_size }}</span>
-      <button class="secondary-action" :disabled="!store.canConfirmMultiGroup" @click="store.confirmMultiGroup">确认组成一组</button>
+      <span>{{ t('请选择 {count} 只赛鸽组成一组，已选 {selected}/{count}', { count: selectedMultiProject.group_size, selected: pendingMultiPigeonIds.length }) }}</span>
+      <button class="secondary-action" :disabled="!store.canConfirmMultiGroup" @click="store.confirmMultiGroup">{{ t('确认组成一组') }}</button>
     </div>
 
     <div class="pigeon-pick-list">
@@ -46,20 +47,20 @@ const { multiProjects, selectedMultiProject, pendingMultiPigeonIds, filteredPige
         @click="store.togglePendingMultiPigeon(pigeon.id)"
       >
         <span>{{ pigeon.ring_number }}</span>
-        <strong>{{ pendingMultiPigeonIds.includes(pigeon.id) ? '已选' : store.canUsePigeonInSelectedProject(pigeon.id) ? '未选' : '不可选' }}</strong>
+        <strong>{{ pendingMultiPigeonIds.includes(pigeon.id) ? t('已选') : store.canUsePigeonInSelectedProject(pigeon.id) ? t('未选') : t('不可选') }}</strong>
       </button>
     </div>
 
     <div class="group-list">
       <article v-for="(group, index) in multiGroups" :key="group.id" class="group-card">
         <header>
-          <strong>{{ store.projectName(group.project_id) }} · 第 {{ index + 1 }} 组</strong>
-          <span>{{ yuan(store.priceFor(group.project_id)) }}</span>
+          <strong>{{ store.projectName(group.project_id) }} · {{ index + 1 }} {{ t('组') }}</strong>
+          <span>{{ formatMoney(store.priceFor(group.project_id), store.race?.currency_code ?? 'CNY') }}</span>
         </header>
         <ol>
           <li v-for="pigeonId in group.pigeon_ids" :key="pigeonId">{{ store.pigeonById(pigeonId).ring_number }}</li>
         </ol>
-        <button type="button" @click="store.deleteMultiGroup(group.id)">删除此组</button>
+        <button type="button" @click="store.deleteMultiGroup(group.id)">{{ t('删除此组') }}</button>
       </article>
     </div>
   </section>

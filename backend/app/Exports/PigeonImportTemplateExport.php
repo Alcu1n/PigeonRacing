@@ -14,7 +14,7 @@ class PigeonImportTemplateExport implements FromArray, WithHeadings
 {
     public function headings(): array
     {
-        return ['序号', '会员棚号', '会员参赛名', '足环号码'];
+        return [__('序号'), __('会员棚号'), __('会员参赛名'), __('足环号码')];
     }
 
     public function array(): array

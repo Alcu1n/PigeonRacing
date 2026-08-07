@@ -40,12 +40,12 @@ class SubmitRegistrationRequest extends FormRequest
                 $progressiveEntries = $this->input('progressive_entries', []);
 
                 if ($entries === [] && $progressiveEntries === []) {
-                    $validator->errors()->add('entries', '请至少选择一项报名项目。');
+                    $validator->errors()->add('entries', __('请至少选择一项报名项目。'));
                 }
 
                 foreach ($progressiveEntries as $index => $entry) {
                     if (($entry['pigeon_ids'] ?? []) === [] && ($entry['groups'] ?? []) === []) {
-                        $validator->errors()->add("progressive_entries.{$index}.groups", '递进报名请至少选择一组。');
+                        $validator->errors()->add("progressive_entries.{$index}.groups", __('递进报名请至少选择一组。'));
                     }
                 }
             },

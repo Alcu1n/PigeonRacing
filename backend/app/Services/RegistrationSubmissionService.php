@@ -8,6 +8,7 @@
 
 namespace App\Services;
 
+use App\Enums\CurrencyCode;
 use App\Enums\RegistrationStatus;
 use App\Models\Member;
 use App\Models\Pigeon;
@@ -18,6 +19,7 @@ use App\Models\Registration;
 use App\Models\RegistrationCategory;
 use App\Models\RegistrationEntry;
 use App\Models\RegistrationEntryPigeon;
+use App\Support\LocalizedMessage;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -56,7 +58,7 @@ class RegistrationSubmissionService
         $progressiveValidated = $this->validateProgressiveEntries($member, $race, $progressiveEntries);
 
         if ($standardValidated['entries'] === [] && $progressiveValidated['entries'] === []) {
-            throw new RegistrationRuleException('empty_entries', '请至少选择一项报名项目。');
+            throw new RegistrationRuleException('empty_entries', LocalizedMessage::get('请至少选择一项报名项目。'));
         }
 
         return DB::transaction(function () use ($member, $race, $idempotencyKey, $standardValidated, $progressiveValidated): Registration {
@@ -67,11 +69,11 @@ class RegistrationSubmissionService
                 ->first();
 
             if ($registration && ! $race->allow_member_edit) {
-                throw new RegistrationRuleException('registration_already_submitted', '该赛事已提交报名，当前赛事不允许会员自行修改。', 409);
+                throw new RegistrationRuleException('registration_already_submitted', LocalizedMessage::get('该赛事已提交报名，当前赛事不允许会员自行修改。'), 409);
             }
 
             if ($registration && $race->registration_end_at < now()) {
-                throw new RegistrationRuleException('registration_closed', '报名已截止，不能修改报名。', 409);
+                throw new RegistrationRuleException('registration_closed', LocalizedMessage::get('报名已截止，不能修改报名。'), 409);
             }
 
             $registration ??= new Registration([
@@ -85,6 +87,7 @@ class RegistrationSubmissionService
                 'loft_number_snapshot' => $member->loft_number,
                 'participant_name_snapshot' => $member->participant_name,
                 'total_amount_cent' => $standardValidated['total_amount_cent'] + $progressiveValidated['total_amount_cent'],
+                'currency_code' => $registration->currency_code ?: CurrencyCode::fromValue($race->currency_code),
                 'status' => $race->require_admin_confirm ? RegistrationStatus::PendingConfirmation : RegistrationStatus::Submitted,
                 'idempotency_key' => $idempotencyKey,
                 'submitted_at' => now(),
@@ -106,7 +109,7 @@ class RegistrationSubmissionService
                 return ['entries' => [], 'total_amount_cent' => 0];
             }
 
-            throw new RegistrationRuleException('empty_entries', '请至少选择一项报名项目。');
+            throw new RegistrationRuleException('empty_entries', LocalizedMessage::get('请至少选择一项报名项目。'));
         }
 
         $normalized = [];
@@ -118,17 +121,17 @@ class RegistrationSubmissionService
         foreach ($entries as $index => $entry) {
             $project = $projects->get((int) ($entry['project_id'] ?? 0));
             if (! $project instanceof RaceProject) {
-                throw new RegistrationRuleException('project_disabled', '报名项目不存在或已停用。');
+                throw new RegistrationRuleException('project_disabled', LocalizedMessage::get('报名项目不存在或已停用。'));
             }
 
             $pigeonIds = array_values(array_unique(array_map('intval', $entry['pigeon_ids'] ?? [])));
             if (count($pigeonIds) !== $project->group_size) {
-                throw new RegistrationRuleException('group_size_mismatch', "项目 {$project->name} 必须选择 {$project->group_size} 羽。");
+                throw new RegistrationRuleException('group_size_mismatch', LocalizedMessage::get('项目 :name 必须选择 :count 羽。', ['name' => $project->name, 'count' => $project->group_size]));
             }
 
             $groupSignature = $this->groupSignature($pigeonIds);
             if (isset($groupSignaturesByProject[$project->id][$groupSignature])) {
-                throw new RegistrationRuleException('duplicate_group', "项目 {$project->name} 已存在相同足环组合。");
+                throw new RegistrationRuleException('duplicate_group', LocalizedMessage::get('项目 :name 已存在相同足环组合。', ['name' => $project->name]));
             }
             $groupSignaturesByProject[$project->id][$groupSignature] = true;
 
@@ -136,10 +139,10 @@ class RegistrationSubmissionService
             foreach ($pigeonIds as $pigeonId) {
                 $pigeon = $pigeons->get($pigeonId);
                 if (! $pigeon instanceof Pigeon) {
-                    throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前会员或不可报名的足环。', 403);
+                    throw new RegistrationRuleException('pigeon_not_owned', LocalizedMessage::get('存在不属于当前会员或不可报名的足环。'), 403);
                 }
                 if ((int) $pigeon->pigeon_library_id !== (int) $project->pigeon_library_id) {
-                    throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前项目足环库的足环。', 403);
+                    throw new RegistrationRuleException('pigeon_not_owned', LocalizedMessage::get('存在不属于当前项目足环库的足环。'), 403);
                 }
                 $entryPigeons[] = $pigeon;
                 $pigeonUsageByProject[$project->id][$pigeonId] = ($pigeonUsageByProject[$project->id][$pigeonId] ?? 0) + 1;
@@ -187,25 +190,25 @@ class RegistrationSubmissionService
         foreach ($entries as $entry) {
             $category = $categories->get((int) ($entry['category_id'] ?? 0));
             if (! $category instanceof RegistrationCategory) {
-                throw new RegistrationRuleException('progressive_category_disabled', '递进报名类别不存在或已停用。');
+                throw new RegistrationRuleException('progressive_category_disabled', LocalizedMessage::get('递进报名类别不存在或已停用。'));
             }
 
             $project = $category->currentStage;
             if (! $project instanceof RaceProject) {
-                throw new RegistrationRuleException('progressive_stage_not_configured', "类别 {$category->name} 尚未配置当前开放阶段。");
+                throw new RegistrationRuleException('progressive_stage_not_configured', LocalizedMessage::get('类别 :name 尚未配置当前开放阶段。', ['name' => $category->name]));
             }
 
             if ((int) ($entry['stage_project_id'] ?? 0) !== $project->id) {
-                throw new RegistrationRuleException('progressive_stage_not_current', "类别 {$category->name} 当前只能报名 {$project->name}。");
+                throw new RegistrationRuleException('progressive_stage_not_current', LocalizedMessage::get('类别 :category 当前只能报名 :project。', ['category' => $category->name, 'project' => $project->name]));
             }
 
             if (! $project->is_enabled || $project->race_id !== $race->id || $project->registration_category_id !== $category->id || ! $project->isProgressiveStage()) {
-                throw new RegistrationRuleException('progressive_stage_not_current', "类别 {$category->name} 当前阶段配置无效。");
+                throw new RegistrationRuleException('progressive_stage_not_current', LocalizedMessage::get('类别 :name 当前阶段配置无效。', ['name' => $category->name]));
             }
 
             $groups = $this->normalizeProgressiveGroups($entry);
             if ($groups === []) {
-                throw new RegistrationRuleException('empty_entries', "类别 {$category->name} 请至少选择一组。");
+                throw new RegistrationRuleException('empty_entries', LocalizedMessage::get('类别 :name 请至少选择一组。', ['name' => $category->name]));
             }
 
             $normalizedGroups = [];
@@ -213,12 +216,12 @@ class RegistrationSubmissionService
             $pigeonUsage = [];
             foreach ($groups as $groupIndex => $pigeonIds) {
                 if (count($pigeonIds) !== (int) $project->group_size) {
-                    throw new RegistrationRuleException('group_size_mismatch', "项目 {$project->name} 必须选择 {$project->group_size} 羽。");
+                    throw new RegistrationRuleException('group_size_mismatch', LocalizedMessage::get('项目 :name 必须选择 :count 羽。', ['name' => $project->name, 'count' => $project->group_size]));
                 }
 
                 $groupKey = $this->groupSignature($pigeonIds);
                 if (isset($groupSignatures[$groupKey])) {
-                    throw new RegistrationRuleException('duplicate_group', "项目 {$project->name} 已存在相同足环组合。");
+                    throw new RegistrationRuleException('duplicate_group', LocalizedMessage::get('项目 :name 已存在相同足环组合。', ['name' => $project->name]));
                 }
                 $groupSignatures[$groupKey] = true;
 
@@ -226,10 +229,10 @@ class RegistrationSubmissionService
                 foreach ($pigeonIds as $pigeonId) {
                     $pigeon = $pigeons->get($pigeonId);
                     if (! $pigeon instanceof Pigeon) {
-                        throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前会员或不可报名的足环。', 403);
+                        throw new RegistrationRuleException('pigeon_not_owned', LocalizedMessage::get('存在不属于当前会员或不可报名的足环。'), 403);
                     }
                     if ((int) $pigeon->pigeon_library_id !== (int) $project->pigeon_library_id) {
-                        throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前阶段足环库的足环。', 403);
+                        throw new RegistrationRuleException('pigeon_not_owned', LocalizedMessage::get('存在不属于当前阶段足环库的足环。'), 403);
                     }
                     $entryPigeons[] = $pigeon;
                     $pigeonUsage[$pigeonId] = ($pigeonUsage[$pigeonId] ?? 0) + 1;
@@ -259,27 +262,27 @@ class RegistrationSubmissionService
     private function assertRaceCanAccept(Race $race, int $configVersion): void
     {
         if (! $race->isOpenForRegistration()) {
-            throw new RegistrationRuleException('race_not_open', '赛事当前不在报名时间内。', 409);
+            throw new RegistrationRuleException('race_not_open', LocalizedMessage::get('赛事当前不在报名时间内。'), 409);
         }
 
         if ($race->config_version !== $configVersion) {
-            throw new RegistrationRuleException('config_version_changed', '赛事报名项目已更新，请刷新页面后重新确认报名。', 409);
+            throw new RegistrationRuleException('config_version_changed', LocalizedMessage::get('赛事报名项目已更新，请刷新页面后重新确认报名。'), 409);
         }
     }
 
     private function assertProjectLimits(RaceProject $project, int $entryCount, array $pigeonUsage): void
     {
         if ($project->max_entries_per_member !== null && $entryCount > $project->max_entries_per_member) {
-            throw new RegistrationRuleException('project_entry_limit_exceeded', "项目 {$project->name} 已超过每会员报名上限。");
+            throw new RegistrationRuleException('project_entry_limit_exceeded', LocalizedMessage::get('项目 :name 已超过每会员报名上限。', ['name' => $project->name]));
         }
 
         foreach ($pigeonUsage as $usage) {
             if (! $project->allow_repeat_pigeon_in_project && $usage > 1) {
-                throw new RegistrationRuleException('repeat_pigeon_not_allowed', "项目 {$project->name} 不允许同一足环重复进入多个组合。");
+                throw new RegistrationRuleException('repeat_pigeon_not_allowed', LocalizedMessage::get('项目 :name 不允许同一足环重复进入多个组合。', ['name' => $project->name]));
             }
 
             if ($project->max_usage_per_pigeon !== null && $usage > $project->max_usage_per_pigeon) {
-                throw new RegistrationRuleException('pigeon_usage_limit_exceeded', "项目 {$project->name} 已超过每只足环最大使用次数。");
+                throw new RegistrationRuleException('pigeon_usage_limit_exceeded', LocalizedMessage::get('项目 :name 已超过每只足环最大使用次数。', ['name' => $project->name]));
             }
         }
     }
@@ -325,12 +328,12 @@ class RegistrationSubmissionService
     private function assertProgressiveLimits(RaceProject $project, int $groupCount, array $pigeonUsage): void
     {
         if ($project->max_entries_per_member !== null && $groupCount > $project->max_entries_per_member) {
-            throw new RegistrationRuleException('project_entry_limit_exceeded', "项目 {$project->name} 已超过每会员报名上限。");
+            throw new RegistrationRuleException('project_entry_limit_exceeded', LocalizedMessage::get('项目 :name 已超过每会员报名上限。', ['name' => $project->name]));
         }
 
         foreach ($pigeonUsage as $usage) {
             if ($project->max_usage_per_pigeon !== null && $usage > $project->max_usage_per_pigeon) {
-                throw new RegistrationRuleException('pigeon_usage_limit_exceeded', "项目 {$project->name} 已超过每只足环最大使用次数。");
+            throw new RegistrationRuleException('pigeon_usage_limit_exceeded', LocalizedMessage::get('项目 :name 已超过每只足环最大使用次数。', ['name' => $project->name]));
             }
         }
     }
@@ -345,7 +348,7 @@ class RegistrationSubmissionService
             ->first(fn (RaceProject $candidate): bool => (int) $candidate->stage_order === (int) $project->stage_order - 1);
 
         if (! $previousProject instanceof RaceProject) {
-            throw new RegistrationRuleException('previous_stage_not_confirmed', "类别 {$category->name} 缺少上一阶段确认数据。");
+                throw new RegistrationRuleException('previous_stage_not_confirmed', LocalizedMessage::get('类别 :name 缺少上一阶段确认数据。', ['name' => $category->name]));
         }
 
         $eligible = ProgressiveStageEntry::query()
@@ -361,7 +364,7 @@ class RegistrationSubmissionService
 
         $missing = array_values(array_diff($groupKeys, $eligible));
         if ($missing !== []) {
-            throw new RegistrationRuleException('progressive_pigeon_not_eligible', "类别 {$category->name} 只能选择上一阶段已确认足环组。");
+            throw new RegistrationRuleException('progressive_pigeon_not_eligible', LocalizedMessage::get('类别 :name 只能选择上一阶段已确认足环组。', ['name' => $category->name]));
         }
     }
 

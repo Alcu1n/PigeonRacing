@@ -50,7 +50,7 @@ class ImportPigeons extends Page
 
     public function getTitle(): string
     {
-        return '导入足环 Excel';
+        return __('导入足环 Excel');
     }
 
     public function previewUpload(PigeonImportService $service): void
@@ -88,7 +88,7 @@ class ImportPigeons extends Page
         ];
 
         Notification::make()
-            ->title("导入完成：成功 {$batch->success_rows} 行，失败 {$batch->failed_rows} 行")
+            ->title(__('导入完成：成功 :success 行，失败 :failed 行', ['success' => $batch->success_rows, 'failed' => $batch->failed_rows]))
             ->success()
             ->send();
 

@@ -42,7 +42,8 @@ class MemberRaceListApiTest extends TestCase
             ->assertOk()
             ->assertJsonFragment(['id' => $pending->id, 'registration_state' => 'pending'])
             ->assertJsonFragment(['id' => $open->id, 'registration_state' => 'open'])
-            ->assertJsonFragment(['id' => $ended->id, 'registration_state' => 'ended']);
+            ->assertJsonFragment(['id' => $ended->id, 'registration_state' => 'ended'])
+            ->assertJsonPath('0.currency_code', 'CNY');
     }
 
     private function member(string $loftNumber): Member

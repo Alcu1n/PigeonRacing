@@ -57,7 +57,7 @@ class ManageStageData extends Page
 
     public function getTitle(): string
     {
-        return "{$this->category()->name} 阶段数据管理";
+        return $this->category()->name.' '.__('阶段数据管理');
     }
 
     public function updatedMemberId(): void
@@ -81,7 +81,7 @@ class ManageStageData extends Page
     {
         $member = $this->member();
         if (! $member) {
-            Notification::make()->title('请先选择会员')->warning()->send();
+            Notification::make()->title(__('请先选择会员'))->warning()->send();
 
             return;
         }
@@ -92,7 +92,7 @@ class ManageStageData extends Page
 
         $removedCount = count($result['removed_groups'] ?? []);
         Notification::make()
-            ->title($removedCount > 0 ? "已保存，并移除 {$removedCount} 个无效后续阶段组" : '阶段数据已保存')
+            ->title($removedCount > 0 ? __('已保存，并移除 :count 个无效后续阶段组', ['count' => $removedCount]) : __('阶段数据已保存'))
             ->success()
             ->send();
 

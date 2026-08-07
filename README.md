@@ -528,6 +528,8 @@ APP_URL=https://feilesaige.cn
 FRONTEND_URL=https://feilesaige.cn
 PUBLIC_STORAGE_URL=/storage
 VITE_ASSET_BASE_URL=https://cdn.feilesaige.cn/
+MAXMIND_COUNTRY_DB_PATH=/var/www/backend/storage/app/geoip/GeoLite2-Country.mmdb
+TRUSTED_PROXIES=*
 
 LOG_CHANNEL=stack
 LOG_LEVEL=warning
@@ -550,6 +552,8 @@ REDIS_HOST=redis
 REDIS_PASSWORD=null
 REDIS_PORT=6379
 ```
+
+GeoIP 使用主机本地的 MaxMind GeoLite2 Country 数据库。运维需按月下载并原子替换数据库文件，并在每次部署前确认 `MAXMIND_COUNTRY_DB_PATH` 指向的文件可读；路径缺失或文件不可读时，系统会自动回退为简体中文。数据库下载、授权与更新由运维按 MaxMind 许可负责。
 
 `APP_KEY` 是 Laravel 应用加密密钥，用于 Cookie、Session 和应用内部加密。生产环境不能留空，但首次配置时可以先留空，等容器和依赖准备好后执行 `php artisan key:generate --force` 自动写入。
 

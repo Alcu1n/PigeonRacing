@@ -16,7 +16,7 @@ class PigeonImportErrorExport implements FromArray, WithHeadings
 
     public function headings(): array
     {
-        return ['行号', '序号', '会员棚号', '会员参赛名', '足环号码', '错误原因'];
+        return [__('行号'), __('序号'), __('会员棚号'), __('会员参赛名'), __('足环号码'), __('错误原因')];
     }
 
     public function array(): array

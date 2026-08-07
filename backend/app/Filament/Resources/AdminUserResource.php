@@ -29,9 +29,19 @@ class AdminUserResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-key';
 
-    protected static ?string $navigationLabel = '权限管理';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '管理员';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('权限管理');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('管理员');
+    }
 
     public static function canViewAny(): bool
     {
@@ -68,22 +78,22 @@ class AdminUserResource extends Resource
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('管理员信息')->schema([
-                TextInput::make('name')->label('姓名')->required()->maxLength(128),
-                TextInput::make('phone')->label('手机号')->maxLength(32)->requiredWithout('email')->unique(ignoreRecord: true),
-                TextInput::make('email')->label('邮箱')->email()->maxLength(255)->requiredWithout('phone')->unique(ignoreRecord: true),
+            Section::make(__('管理员信息'))->schema([
+                TextInput::make('name')->label(__('姓名'))->required()->maxLength(128),
+                TextInput::make('phone')->label(__('手机号'))->maxLength(32)->requiredWithout('email')->unique(ignoreRecord: true),
+                TextInput::make('email')->label(__('邮箱'))->email()->maxLength(255)->requiredWithout('phone')->unique(ignoreRecord: true),
                 TextInput::make('password')
-                    ->label('密码')
+                    ->label(__('密码'))
                     ->password()
                     ->minLength(8)
                     ->required(fn (string $operation): bool => $operation === 'create')
                     ->dehydrated(fn ($state): bool => filled($state)),
             ])->columns(2),
-            Section::make('业务权限')
-                ->description('导入归入新增；导出与详情归入查看；发布、确认与阶段管理归入编辑；批量或全部删除归入删除。')
+            Section::make(__('业务权限'))
+                ->description(__('导入归入新增；导出与详情归入查看；发布、确认与阶段管理归入编辑；批量或全部删除归入删除。'))
                 ->schema([
                     CheckboxList::make('permissions')
-                        ->label('允许操作')
+                        ->label(__('允许操作'))
                         ->options(static::permissionOptions())
                         ->columns(4)
                         ->bulkToggleable(),
@@ -95,11 +105,11 @@ class AdminUserResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('name')->label('姓名')->searchable(),
-                TextColumn::make('phone')->label('手机号')->searchable()->placeholder('-'),
-                TextColumn::make('email')->label('邮箱')->searchable()->placeholder('-'),
-                TextColumn::make('roles.name')->label('角色')->badge(),
-                TextColumn::make('updated_at')->label('更新时间')->dateTime(),
+                TextColumn::make('name')->label(__('姓名'))->searchable(),
+                TextColumn::make('phone')->label(__('手机号'))->searchable()->placeholder('-'),
+                TextColumn::make('email')->label(__('邮箱'))->searchable()->placeholder('-'),
+                TextColumn::make('roles.name')->label(__('角色'))->badge(),
+                TextColumn::make('updated_at')->label(__('更新时间'))->dateTime(),
             ])
             ->recordActions([
                 EditAction::make(),

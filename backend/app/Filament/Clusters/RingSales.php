@@ -17,15 +17,25 @@ class RingSales extends Cluster
 {
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-shopping-bag';
 
-    protected static ?string $navigationLabel = '售环记录';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $title = '售环记录';
+    protected static ?string $title = null;
 
     protected static ?string $slug = 'ring-sales';
 
     protected static ?int $navigationSort = 35;
 
     protected static ?SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('售环记录');
+    }
+
+    public function getTitle(): string
+    {
+        return __('售环记录');
+    }
 
     public static function canAccess(): bool
     {

@@ -11,7 +11,8 @@ import RegistrationReceiptDownload from '../components/RegistrationReceiptDownlo
 import { api } from '../api/client'
 import { registrationStatusText, registrationStatusTone, type ExistingRegistration } from '../types/domain'
 import { buildRegistrationHistoryMatrix } from '../utils/registrationHistory'
-import { yuan } from '../utils/money'
+import { formatMoney } from '../utils/money'
+import { t } from '../i18n'
 
 const route = useRoute()
 const router = useRouter()
@@ -25,7 +26,7 @@ onMounted(async () => {
     const response = await api.get(`/api/member/registrations/${route.params.registrationId}`)
     registration.value = response.data
   } catch {
-    errorMessage.value = '报名明细加载失败'
+    errorMessage.value = t('报名明细加载失败')
   } finally {
     loading.value = false
   }
@@ -36,32 +37,32 @@ onMounted(async () => {
   <main class="page profile-page">
     <header class="page-header page-topbar">
       <div>
-        <h1>报名明细</h1>
-        <p>历史报名记录只读查看</p>
+        <h1>{{ t('报名明细') }}</h1>
+        <p>{{ t('历史报名记录只读查看') }}</p>
       </div>
       <MemberTopActions />
     </header>
 
-    <p v-if="loading" class="empty-note">加载报名明细中...</p>
+    <p v-if="loading" class="empty-note">{{ t('加载报名明细中...') }}</p>
     <section v-else-if="errorMessage" class="profile-card">
       <p class="empty-note">{{ errorMessage }}</p>
-      <button class="secondary-action wide" @click="router.push('/profile')">返回个人信息</button>
+      <button class="secondary-action wide" @click="router.push('/profile')">{{ t('返回个人信息') }}</button>
     </section>
     <template v-else-if="registration && matrix">
       <section class="profile-card history-summary-card">
         <dl>
-          <dt>赛事名称</dt>
-          <dd>{{ registration.race_name || '未知赛事' }}</dd>
-          <dt>报名编号</dt>
+          <dt>{{ t('赛事名称') }}</dt>
+          <dd>{{ registration.race_name || t('未知赛事') }}</dd>
+          <dt>{{ t('报名编号') }}</dt>
           <dd>{{ registration.registration_no }}</dd>
-          <dt>提交时间</dt>
+          <dt>{{ t('提交时间') }}</dt>
           <dd>{{ registration.submitted_at }}</dd>
-          <dt>总金额</dt>
-          <dd>{{ yuan(registration.total_amount_cent) }}</dd>
-          <dt>状态</dt>
+          <dt>{{ t('总金额') }}</dt>
+          <dd>{{ formatMoney(registration.total_amount_cent, registration.currency_code ?? 'CNY') }}</dd>
+          <dt>{{ t('状态') }}</dt>
           <dd>
             <span :class="['registration-status-pill', registrationStatusTone(registration.status)]">
-              {{ registrationStatusText(registration.status) }}
+              {{ t(registrationStatusText(registration.status)) }}
             </span>
           </dd>
         </dl>
@@ -69,13 +70,13 @@ onMounted(async () => {
 
       <section class="profile-card history-card">
         <div class="history-card-head">
-          <h2>单羽组</h2>
-          <span>{{ matrix.single.total_count }} 项 / {{ yuan(matrix.single.total_amount_cent) }}</span>
+          <h2>{{ t('单羽组') }}</h2>
+          <span>{{ matrix.single.total_count }} {{ t('项') }} / {{ formatMoney(matrix.single.total_amount_cent, registration.currency_code ?? 'CNY') }}</span>
         </div>
-        <p v-if="matrix.single.rows.length === 0" class="empty-note">暂无单羽组报名</p>
+        <p v-if="matrix.single.rows.length === 0" class="empty-note">{{ t('暂无单羽组报名') }}</p>
         <div v-else class="history-matrix-wrap">
           <div class="history-matrix-grid history-header-row" :style="{ '--history-project-count': matrix.single.projects.length }">
-            <div class="history-ring-cell sticky-history-ring-cell">足环号</div>
+            <div class="history-ring-cell sticky-history-ring-cell">{{ t('足环号') }}</div>
             <div v-for="project in matrix.single.projects" :key="project.id" class="history-project-head">{{ project.name }}</div>
           </div>
           <div
@@ -95,18 +96,18 @@ onMounted(async () => {
 
       <section class="profile-card history-card">
         <div class="history-card-head">
-          <h2>多羽组</h2>
-          <span>{{ matrix.multi.reduce((sum, project) => sum + project.group_count, 0) }} 组</span>
+          <h2>{{ t('多羽组') }}</h2>
+          <span>{{ matrix.multi.reduce((sum, project) => sum + project.group_count, 0) }} {{ t('组') }}</span>
         </div>
-        <p v-if="matrix.multi.length === 0" class="empty-note">暂无多羽组报名</p>
+        <p v-if="matrix.multi.length === 0" class="empty-note">{{ t('暂无多羽组报名') }}</p>
         <div v-else class="history-blocks-scroll">
           <article v-for="project in matrix.multi" :key="project.project_id" class="history-multi-block">
             <header>
               <strong>{{ project.project_name }}</strong>
-              <span>{{ project.group_count }} 组 / {{ yuan(project.amount_cent) }}</span>
+              <span>{{ project.group_count }} {{ t('组') }} / {{ formatMoney(project.amount_cent, registration.currency_code ?? 'CNY') }}</span>
             </header>
             <div v-for="group in project.groups" :key="group.group_index" class="history-group-row">
-              <b>第 {{ group.group_index }} 组</b>
+              <b>{{ group.group_index }} {{ t('组') }}</b>
               <span>{{ group.rings.join(' / ') }}</span>
             </div>
           </article>
@@ -115,18 +116,18 @@ onMounted(async () => {
 
       <section class="profile-card history-card">
         <div class="history-card-head">
-          <h2>递进阶段</h2>
-          <span>{{ matrix.progressive.reduce((sum, group) => sum + group.count, 0) }} 组</span>
+          <h2>{{ t('递进阶段') }}</h2>
+          <span>{{ matrix.progressive.reduce((sum, group) => sum + group.count, 0) }} {{ t('组') }}</span>
         </div>
-        <p v-if="matrix.progressive.length === 0" class="empty-note">暂无递进阶段报名</p>
+        <p v-if="matrix.progressive.length === 0" class="empty-note">{{ t('暂无递进阶段报名') }}</p>
         <div v-else class="history-blocks-scroll">
           <article v-for="group in matrix.progressive" :key="group.category_id + '-' + group.stage_project_id" class="history-multi-block">
             <header>
               <strong>{{ group.category_name }} · {{ group.stage_project_name }}</strong>
-              <span>{{ group.count }} 组 / {{ yuan(group.amount_cent) }}</span>
+              <span>{{ group.count }} {{ t('组') }} / {{ formatMoney(group.amount_cent, registration.currency_code ?? 'CNY') }}</span>
             </header>
             <div v-for="item in group.groups" :key="item.group_index" class="history-group-row">
-              <b>{{ item.status === 'confirmed' ? '已确认' : '未确认' }}</b>
+              <b>{{ t(item.status === 'confirmed' ? '已确认' : '未确认') }}</b>
               <span>{{ item.rings.join(' / ') }}</span>
             </div>
           </article>
@@ -134,7 +135,7 @@ onMounted(async () => {
       </section>
 
       <RegistrationReceiptDownload :registration="registration" />
-      <button class="primary-action wide" @click="router.push('/profile')">返回个人信息</button>
+      <button class="primary-action wide" @click="router.push('/profile')">{{ t('返回个人信息') }}</button>
     </template>
   </main>
 </template>

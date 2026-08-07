@@ -59,10 +59,10 @@ final class AdminPermissions
         foreach (self::MODULES as $module => $label) {
             $permissions = [];
             foreach (self::ACTIONS as $action => $actionLabel) {
-                $permissions[self::name($module, $action)] = $actionLabel;
+                $permissions[self::name($module, $action)] = __($actionLabel);
             }
 
-            $groups[$module] = ['label' => $label, 'permissions' => $permissions];
+            $groups[$module] = ['label' => __($label), 'permissions' => $permissions];
         }
 
         return $groups;

@@ -9,6 +9,7 @@
 namespace App\Services;
 
 use App\Enums\RegistrationStatus;
+use App\Enums\CurrencyCode;
 use App\Models\Member;
 use App\Models\Pigeon;
 use App\Models\ProgressiveStageEntry;
@@ -135,6 +136,7 @@ class RaceCacheService
                 'status' => $race->isOpenForRegistration() ? 'open' : $race->status->value,
                 'config_version' => $race->config_version,
                 'allow_member_edit' => $race->allow_member_edit,
+                'currency_code' => CurrencyCode::fromValue($race->currency_code)->value,
             ],
             'member' => [
                 'id' => $member->id,
@@ -153,12 +155,13 @@ class RaceCacheService
     {
         return [
             'id' => $registration->id,
-            'race_name' => $registration->race_name_snapshot ?: ($registration->race?->name ?? '未知赛事'),
+            'race_name' => $registration->race_name_snapshot ?: ($registration->race?->name ?? __('未知赛事')),
             'loft_number' => $registration->loft_number_snapshot ?: ($registration->member?->loft_number ?? ''),
             'participant_name' => $registration->participant_name_snapshot ?: ($registration->member?->participant_name ?? ''),
             'registration_no' => $registration->registration_no,
             'status' => $registration->status->value,
             'total_amount_cent' => $registration->total_amount_cent,
+            'currency_code' => CurrencyCode::fromValue($registration->currency_code ?: $registration->race?->currency_code)->value,
             'submitted_at' => optional($registration->submitted_at)->toDateTimeString(),
             'entries' => $registration->entries->map(fn ($entry): array => [
                 'project_id' => $entry->race_project_id,

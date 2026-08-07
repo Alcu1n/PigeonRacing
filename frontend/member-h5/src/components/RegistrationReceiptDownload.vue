@@ -18,6 +18,7 @@ import {
   shareReceiptFile,
 } from '../utils/registrationReceiptExport'
 import RegistrationReceipt from './RegistrationReceipt.vue'
+import { t } from '../i18n'
 
 const props = withDefaults(defineProps<{
   registration?: ExistingRegistration | null
@@ -51,7 +52,7 @@ async function generateReceipt(): Promise<void> {
     receipt.value = buildRegistrationReceiptData(registration)
     await nextTick()
     await waitForPaint()
-    if (!renderHost.value) throw new Error('报名明细渲染区域不可用')
+    if (!renderHost.value) throw new Error(t('报名明细渲染区域不可用'))
 
     const blob = await renderRegistrationReceipt(renderHost.value)
     const fileName = receiptFileName(receipt.value)
@@ -59,10 +60,10 @@ async function generateReceipt(): Promise<void> {
       await openPreview(blob, fileName)
     } else {
       downloadReceiptBlob(blob, fileName)
-      showToast('报名明细图片已下载')
+      showToast(t('报名明细图片已下载'))
     }
   } catch {
-    showToast('报名明细图片生成失败，请重试')
+    showToast(t('报名明细图片生成失败，请重试'))
   } finally {
     receipt.value = null
     generating.value = false
@@ -78,10 +79,10 @@ async function saveToAlbum(): Promise<void> {
     if (result === 'shared') closePreview()
     if (result === 'unsupported') {
       shareUnsupported.value = true
-      showToast('当前浏览器不支持直接保存，请长按图片保存')
+      showToast(t('当前浏览器不支持直接保存，请长按图片保存'))
     }
   } catch {
-    showToast('系统分享打开失败，请长按图片保存')
+    showToast(t('系统分享打开失败，请长按图片保存'))
   } finally {
     saving.value = false
   }
@@ -93,7 +94,7 @@ function downloadFallback(): void {
 }
 
 async function loadRegistration(): Promise<ExistingRegistration> {
-  if (!props.registrationId) throw new Error('缺少报名记录')
+  if (!props.registrationId) throw new Error(t('缺少报名记录'))
   const response = await api.get(`/api/member/registrations/${props.registrationId}`)
 
   return response.data
@@ -164,7 +165,7 @@ onBeforeUnmount(revokePreviewUrl)
     @click="generateReceipt"
   >
     <Icon name="down" class="receipt-download-icon" aria-hidden="true" />
-    {{ generating ? '生成报名明细中…' : '下载报名明细' }}
+    {{ generating ? t('生成报名明细中…') : t('下载报名明细') }}
   </button>
 
   <div v-if="receipt" class="receipt-render-stage" aria-hidden="true">
@@ -175,23 +176,23 @@ onBeforeUnmount(revokePreviewUrl)
 
   <Teleport to="body">
     <div v-if="previewUrl" class="receipt-preview-mask" @click.self="closePreview" @keydown.esc.prevent.stop="closePreview" @keydown.tab="trapPreviewFocus">
-      <section ref="previewDialog" class="receipt-preview-dialog" role="dialog" aria-modal="true" aria-label="报名明细图片预览">
+      <section ref="previewDialog" class="receipt-preview-dialog" role="dialog" aria-modal="true" :aria-label="t('报名明细图片预览')">
         <header>
           <div>
-            <strong>报名明细图片</strong>
-            <span>{{ shareUnsupported ? '请长按图片保存' : '请核对后保存到相册' }}</span>
+            <strong>{{ t('报名明细图片') }}</strong>
+            <span>{{ shareUnsupported ? t('请长按图片保存') : t('请核对后保存到相册') }}</span>
           </div>
-          <button ref="previewCloseButton" type="button" aria-label="关闭预览" @click="closePreview">×</button>
+          <button ref="previewCloseButton" type="button" :aria-label="t('关闭预览')" @click="closePreview">×</button>
         </header>
         <div class="receipt-preview-scroll">
-          <img :src="previewUrl" alt="报名明细长图预览" />
+          <img :src="previewUrl" :alt="t('报名明细长图预览')" />
         </div>
-        <p v-if="shareUnsupported" class="receipt-save-hint">当前浏览器不支持直接写入相册，请长按上方原图选择保存，或下载 PNG。</p>
+        <p v-if="shareUnsupported" class="receipt-save-hint">{{ t('当前浏览器不支持直接写入相册，请长按上方原图选择保存，或下载 PNG。') }}</p>
         <div :class="['receipt-preview-actions', { single: shareUnsupported }]">
           <button v-if="!shareUnsupported" type="button" class="receipt-save-action" :disabled="saving" @click="saveToAlbum">
-            {{ saving ? '正在打开系统分享…' : '保存到相册' }}
+            {{ saving ? t('正在打开系统分享…') : t('保存到相册') }}
           </button>
-          <button type="button" class="receipt-fallback-action" @click="downloadFallback">下载 PNG</button>
+          <button type="button" class="receipt-fallback-action" @click="downloadFallback">{{ t('下载 PNG') }}</button>
         </div>
       </section>
     </div>

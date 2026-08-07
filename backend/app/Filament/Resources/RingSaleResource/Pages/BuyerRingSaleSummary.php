@@ -47,7 +47,9 @@ class BuyerRingSaleSummary extends Page
 
     public function getTitle(): string
     {
-        return $this->buyerName === '' ? '姓名售环汇总' : "{$this->buyerName} · 售环汇总";
+        return $this->buyerName === ''
+            ? __('姓名售环汇总')
+            : __(':name · 售环汇总', ['name' => $this->buyerName]);
     }
 
     public function getHeading(): string
@@ -58,13 +60,13 @@ class BuyerRingSaleSummary extends Page
     public function getSubheading(): string
     {
         return $this->buyerName === ''
-            ? '从售环列表点击姓名进入对应汇总页面。'
-            : '按姓名精确匹配，汇总有效售环记录并保留完整历史明细。';
+            ? __('从售环列表点击姓名进入对应汇总页面。')
+            : __('按姓名精确匹配，汇总有效售环记录并保留完整历史明细。');
     }
 
     public function getBreadcrumb(): ?string
     {
-        return '姓名汇总';
+        return __('姓名汇总');
     }
 
     /** @return array<string, mixed> */
@@ -85,7 +87,7 @@ class BuyerRingSaleSummary extends Page
     {
         return [
             Action::make('backToRingSales')
-                ->label('返回售环列表')
+                ->label(__('返回售环列表'))
                 ->icon('heroicon-o-arrow-left')
                 ->color('gray')
                 ->url(RingSaleResource::getUrl('index')),
@@ -96,19 +98,19 @@ class BuyerRingSaleSummary extends Page
     public function aggregatePaymentAction(): Action
     {
         return Action::make('aggregatePayment')
-            ->label(fn (): string => $this->getBuyerSummary()['unpaid_amount_cent'] > 0 ? '登记总收款' : '已付清')
+                ->label(fn (): string => $this->getBuyerSummary()['unpaid_amount_cent'] > 0 ? __('登记总收款') : __('已付清'))
             ->icon('heroicon-o-banknotes')
             ->color('success')
             ->visible(fn (): bool => RingSaleResource::hasModulePermission('update'))
             ->disabled(fn (): bool => $this->getBuyerSummary()['unpaid_amount_cent'] <= 0)
             ->schema([
                 DatePicker::make('payment_date')
-                    ->label('收款日期')
+                ->label(__('收款日期'))
                     ->default(today())
                     ->maxDate(today())
                     ->required(),
                 TextInput::make('amount_cent')
-                    ->label('收款金额')
+                ->label(__('收款金额'))
                     ->prefix('¥')
                     ->numeric()
                     ->step(0.01)
@@ -116,12 +118,12 @@ class BuyerRingSaleSummary extends Page
                     ->default(fn (): float => $this->getBuyerSummary()['unpaid_amount_cent'] / 100)
                     ->required(),
                 Textarea::make('remark')
-                    ->label('备注')
+                ->label(__('备注'))
                     ->rows(2),
             ])
-            ->modalHeading(fn (): string => '登记总收款 · 尚欠 '.RingSaleResource::formatYuan($this->getBuyerSummary()['unpaid_amount_cent']))
-            ->modalDescription(fn (): string => '确认后将按售环日期从旧到新分配到此姓名下的有效售环单；部分收款会自动拆分为多笔售环收款流水。')
-            ->modalSubmitActionLabel('确认登记总收款')
+            ->modalHeading(fn (): string => __('登记总收款 · 尚欠 :amount', ['amount' => RingSaleResource::formatYuan($this->getBuyerSummary()['unpaid_amount_cent'])]))
+            ->modalDescription(fn (): string => __('确认后将按售环日期从旧到新分配到此姓名下的有效售环单；部分收款会自动拆分为多笔售环收款流水。'))
+            ->modalSubmitActionLabel(__('确认登记总收款'))
             ->requiresConfirmation()
             ->modalWidth(Width::Medium)
             ->action(function (array $data): void {
@@ -135,8 +137,8 @@ class BuyerRingSaleSummary extends Page
                 );
 
                 Notification::make()
-                    ->title('总收款已登记')
-                    ->body('已分配到 '.count($result['affected_sale_ids']).' 笔售环记录。')
+                ->title(__('总收款已登记'))
+                    ->body(__('已分配到 :count 笔售环记录。', ['count' => count($result['affected_sale_ids'])]))
                     ->success()
                     ->send();
             });
@@ -158,13 +160,13 @@ class BuyerRingSaleSummary extends Page
     public function viewSaleAction(): Action
     {
         return Action::make('viewSale')
-            ->label('查看详情')
+            ->label(__('查看详情'))
             ->icon('heroicon-o-eye')
             ->visible(fn (array $arguments): bool => $this->canSaleAction($arguments, 'view'))
-            ->modalHeading(fn (array $arguments): string => '售环单 '.$this->saleFromArguments($arguments)->sale_no)
+            ->modalHeading(fn (array $arguments): string => __('售环单 :sale_no', ['sale_no' => $this->saleFromArguments($arguments)->sale_no]))
             ->modalContent(fn (array $arguments): View => RingSaleResource::detailView($this->saleFromArguments($arguments)))
             ->modalSubmitAction(false)
-            ->modalCancelActionLabel('关闭')
+            ->modalCancelActionLabel(__('关闭'))
             ->modalWidth(Width::FiveExtraLarge)
             ->slideOver();
     }
@@ -172,7 +174,7 @@ class BuyerRingSaleSummary extends Page
     public function editSaleAction(): Action
     {
         return Action::make('editSale')
-            ->label('编辑售环单')
+            ->label(__('编辑售环单'))
             ->icon('heroicon-o-pencil-square')
             ->visible(fn (array $arguments): bool => $this->canSaleAction($arguments, 'update', 'active'))
             ->fillForm(fn (array $arguments): array => RingSaleResource::formData($this->saleFromArguments($arguments)))
@@ -180,8 +182,8 @@ class BuyerRingSaleSummary extends Page
                 false,
                 $this->saleFromArgumentsOrNull($arguments)?->paid_amount_cent ?? 0,
             ))
-            ->modalHeading(fn (array $arguments): string => '编辑 '.$this->saleFromArguments($arguments)->sale_no)
-            ->modalSubmitActionLabel('保存修改')
+            ->modalHeading(fn (array $arguments): string => __('编辑 :sale_no', ['sale_no' => $this->saleFromArguments($arguments)->sale_no]))
+            ->modalSubmitActionLabel(__('保存修改'))
             ->stickyModalHeader()
             ->stickyModalFooter()
             ->modalWidth(Width::ScreenExtraLarge)
@@ -193,25 +195,25 @@ class BuyerRingSaleSummary extends Page
                     $this->admin(),
                 );
 
-                Notification::make()->title('售环单已更新')->success()->send();
+                Notification::make()->title(__('售环单已更新'))->success()->send();
             });
     }
 
     public function addPaymentAction(): Action
     {
         return Action::make('addPayment')
-            ->label('登记收款')
+            ->label(__('登记收款'))
             ->icon('heroicon-o-banknotes')
             ->color('success')
             ->visible(fn (array $arguments): bool => $this->canSaleAction($arguments, 'update', 'active')
                 && $this->saleFromArguments($arguments)->unpaid_amount_cent > 0)
             ->schema([
-                DatePicker::make('payment_date')->label('收款日期')->default(today())->maxDate(today())->required(),
-                TextInput::make('amount_cent')->label('收款金额')->prefix('¥')->numeric()->step(0.01)->minValue(0.01)->required(),
-                Textarea::make('remark')->label('备注')->rows(2),
+                DatePicker::make('payment_date')->label(__('收款日期'))->default(today())->maxDate(today())->required(),
+                TextInput::make('amount_cent')->label(__('收款金额'))->prefix('¥')->numeric()->step(0.01)->minValue(0.01)->required(),
+                Textarea::make('remark')->label(__('备注'))->rows(2),
             ])
-            ->modalHeading(fn (array $arguments): string => '登记收款 · 尚欠 '.RingSaleResource::formatYuan($this->saleFromArguments($arguments)->unpaid_amount_cent))
-            ->modalSubmitActionLabel('确认收款')
+            ->modalHeading(fn (array $arguments): string => __('登记收款 · 尚欠 :amount', ['amount' => RingSaleResource::formatYuan($this->saleFromArguments($arguments)->unpaid_amount_cent)]))
+            ->modalSubmitActionLabel(__('确认收款'))
             ->action(function (array $data, array $arguments): void {
                 app(RingSaleService::class)->addPayment(
                     $this->saleFromArguments($arguments),
@@ -222,20 +224,20 @@ class BuyerRingSaleSummary extends Page
                     $this->admin(),
                 );
 
-                Notification::make()->title('收款已登记')->success()->send();
+                Notification::make()->title(__('收款已登记'))->success()->send();
             });
     }
 
     public function editPaymentAction(): Action
     {
         return Action::make('editPayment')
-            ->label('修改收款')
+            ->label(__('修改收款'))
             ->icon('heroicon-o-pencil')
             ->visible(fn (array $arguments): bool => $this->canSaleAction($arguments, 'update', 'active')
                 && $this->saleFromArguments($arguments)->payments()->where('status', 'active')->exists())
             ->schema(fn (array $arguments): array => [
                 Select::make('payment_id')
-                    ->label('选择收款流水')
+                    ->label(__('选择收款流水'))
                     ->options(function () use ($arguments): array {
                         $sale = $this->saleFromArgumentsOrNull($arguments);
                         if (! $sale) {
@@ -259,12 +261,12 @@ class BuyerRingSaleSummary extends Page
                         $set('amount_cent', $payment ? $payment->amount_cent / 100 : null);
                         $set('remark', $payment?->remark);
                     }),
-                DatePicker::make('payment_date')->label('收款日期')->maxDate(today())->required(),
-                TextInput::make('amount_cent')->label('收款金额')->prefix('¥')->numeric()->step(0.01)->minValue(0.01)->required(),
-                Textarea::make('remark')->label('备注')->rows(2),
+                DatePicker::make('payment_date')->label(__('收款日期'))->maxDate(today())->required(),
+                TextInput::make('amount_cent')->label(__('收款金额'))->prefix('¥')->numeric()->step(0.01)->minValue(0.01)->required(),
+                Textarea::make('remark')->label(__('备注'))->rows(2),
             ])
-            ->modalHeading('修改收款流水')
-            ->modalSubmitActionLabel('保存修改')
+            ->modalHeading(__('修改收款流水'))
+            ->modalSubmitActionLabel(__('保存修改'))
             ->action(function (array $data, array $arguments): void {
                 $payment = $this->saleFromArguments($arguments)
                     ->payments()
@@ -281,21 +283,21 @@ class BuyerRingSaleSummary extends Page
                     $this->admin(),
                 );
 
-                Notification::make()->title('收款流水已更新')->success()->send();
+                Notification::make()->title(__('收款流水已更新'))->success()->send();
             });
     }
 
     public function voidPaymentAction(): Action
     {
         return Action::make('voidPayment')
-            ->label('作废收款')
+            ->label(__('作废收款'))
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->visible(fn (array $arguments): bool => $this->canSaleAction($arguments, 'delete')
                 && $this->saleFromArguments($arguments)->payments()->where('status', 'active')->exists())
             ->schema(fn (array $arguments): array => [
                 Select::make('payment_id')
-                    ->label('选择收款流水')
+                    ->label(__('选择收款流水'))
                     ->options(function () use ($arguments): array {
                         $sale = $this->saleFromArgumentsOrNull($arguments);
                         if (! $sale) {
@@ -312,11 +314,11 @@ class BuyerRingSaleSummary extends Page
                             ->all();
                     })
                     ->required(),
-                Textarea::make('void_reason')->label('作废原因')->required()->rows(2),
+                Textarea::make('void_reason')->label(__('作废原因'))->required()->rows(2),
             ])
             ->requiresConfirmation()
-            ->modalHeading('作废收款流水')
-            ->modalSubmitActionLabel('确认作废')
+            ->modalHeading(__('作废收款流水'))
+            ->modalSubmitActionLabel(__('确认作废'))
             ->action(function (array $data, array $arguments): void {
                 $payment = $this->saleFromArguments($arguments)
                     ->payments()
@@ -325,24 +327,24 @@ class BuyerRingSaleSummary extends Page
                     ->firstOrFail();
 
                 app(RingSaleService::class)->voidPayment($payment, $data['void_reason'], $this->admin());
-                Notification::make()->title('收款流水已作废')->success()->send();
+                Notification::make()->title(__('收款流水已作废'))->success()->send();
             });
     }
 
     public function voidSaleAction(): Action
     {
         return Action::make('voidSale')
-            ->label('作废售环单')
+            ->label(__('作废售环单'))
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->visible(fn (array $arguments): bool => $this->canSaleAction($arguments, 'delete', 'active'))
             ->schema([
-                Textarea::make('void_reason')->label('作废原因')->required()->rows(3),
+                Textarea::make('void_reason')->label(__('作废原因'))->required()->rows(3),
             ])
             ->requiresConfirmation()
-            ->modalHeading(fn (array $arguments): string => '作废 '.$this->saleFromArguments($arguments)->sale_no)
-            ->modalDescription('作废后保留历史明细、收款和收据，并释放全部号码；此操作不能恢复。')
-            ->modalSubmitActionLabel('确认作废')
+            ->modalHeading(fn (array $arguments): string => __('作废 :sale_no', ['sale_no' => $this->saleFromArguments($arguments)->sale_no]))
+            ->modalDescription(__('作废后保留历史明细、收款和收据，并释放全部号码；此操作不能恢复。'))
+            ->modalSubmitActionLabel(__('确认作废'))
             ->action(function (array $data, array $arguments): void {
                 app(RingSaleService::class)->voidSale(
                     $this->saleFromArguments($arguments),
@@ -350,7 +352,7 @@ class BuyerRingSaleSummary extends Page
                     $this->admin(),
                 );
 
-                Notification::make()->title('售环单已作废')->success()->send();
+                Notification::make()->title(__('售环单已作废'))->success()->send();
             });
     }
 

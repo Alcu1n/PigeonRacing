@@ -18,7 +18,7 @@ class PigeonExport implements FromCollection, ShouldAutoSize, WithHeadings
 {
     public function headings(): array
     {
-        return ['序号', '会员棚号', '会员参赛名', '足环号码', '状态', '创建时间'];
+        return [__('序号'), __('会员棚号'), __('会员参赛名'), __('足环号码'), __('状态'), __('创建时间')];
     }
 
     public function collection(): Collection

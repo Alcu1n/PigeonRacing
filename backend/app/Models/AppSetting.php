@@ -7,11 +7,14 @@
 
 namespace App\Models;
 
+use App\Enums\CurrencyCode;
 use Illuminate\Database\Eloquent\Model;
 
 class AppSetting extends Model
 {
     public const BRAND_LOGO_PATH = 'brand_logo_path';
+
+    public const REGISTRATION_DEFAULT_CURRENCY = 'registration_default_currency';
 
     protected $fillable = ['key', 'value'];
 
@@ -23,5 +26,10 @@ class AppSetting extends Model
     public static function putValue(string $key, ?string $value): void
     {
         static::query()->updateOrCreate(['key' => $key], ['value' => $value]);
+    }
+
+    public static function defaultRegistrationCurrency(): CurrencyCode
+    {
+        return CurrencyCode::fromValue(static::getValue(self::REGISTRATION_DEFAULT_CURRENCY));
     }
 }

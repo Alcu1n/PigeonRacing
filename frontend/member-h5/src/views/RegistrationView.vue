@@ -10,7 +10,8 @@ import { showDialog, showToast } from 'vant'
 import { api } from '../api/client'
 import { useRegistrationStore } from '../stores/registration'
 import { createIdempotencyKey } from '../utils/idempotency'
-import { yuan } from '../utils/money'
+import { formatMoney } from '../utils/money'
+import { t } from '../i18n'
 import { demoBootstrap } from '../utils/demoBootstrap'
 import AmountBar from '../components/AmountBar.vue'
 import SingleMatrix from '../components/SingleMatrix.vue'
@@ -32,7 +33,7 @@ onMounted(async () => {
   } catch (error) {
     if (!import.meta.env.DEV) throw error
     store.load(demoBootstrap())
-    showToast('后端未运行，已加载演示数据')
+    showToast(t('后端未运行，已加载演示数据'))
   }
   loading.value = false
 })
@@ -40,10 +41,13 @@ onMounted(async () => {
 async function confirmSubmit(): Promise<void> {
   if (!store.race || (store.submitEntries.length === 0 && store.submitProgressiveEntries.length === 0)) return
   await showDialog({
-    title: '确认提交报名',
-    message: `共 ${store.selectedCount} 项，总金额 ${yuan(store.totalAmountCent)}。提交后以后台校验金额为准。`,
+    title: t('确认提交报名'),
+    message: t('共 {count} 项，总金额 {amount}。提交后以后台校验金额为准。', {
+      count: store.selectedCount,
+      amount: formatMoney(store.totalAmountCent, store.race.currency_code ?? 'CNY'),
+    }),
     showCancelButton: true,
-    confirmButtonText: '确认提交',
+    confirmButtonText: t('确认提交'),
   })
 
   submitting.value = true
@@ -54,10 +58,10 @@ async function confirmSubmit(): Promise<void> {
       entries: store.submitEntries,
       progressive_entries: store.submitProgressiveEntries,
     })
-    showToast('报名提交成功')
+    showToast(t('报名提交成功'))
     await router.push(`/registrations/${response.data.id}`)
   } catch (error: any) {
-    showToast(error?.response?.data?.message ?? '提交失败')
+    showToast(error?.response?.data?.message ?? t('提交失败'))
   } finally {
     submitting.value = false
   }
@@ -66,7 +70,7 @@ async function confirmSubmit(): Promise<void> {
 
 <template>
   <main class="registration-page">
-    <p v-if="loading" class="empty-note">加载报名数据中...</p>
+    <p v-if="loading" class="empty-note">{{ t('加载报名数据中...') }}</p>
     <template v-else-if="store.race && store.member">
       <header class="registration-header">
         <div class="registration-title-row">
@@ -75,17 +79,17 @@ async function confirmSubmit(): Promise<void> {
             <div class="member-line">
               <span>{{ store.member.loft_number }}</span>
               <span>{{ store.member.participant_name }}</span>
-              <span>{{ store.pigeons.length }} 羽</span>
+              <span>{{ store.pigeons.length }} {{ t('羽') }}</span>
             </div>
-            <p class="deadline-line">报名截止：{{ store.race.registration_end_at }}</p>
+            <p class="deadline-line">{{ t('报名截止：{date}', { date: store.race.registration_end_at }) }}</p>
           </div>
           <MemberTopActions show-race-list-return />
         </div>
       </header>
 
       <nav class="tabs">
-        <button v-if="store.singleProjects.length" :class="{ active: store.activeTab === 'single' }" @click="store.activeTab = 'single'">单羽组</button>
-        <button v-if="store.multiProjects.length" :class="{ active: store.activeTab === 'multi' }" @click="store.activeTab = 'multi'">多羽组</button>
+        <button v-if="store.singleProjects.length" :class="{ active: store.activeTab === 'single' }" @click="store.activeTab = 'single'">{{ t('单羽组') }}</button>
+        <button v-if="store.multiProjects.length" :class="{ active: store.activeTab === 'multi' }" @click="store.activeTab = 'multi'">{{ t('多羽组') }}</button>
         <button
           v-for="category in store.progressiveCategories"
           :key="category.id"
@@ -94,11 +98,11 @@ async function confirmSubmit(): Promise<void> {
         >
           {{ category.name }}
         </button>
-        <button :class="{ active: store.activeTab === 'detail' }" @click="store.activeTab = 'detail'">已选明细</button>
+        <button :class="{ active: store.activeTab === 'detail' }" @click="store.activeTab = 'detail'">{{ t('已选明细') }}</button>
       </nav>
 
       <div class="search-box">
-        <input v-model="store.searchQuery" aria-label="搜索足环号码" placeholder="搜索足环号 / 尾号" />
+        <input v-model="store.searchQuery" :aria-label="t('搜索足环号码')" :placeholder="t('搜索足环号 / 尾号')" />
       </div>
 
       <SingleMatrix v-if="store.activeTab === 'single'" />
@@ -109,9 +113,10 @@ async function confirmSubmit(): Promise<void> {
       <AmountBar
         :selected-count="store.selectedCount"
         :total-amount-cent="store.totalAmountCent"
+        :currency-code="store.race.currency_code ?? 'CNY'"
         @submit="confirmSubmit"
       />
-      <div v-if="submitting" class="submit-mask">提交中，请勿重复点击</div>
+      <div v-if="submitting" class="submit-mask">{{ t('提交中，请勿重复点击') }}</div>
     </template>
   </main>
 </template>

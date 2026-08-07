@@ -31,20 +31,20 @@
     @endonce
 
     <div class="excel-import-page">
-        <x-filament::section heading="上传 Excel">
+        <x-filament::section :heading="__('上传 Excel')">
             <div class="excel-import-stack">
                 <div class="excel-import-note">
-                    <div class="excel-import-note-title">Excel 导入格式</div>
+                    <div class="excel-import-note-title">{{ __('Excel 导入格式') }}</div>
                     <div>
-                        表头固定为：<span class="font-semibold">序号、会员棚号、会员参赛名、足环号码</span>
+                        {{ __('表头固定为：') }}<span class="font-semibold">{{ __('序号、会员棚号、会员参赛名、足环号码') }}</span>
                     </div>
                     <div class="excel-import-note-help">
-                        支持 .xlsx / .xls，最大 50MB。导入前会先预览，不会直接写入数据库。
+                        {{ __('支持 .xlsx / .xls，最大 50MB。导入前会先预览，不会直接写入数据库。') }}
                     </div>
                 </div>
 
                 <label class="excel-import-note">
-                    <div class="excel-import-note-title">目标足环库</div>
+                    <div class="excel-import-note-title">{{ __('目标足环库') }}</div>
                     <select wire:model="pigeonLibraryId" class="w-full rounded-lg border-gray-300 dark:border-gray-700 dark:bg-gray-900">
                         @foreach ($this->libraryOptions() as $libraryId => $libraryName)
                             <option value="{{ $libraryId }}">{{ $libraryName }}</option>
@@ -58,13 +58,13 @@
                 <div class="excel-import-upload-row">
                     <input id="pigeon-import-upload" type="file" wire:model="upload" accept=".xlsx,.xls" style="display: none;" />
                     <x-filament::button tag="label" for="pigeon-import-upload" icon="heroicon-o-arrow-up-tray" color="gray">
-                        选择文件
+                        {{ __('选择文件') }}
                     </x-filament::button>
                     <span class="excel-import-file-name">
-                        {{ $upload?->getClientOriginalName() ?? '尚未选择文件' }}
+                        {{ $upload?->getClientOriginalName() ?? __('尚未选择文件') }}
                     </span>
                     <span wire:loading wire:target="upload" class="excel-import-loading">
-                        正在上传...
+                        {{ __('正在上传...') }}
                     </span>
                 </div>
                 @error('upload')
@@ -72,23 +72,23 @@
                 @enderror
                 <div class="excel-import-actions">
                     <x-filament::button wire:click="previewUpload" wire:loading.attr="disabled">
-                        预览导入
+                        {{ __('预览导入') }}
                     </x-filament::button>
                     <x-filament::button color="gray" outlined wire:click="resetImport" wire:loading.attr="disabled">
-                        清空
+                        {{ __('清空') }}
                     </x-filament::button>
                 </div>
             </div>
         </x-filament::section>
 
         @if ($lastResult)
-            <x-filament::section heading="最近一次导入结果">
+            <x-filament::section :heading="__('最近一次导入结果')">
                 <div class="excel-import-result">
-                    <span>成功：<strong>{{ $lastResult['success_rows'] }}</strong> 行</span>
-                    <span>失败：<strong>{{ $lastResult['failed_rows'] }}</strong> 行</span>
+                    <span>{{ __('成功：') }}<strong>{{ $lastResult['success_rows'] }}</strong> {{ __('行') }}</span>
+                    <span>{{ __('失败：') }}<strong>{{ $lastResult['failed_rows'] }}</strong> {{ __('行') }}</span>
                     @if ($lastResult['error_report_path'])
                         <x-filament::button color="warning" wire:click="downloadErrorReport">
-                            下载错误报告
+                            {{ __('下载错误报告') }}
                         </x-filament::button>
                     @endif
                 </div>
@@ -96,39 +96,39 @@
         @endif
 
         @if ($preview)
-            <x-filament::section heading="导入预览">
+            <x-filament::section :heading="__('导入预览')">
                 <div class="excel-import-stats">
-                    <div class="excel-import-stat">总行数：<strong>{{ $preview['total_rows'] }}</strong></div>
-                    <div class="excel-import-stat">可导入：<strong>{{ $preview['valid_rows'] }}</strong></div>
-                    <div class="excel-import-stat">失败：<strong>{{ $preview['failed_rows'] }}</strong></div>
-                    <div class="excel-import-stat">重复：<strong>{{ $preview['duplicate_rows'] }}</strong></div>
-                    <div class="excel-import-stat">新建会员：<strong>{{ $preview['create_member_rows'] }}</strong></div>
-                    <div class="excel-import-stat">更新参赛名：<strong>{{ $preview['update_member_name_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('总行数：') }}<strong>{{ $preview['total_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('可导入：') }}<strong>{{ $preview['valid_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('失败：') }}<strong>{{ $preview['failed_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('重复：') }}<strong>{{ $preview['duplicate_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('新建会员：') }}<strong>{{ $preview['create_member_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('更新参赛名：') }}<strong>{{ $preview['update_member_name_rows'] }}</strong></div>
                 </div>
 
                 <div class="excel-import-preview-actions">
                     <x-filament::button color="success" wire:click="confirmImport" wire:loading.attr="disabled" :disabled="$preview['valid_rows'] === 0">
-                        确认导入
+                        {{ __('确认导入') }}
                     </x-filament::button>
                     <x-filament::button color="gray" wire:click="resetImport" wire:loading.attr="disabled">
-                        重新选择
+                        {{ __('重新选择') }}
                     </x-filament::button>
                 </div>
 
                 <div class="excel-import-table-wrap">
                     <div class="excel-import-table-caption">
-                        下方仅展示前 {{ $preview['sample_limit'] ?? 50 }} 行样例；确认导入会处理本次 Excel 的全部 {{ $preview['total_rows'] }} 行。
+                        {{ __('下方仅展示前 :sample 行样例；确认导入会处理本次 Excel 的全部 :total 行。', ['sample' => $preview['sample_limit'] ?? 50, 'total' => $preview['total_rows']]) }}
                     </div>
                     <table class="w-full min-w-[760px] text-left text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
-                                <th class="px-3 py-2">行号</th>
-                                <th class="px-3 py-2">序号</th>
-                                <th class="px-3 py-2">会员棚号</th>
-                                <th class="px-3 py-2">会员参赛名</th>
-                                <th class="px-3 py-2">足环号码</th>
-                                <th class="px-3 py-2">动作</th>
-                                <th class="px-3 py-2">错误</th>
+                                <th class="px-3 py-2">{{ __('行号') }}</th>
+                                <th class="px-3 py-2">{{ __('序号') }}</th>
+                                <th class="px-3 py-2">{{ __('会员棚号') }}</th>
+                                <th class="px-3 py-2">{{ __('会员参赛名') }}</th>
+                                <th class="px-3 py-2">{{ __('足环号码') }}</th>
+                                <th class="px-3 py-2">{{ __('动作') }}</th>
+                                <th class="px-3 py-2">{{ __('错误') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -141,13 +141,13 @@
                                     <td class="px-3 py-2">{{ $row['data']['ring_number'] }}</td>
                                     <td class="px-3 py-2">
                                         @if ($row['errors'])
-                                            跳过
+                                            {{ __('跳过') }}
                                         @elseif ($row['will_create_member'])
-                                            新建会员
+                                            {{ __('新建会员') }}
                                         @elseif ($row['will_update_member_name'])
-                                            更新参赛名
+                                            {{ __('更新参赛名') }}
                                         @else
-                                            导入足环
+                                            {{ __('导入足环') }}
                                         @endif
                                     </td>
                                     <td class="px-3 py-2 text-danger-600">{{ implode('；', $row['errors']) }}</td>

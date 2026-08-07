@@ -33,9 +33,19 @@ class RingNumberPrefixResource extends Resource
 
     protected static ?string $slug = 'prefixes';
 
-    protected static ?string $navigationLabel = '号码前缀';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '号码前缀';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('号码前缀');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('号码前缀');
+    }
 
     protected static ?int $navigationSort = 3;
 
@@ -43,14 +53,16 @@ class RingNumberPrefixResource extends Resource
     {
         return $schema->components([
             TextInput::make('prefix')
-                ->label('前缀文本')
+                ->label(__('前缀文本'))
                 ->placeholder('2026-13-055')
                 ->required()
                 ->maxLength(116)
                 ->disabled(fn (?RingNumberPrefix $record): bool => $record?->isUsed() ?? false)
-                ->helperText(fn (?RingNumberPrefix $record): ?string => $record?->isUsed() ? '该前缀已产生售环记录，前缀和尾号位数已锁定。' : '例如前缀 2026-13-055 配合尾号 0987，生成 2026-13-0550987。'),
+                ->helperText(fn (?RingNumberPrefix $record): ?string => $record?->isUsed()
+                    ? __('该前缀已产生售环记录，前缀和尾号位数已锁定。')
+                    : __('例如前缀 2026-13-055 配合尾号 0987，生成 2026-13-0550987。')),
             TextInput::make('suffix_width')
-                ->label('尾号位数')
+                ->label(__('尾号位数'))
                 ->numeric()
                 ->integer()
                 ->minValue(1)
@@ -59,7 +71,7 @@ class RingNumberPrefixResource extends Resource
                 ->required()
                 ->disabled(fn (?RingNumberPrefix $record): bool => $record?->isUsed() ?? false),
             Toggle::make('is_enabled')
-                ->label('启用')
+                ->label(__('启用'))
                 ->default(true),
         ]);
     }
@@ -69,11 +81,11 @@ class RingNumberPrefixResource extends Resource
         return $table
             ->defaultSort('id')
             ->columns([
-                TextColumn::make('prefix')->label('前缀文本')->searchable()->copyable(),
-                TextColumn::make('suffix_width')->label('尾号位数')->suffix(' 位'),
-                TextColumn::make('items_count')->counts('items')->label('使用明细'),
-                IconColumn::make('is_enabled')->label('启用')->boolean(),
-                TextColumn::make('created_at')->label('创建时间')->dateTime(),
+                TextColumn::make('prefix')->label(__('前缀文本'))->searchable()->copyable(),
+                TextColumn::make('suffix_width')->label(__('尾号位数'))->suffix(__(' 位')),
+                TextColumn::make('items_count')->counts('items')->label(__('使用明细')),
+                IconColumn::make('is_enabled')->label(__('启用'))->boolean(),
+                TextColumn::make('created_at')->label(__('创建时间'))->dateTime(),
             ])
             ->recordActions([
                 EditAction::make(),

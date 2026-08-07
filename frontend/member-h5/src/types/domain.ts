@@ -11,6 +11,8 @@ export interface Member {
   must_change_password: boolean
 }
 
+export type CurrencyCode = 'CNY' | 'TWD'
+
 export interface Race {
   id: number
   name: string
@@ -23,6 +25,7 @@ export interface Race {
   allow_member_edit?: boolean
   has_published_details?: boolean
   registration_details_scope?: PublishedRaceDetailsScope
+  currency_code?: CurrencyCode
 }
 
 export type PublishedRaceDetailsScope = 'confirmed_only' | 'all_submitted'
@@ -94,6 +97,7 @@ export interface ExistingRegistration {
   registration_no: string
   status: string
   total_amount_cent: number
+  currency_code?: CurrencyCode
   submitted_at: string
   entries: ExistingRegistrationEntry[]
   progressive_entries?: ExistingProgressiveEntry[]
@@ -122,6 +126,7 @@ export interface RegistrationHistoryItem {
   registration_no: string
   status: string
   total_amount_cent: number
+  currency_code?: CurrencyCode
   submitted_at: string
   single_count: number
   multi_group_count: number
@@ -176,6 +181,7 @@ export interface PublishedRaceDetails {
     id: number
     name: string
     registration_end_at: string
+    currency_code?: CurrencyCode
   }
   published_at?: string | null
   scope: PublishedRaceDetailsScope

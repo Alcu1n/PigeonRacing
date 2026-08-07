@@ -41,13 +41,13 @@ class PigeonImportService
         $rows = $sheets[0] ?? [];
 
         if ($rows === []) {
-            throw ValidationException::withMessages(['upload' => 'Excel 文件为空。']);
+            throw ValidationException::withMessages(['upload' => __('Excel 文件为空。')]);
         }
 
         $header = array_map(fn ($value): string => trim((string) $value), array_values(array_shift($rows)));
 
         if (array_slice($header, 0, 4) !== self::HEADERS) {
-            throw ValidationException::withMessages(['upload' => 'Excel 表头必须为：序号，会员棚号，会员参赛名，足环号码。']);
+            throw ValidationException::withMessages(['upload' => __('Excel 表头必须为：序号，会员棚号，会员参赛名，足环号码。')]);
         }
 
         $normalized = [];
@@ -84,11 +84,11 @@ class PigeonImportService
             $errors = $this->validateRow($row);
 
             if ($row['ring_number'] !== '' && isset($seenRings[$row['ring_number']])) {
-                $errors[] = '本次文件内足环号码重复';
+                $errors[] = __('本次文件内足环号码重复');
             }
 
             if ($row['ring_number'] !== '' && $existingRings->has($row['ring_number'])) {
-                $errors[] = '足环号码已存在';
+                $errors[] = __('足环号码已存在');
             }
 
             $member = $members->get($row['loft_number']);
@@ -117,7 +117,7 @@ class PigeonImportService
             'total_rows' => count($rows),
             'valid_rows' => count($rowsPreview) - $failedRows->count(),
             'failed_rows' => $failedRows->count(),
-            'duplicate_rows' => $failedRows->filter(fn (array $row): bool => collect($row['errors'])->contains(fn (string $error): bool => str_contains($error, '重复') || str_contains($error, '已存在')))->count(),
+            'duplicate_rows' => $failedRows->filter(fn (array $row): bool => collect($row['errors'])->contains(fn (string $error): bool => str_contains($error, __('重复')) || str_contains($error, __('已存在'))))->count(),
             'create_member_rows' => collect($rowsPreview)->where('errors', [])->where('will_create_member', true)->pluck('data.loft_number')->unique()->count(),
             'update_member_name_rows' => collect($rowsPreview)->where('errors', [])->where('will_update_member_name', true)->pluck('data.loft_number')->unique()->count(),
             'rows' => $rowsPreview,
@@ -146,7 +146,7 @@ class PigeonImportService
         $payload = json_encode(['rows' => $rows], JSON_UNESCAPED_UNICODE);
 
         if ($payload === false || ! Storage::disk('local')->put($path, $payload)) {
-            throw ValidationException::withMessages(['upload' => '导入预览缓存保存失败，请重新上传。']);
+            throw ValidationException::withMessages(['upload' => __('导入预览缓存保存失败，请重新上传。')]);
         }
 
         return $token;
@@ -263,17 +263,17 @@ class PigeonImportService
     private function rowsFromStoredPreview(string $token): array
     {
         if (! Str::isUuid($token)) {
-            throw ValidationException::withMessages(['upload' => '导入预览已失效，请重新上传。']);
+            throw ValidationException::withMessages(['upload' => __('导入预览已失效，请重新上传。')]);
         }
 
         $path = $this->previewPath($token);
         if (! Storage::disk('local')->exists($path)) {
-            throw ValidationException::withMessages(['upload' => '导入预览已失效，请重新上传。']);
+            throw ValidationException::withMessages(['upload' => __('导入预览已失效，请重新上传。')]);
         }
 
         $payload = json_decode((string) Storage::disk('local')->get($path), true);
         if (! is_array($payload) || ! is_array($payload['rows'] ?? null)) {
-            throw ValidationException::withMessages(['upload' => '导入预览数据损坏，请重新上传。']);
+            throw ValidationException::withMessages(['upload' => __('导入预览数据损坏，请重新上传。')]);
         }
 
         return $payload['rows'];
@@ -322,7 +322,7 @@ class PigeonImportService
     {
         $errors = [];
 
-        foreach (['loft_number' => '会员棚号为空', 'participant_name' => '会员参赛名为空', 'ring_number' => '足环号码为空'] as $field => $message) {
+        foreach (['loft_number' => __('会员棚号为空'), 'participant_name' => __('会员参赛名为空'), 'ring_number' => __('足环号码为空')] as $field => $message) {
             if (($row[$field] ?? '') === '') {
                 $errors[] = $message;
             }

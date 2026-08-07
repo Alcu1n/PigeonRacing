@@ -7,7 +7,8 @@
 import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { api } from '../api/client'
-import { yuan } from '../utils/money'
+import { formatMoney } from '../utils/money'
+import { t } from '../i18n'
 import { registrationStatusText, registrationStatusTone, type ExistingRegistration } from '../types/domain'
 import MemberTopActions from '../components/MemberTopActions.vue'
 import RegistrationReceiptDownload from '../components/RegistrationReceiptDownload.vue'
@@ -26,25 +27,25 @@ onMounted(async () => {
   <main class="page result-page">
     <section v-if="registration" class="result-panel">
       <div class="result-title-row">
-        <h1>报名提交成功</h1>
+        <h1>{{ t('报名提交成功') }}</h1>
         <MemberTopActions />
       </div>
       <dl>
-        <dt>报名编号</dt>
+        <dt>{{ t('报名编号') }}</dt>
         <dd>{{ registration.registration_no }}</dd>
-        <dt>报名时间</dt>
+        <dt>{{ t('报名时间') }}</dt>
         <dd>{{ registration.submitted_at }}</dd>
-        <dt>总金额</dt>
-        <dd>{{ yuan(registration.total_amount_cent) }}</dd>
-        <dt>状态</dt>
+        <dt>{{ t('总金额') }}</dt>
+        <dd>{{ formatMoney(registration.total_amount_cent, registration.currency_code ?? 'CNY') }}</dd>
+        <dt>{{ t('状态') }}</dt>
         <dd>
           <span :class="['registration-status-pill', registrationStatusTone(registration.status)]">
-            {{ registrationStatusText(registration.status) }}
+            {{ t(registrationStatusText(registration.status)) }}
           </span>
         </dd>
       </dl>
       <RegistrationReceiptDownload :registration="registration" />
-      <button class="primary-action wide" @click="router.push('/races')">返回赛事列表</button>
+      <button class="primary-action wide" @click="router.push('/races')">{{ t('返回赛事列表') }}</button>
     </section>
   </main>
 </template>

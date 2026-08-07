@@ -83,26 +83,26 @@ class RingSaleSummarySheet extends RingSaleTextSafeSheet
 {
     public function title(): string
     {
-        return '售环单汇总';
+        return __('售环单汇总');
     }
 
     public function headings(): array
     {
         return [
-            '序号',
-            '售环单号',
-            '状态',
-            '售环日期',
-            '姓名',
-            '棚号',
-            '足环总数',
-            '总金额',
-            '已付金额',
-            '未付金额',
-            '备注',
-            '收据照片数',
-            '创建人',
-            '创建时间',
+            __('序号'),
+            __('售环单号'),
+            __('状态'),
+            __('售环日期'),
+            __('姓名'),
+            __('棚号'),
+            __('足环总数'),
+            __('总金额'),
+            __('已付金额'),
+            __('未付金额'),
+            __('备注'),
+            __('收据照片数'),
+            __('创建人'),
+            __('创建时间'),
         ];
     }
 
@@ -131,23 +131,23 @@ class RingSaleItemsSheet extends RingSaleTextSafeSheet
 {
     public function title(): string
     {
-        return '号码段明细';
+        return __('号码段明细');
     }
 
     public function headings(): array
     {
         return [
-            '售环单号',
-            '状态',
-            '售环日期',
-            '姓名',
-            '棚号',
-            '类别',
-            '单价',
-            '起始号',
-            '结束号',
-            '数量',
-            '明细金额',
+            __('售环单号'),
+            __('状态'),
+            __('售环日期'),
+            __('姓名'),
+            __('棚号'),
+            __('类别'),
+            __('单价'),
+            __('起始号'),
+            __('结束号'),
+            __('数量'),
+            __('明细金额'),
         ];
     }
 
@@ -174,21 +174,21 @@ class RingSalePaymentsSheet extends RingSaleTextSafeSheet
 {
     public function title(): string
     {
-        return '收款明细';
+        return __('收款明细');
     }
 
     public function headings(): array
     {
         return [
-            '售环单号',
-            '售环单状态',
-            '姓名',
-            '收款日期',
-            '收款金额',
-            '流水状态',
-            '备注',
-            '登记人',
-            '登记时间',
+            __('售环单号'),
+            __('售环单状态'),
+            __('姓名'),
+            __('收款日期'),
+            __('收款金额'),
+            __('流水状态'),
+            __('备注'),
+            __('登记人'),
+            __('登记时间'),
         ];
     }
 
@@ -201,7 +201,7 @@ class RingSalePaymentsSheet extends RingSaleTextSafeSheet
                 $sale->buyer_name,
                 $payment->payment_date->toDateString(),
                 $this->yuan($payment->amount_cent),
-                $payment->status === 'active' ? '有效' : '作废',
+                $payment->status === 'active' ? __('有效') : __('作废'),
                 $payment->remark ?? '',
                 $payment->creator?->name ?? '',
                 $payment->created_at?->format('Y-m-d H:i:s') ?? '',

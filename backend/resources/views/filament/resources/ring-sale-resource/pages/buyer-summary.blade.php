@@ -7,6 +7,9 @@
 @php
     $money = static fn (int $cent): string => '¥'.number_format($cent / 100, 2);
     $summaryMoney = static fn (int $cent): string => '¥'.number_format($cent / 100, 0);
+    $paymentClass = static fn ($sale): string => $sale->status === 'void'
+        ? 'void'
+        : ($sale->paid_amount_cent === 0 ? 'unpaid' : ($sale->unpaid_amount_cent === 0 ? 'paid' : 'partial'));
     $receiptGroups = $summary['sales']
         ->map(fn ($sale): array => ['sale' => $sale, 'receipts' => $sale->receipts])
         ->filter(fn (array $group): bool => $group['receipts']->isNotEmpty())
@@ -48,20 +51,20 @@
     >
         <section class="ring-sale-buyer-summary__hero">
             <div>
-                <p class="ring-sale-buyer-summary__eyebrow">姓名售环汇总</p>
-                <h1>{{ $summary['buyer_name'] !== '' ? $summary['buyer_name'] : '未指定姓名' }}</h1>
+                <p class="ring-sale-buyer-summary__eyebrow">{{ __('姓名售环汇总') }}</p>
+                <h1>{{ $summary['buyer_name'] !== '' ? $summary['buyer_name'] : __('未指定姓名') }}</h1>
                 <p class="ring-sale-buyer-summary__subline">
-                    {{ number_format($summary['record_count']) }} 笔售环记录
-                    · {{ number_format($summary['active_record_count']) }} 笔有效
+                    {{ number_format($summary['record_count']) }} {{ __('笔售环记录') }}
+                    · {{ number_format($summary['active_record_count']) }} {{ __('笔有效') }}
                     @if ($summary['void_record_count'] > 0)
-                        · {{ number_format($summary['void_record_count']) }} 笔作废
+                        · {{ number_format($summary['void_record_count']) }} {{ __('笔作废') }}
                     @endif
                 </p>
             </div>
             <div class="ring-sale-buyer-summary__hero-meta">
-                <span class="ring-sale-buyer-summary__status-pill">精确姓名匹配</span>
+                <span class="ring-sale-buyer-summary__status-pill">{{ __('精确姓名匹配') }}</span>
                 @if ($summary['receipt_count'] > 0)
-                    <span class="ring-sale-buyer-summary__muted-pill">{{ number_format($summary['receipt_count']) }} 张收据</span>
+                    <span class="ring-sale-buyer-summary__muted-pill">{{ number_format($summary['receipt_count']) }} {{ __('张收据') }}</span>
                 @endif
             </div>
         </section>
@@ -70,26 +73,26 @@
             <div class="ring-sale-buyer-summary__panel ring-sale-buyer-summary__categories">
                 <div class="ring-sale-buyer-summary__panel-heading">
                     <div>
-                        <h2>足环数量</h2>
-                        <p>按足环类别汇总有效售环记录</p>
+                        <h2>{{ __('足环数量') }}</h2>
+                        <p>{{ __('按足环类别汇总有效售环记录') }}</p>
                     </div>
-                    <strong>{{ number_format($summary['total_quantity']) }} 枚</strong>
+                    <strong>{{ number_format($summary['total_quantity']) }} {{ __('枚') }}</strong>
                 </div>
 
                 <div class="ring-sale-buyer-summary__category-grid">
                     <div class="ring-sale-buyer-summary__category-card ring-sale-buyer-summary__category-card--total">
-                        <span>足环总数</span>
+                        <span>{{ __('足环总数') }}</span>
                         <strong>{{ number_format($summary['total_quantity']) }}</strong>
-                        <small>枚</small>
+                        <small>{{ __('枚') }}</small>
                     </div>
                     @forelse ($summary['category_quantities'] as $category)
                         <div class="ring-sale-buyer-summary__category-card">
                             <span>{{ $category['name'] }}</span>
                             <strong>{{ number_format($category['quantity']) }}</strong>
-                            <small>枚</small>
+                            <small>{{ __('枚') }}</small>
                         </div>
                     @empty
-                        <div class="ring-sale-buyer-summary__empty-inline">暂无有效足环明细</div>
+                        <div class="ring-sale-buyer-summary__empty-inline">{{ __('暂无有效足环明细') }}</div>
                     @endforelse
                 </div>
             </div>
@@ -97,22 +100,22 @@
             <div class="ring-sale-buyer-summary__panel ring-sale-buyer-summary__financials">
                 <div class="ring-sale-buyer-summary__panel-heading">
                     <div>
-                        <h2>金额汇总</h2>
-                        <p>仅统计有效售环记录和有效收款</p>
+                        <h2>{{ __('金额汇总') }}</h2>
+                        <p>{{ __('仅统计有效售环记录和有效收款') }}</p>
                     </div>
                 </div>
 
                 <div class="ring-sale-buyer-summary__financial-grid">
                     <div class="ring-sale-buyer-summary__financial-card">
-                        <span>应收金额</span>
+                        <span>{{ __('应收金额') }}</span>
                         <strong>{{ $summaryMoney($summary['total_amount_cent']) }}</strong>
                     </div>
                     <div class="ring-sale-buyer-summary__financial-card ring-sale-buyer-summary__financial-card--paid">
-                        <span>已付金额</span>
+                        <span>{{ __('已付金额') }}</span>
                         <strong>{{ $summaryMoney($summary['paid_amount_cent']) }}</strong>
                     </div>
                     <div class="ring-sale-buyer-summary__financial-card ring-sale-buyer-summary__financial-card--unpaid">
-                        <span>未付金额</span>
+                        <span>{{ __('未付金额') }}</span>
                         <strong>{{ $summaryMoney($summary['unpaid_amount_cent']) }}</strong>
                     </div>
                 </div>
@@ -122,16 +125,16 @@
         <section class="ring-sale-buyer-summary__panel ring-sale-buyer-summary__receipts-panel">
             <div class="ring-sale-buyer-summary__panel-heading">
                 <div>
-                    <h2>收据照片</h2>
-                    <p>按售环单分组展示，点击照片可查看大图</p>
+                    <h2>{{ __('收据照片') }}</h2>
+                    <p>{{ __('按售环单分组展示，点击照片可查看大图') }}</p>
                 </div>
-                <strong>{{ number_format($summary['receipt_count']) }} 张</strong>
+                <strong>{{ number_format($summary['receipt_count']) }} {{ __('张') }}</strong>
             </div>
 
             @if ($receiptGroups->isEmpty())
                 <div class="ring-sale-buyer-summary__empty-state ring-sale-buyer-summary__empty-state--compact">
                     <x-filament::icon icon="heroicon-o-photo" class="ring-sale-buyer-summary__empty-icon" />
-                    <span>暂无收据照片</span>
+                    <span>{{ __('暂无收据照片') }}</span>
                 </div>
             @else
                 <div class="ring-sale-buyer-summary__receipt-groups">
@@ -143,7 +146,7 @@
                                     <span>{{ $group['sale']->sale_date->format('Y-m-d') }}</span>
                                 </div>
                                 @if ($group['sale']->status === 'void')
-                                    <span class="ring-sale-buyer-summary__void-pill">作废记录</span>
+                                    <span class="ring-sale-buyer-summary__void-pill">{{ __('作废记录') }}</span>
                                 @endif
                             </div>
                             <div class="ring-sale-buyer-summary__receipt-grid">
@@ -152,11 +155,11 @@
                                         type="button"
                                         class="ring-sale-buyer-summary__receipt-thumb"
                                         x-on:click="openImage({{ $receiptIndex }})"
-                                        aria-label="查看 {{ $group['sale']->sale_no }} 收据照片"
+                                        aria-label="{{ __('查看 :sale_no 收据照片', ['sale_no' => $group['sale']->sale_no]) }}"
                                     >
                                         <img
                                             src="{{ route('admin.ring-sale-receipts.show', $receipt) }}"
-                                            alt="{{ $group['sale']->sale_no }} 收据照片 {{ $receipt->original_name }}"
+                                            alt="{{ __(':sale_no 收据照片 :name', ['sale_no' => $group['sale']->sale_no, 'name' => $receipt->original_name]) }}"
                                             loading="lazy"
                                         >
                                         <span>{{ $receipt->original_name }}</span>
@@ -173,18 +176,18 @@
         <section class="ring-sale-buyer-summary__panel ring-sale-buyer-summary__records-panel">
             <div class="ring-sale-buyer-summary__panel-heading">
                 <div>
-                    <h2>售环列表</h2>
-                    <p>展示此姓名下全部售环记录，作废记录保留用于历史追溯</p>
+                    <h2>{{ __('售环列表') }}</h2>
+                    <p>{{ __('展示此姓名下全部售环记录，作废记录保留用于历史追溯') }}</p>
                 </div>
-                <span class="ring-sale-buyer-summary__muted-pill">共 {{ number_format($summary['record_count']) }} 笔</span>
+                <span class="ring-sale-buyer-summary__muted-pill">{{ __('共 :count 笔', ['count' => number_format($summary['record_count'])]) }}</span>
             </div>
 
             @if ($summary['sales']->isEmpty())
                 <div class="ring-sale-buyer-summary__empty-state">
                     <x-filament::icon icon="heroicon-o-document-magnifying-glass" class="ring-sale-buyer-summary__empty-icon" />
-                    <strong>暂无匹配的售环记录</strong>
-                    <span>该姓名当前没有可查看的售环记录。</span>
-                    <a href="{{ \App\Filament\Resources\RingSaleResource::getUrl('index') }}" class="ring-sale-buyer-summary__empty-link">返回售环列表</a>
+                    <strong>{{ __('暂无匹配的售环记录') }}</strong>
+                    <span>{{ __('该姓名当前没有可查看的售环记录。') }}</span>
+                    <a href="{{ \App\Filament\Resources\RingSaleResource::getUrl('index') }}" class="ring-sale-buyer-summary__empty-link">{{ __('返回售环列表') }}</a>
                 </div>
             @else
                 <div class="ring-sale-buyer-summary__desktop-table">
@@ -192,15 +195,15 @@
                         <table>
                             <thead>
                                 <tr>
-                                    <th>售环日期</th>
-                                    <th>状态</th>
-                                    <th>售环单号</th>
-                                    <th>号码段明细</th>
-                                    <th>数量</th>
-                                    <th>总金额</th>
-                                    <th>已付</th>
-                                    <th>未付</th>
-                                    <th class="ring-sale-buyer-summary__actions-heading">操作</th>
+                                    <th>{{ __('售环日期') }}</th>
+                                    <th>{{ __('状态') }}</th>
+                                    <th>{{ __('售环单号') }}</th>
+                                    <th>{{ __('号码段明细') }}</th>
+                                    <th>{{ __('数量') }}</th>
+                                    <th>{{ __('总金额') }}</th>
+                                    <th>{{ __('已付') }}</th>
+                                    <th>{{ __('未付') }}</th>
+                                    <th class="ring-sale-buyer-summary__actions-heading">{{ __('操作') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -208,13 +211,13 @@
                                     <tr>
                                         <td class="ring-sale-buyer-summary__nowrap">{{ $sale->sale_date->format('Y-m-d') }}</td>
                                         <td>
-                                            <span class="ring-sale-buyer-summary__payment-pill ring-sale-buyer-summary__payment-pill--{{ $sale->status === 'void' ? 'void' : ($sale->payment_status_label === '付清' ? 'paid' : ($sale->payment_status_label === '部分付款' ? 'partial' : 'unpaid')) }}">
+                                            <span class="ring-sale-buyer-summary__payment-pill ring-sale-buyer-summary__payment-pill--{{ $paymentClass($sale) }}">
                                                 {{ $sale->payment_status_label }}
                                             </span>
                                         </td>
                                         <td class="ring-sale-buyer-summary__nowrap"><strong>{{ $sale->sale_no }}</strong></td>
                                         <td class="ring-sale-buyer-summary__segments">
-                                            {{ $sale->items->map(fn ($item): string => $item->category_name_snapshot.' · '.$item->start_ring.'–'.$item->end_ring.'（'.$item->quantity.'枚）')->implode('；') }}
+                                            {{ $sale->items->map(fn ($item): string => $item->category_name_snapshot.' · '.$item->start_ring.'–'.$item->end_ring.'（'.$item->quantity.__('枚').'）')->implode('；') }}
                                         </td>
                                         <td class="ring-sale-buyer-summary__nowrap">{{ number_format($sale->total_quantity) }}</td>
                                         <td class="ring-sale-buyer-summary__nowrap">{{ $money($sale->total_amount_cent) }}</td>
@@ -225,7 +228,7 @@
                                                 :actions="$this->getSaleActions($sale)"
                                                 icon-button
                                                 icon="heroicon-m-ellipsis-vertical"
-                                                tooltip="更多操作"
+                                                :tooltip="__('更多操作')"
                                             />
                                         </td>
                                     </tr>
@@ -243,27 +246,27 @@
                                     <strong>{{ $sale->sale_no }}</strong>
                                     <span>{{ $sale->sale_date->format('Y-m-d') }}</span>
                                 </div>
-                                <span class="ring-sale-buyer-summary__payment-pill ring-sale-buyer-summary__payment-pill--{{ $sale->status === 'void' ? 'void' : ($sale->payment_status_label === '付清' ? 'paid' : ($sale->payment_status_label === '部分付款' ? 'partial' : 'unpaid')) }}">
+                                <span class="ring-sale-buyer-summary__payment-pill ring-sale-buyer-summary__payment-pill--{{ $paymentClass($sale) }}">
                                     {{ $sale->payment_status_label }}
                                 </span>
                             </div>
                             <div class="ring-sale-buyer-summary__sale-card-stats">
-                                <div><span>数量</span><strong>{{ number_format($sale->total_quantity) }} 枚</strong></div>
-                                <div><span>总金额</span><strong>{{ $money($sale->total_amount_cent) }}</strong></div>
-                                <div><span>未付</span><strong class="ring-sale-buyer-summary__money--{{ $sale->unpaid_amount_cent > 0 ? 'unpaid' : 'paid' }}">{{ $money($sale->unpaid_amount_cent) }}</strong></div>
+                                <div><span>{{ __('数量') }}</span><strong>{{ number_format($sale->total_quantity) }} {{ __('枚') }}</strong></div>
+                                <div><span>{{ __('总金额') }}</span><strong>{{ $money($sale->total_amount_cent) }}</strong></div>
+                                <div><span>{{ __('未付') }}</span><strong class="ring-sale-buyer-summary__money--{{ $sale->unpaid_amount_cent > 0 ? 'unpaid' : 'paid' }}">{{ $money($sale->unpaid_amount_cent) }}</strong></div>
                             </div>
                             <div class="ring-sale-buyer-summary__sale-card-segments">
                                 @foreach ($sale->items as $item)
-                                    <span>{{ $item->category_name_snapshot }} · {{ $item->start_ring }}–{{ $item->end_ring }}（{{ $item->quantity }}枚）</span>
+                                    <span>{{ $item->category_name_snapshot }} · {{ $item->start_ring }}–{{ $item->end_ring }}（{{ $item->quantity }}{{ __('枚') }}）</span>
                                 @endforeach
                             </div>
                             <div class="ring-sale-buyer-summary__sale-card-footer">
-                                <span class="ring-sale-buyer-summary__money--paid">已付 {{ $money($sale->paid_amount_cent) }}</span>
+                                <span class="ring-sale-buyer-summary__money--paid">{{ __('已付') }} {{ $money($sale->paid_amount_cent) }}</span>
                                 <x-filament-actions::group
                                     :actions="$this->getSaleActions($sale)"
                                     icon-button
                                     icon="heroicon-m-ellipsis-vertical"
-                                    tooltip="更多操作"
+                                    :tooltip="__('更多操作')"
                                 />
                             </div>
                         </article>
@@ -279,14 +282,14 @@
             x-transition.opacity
             role="dialog"
             aria-modal="true"
-            aria-label="收据照片预览"
+            :aria-label="__('收据照片预览')"
             x-on:click.self="closeImage()"
         >
             <div class="ring-sale-buyer-summary__lightbox-content">
                 <button
                     type="button"
                     class="ring-sale-buyer-summary__lightbox-close"
-                    aria-label="关闭照片预览"
+                    :aria-label="__('关闭照片预览')"
                     x-on:click="closeImage()"
                 >
                     <x-filament::icon icon="heroicon-o-x-mark" />
@@ -294,7 +297,7 @@
                 <button
                     type="button"
                     class="ring-sale-buyer-summary__lightbox-nav ring-sale-buyer-summary__lightbox-nav--previous"
-                    aria-label="上一张"
+                    :aria-label="__('上一张')"
                     x-show="images.length > 1"
                     x-on:click="previousImage()"
                 >
@@ -308,7 +311,7 @@
                 <button
                     type="button"
                     class="ring-sale-buyer-summary__lightbox-nav ring-sale-buyer-summary__lightbox-nav--next"
-                    aria-label="下一张"
+                    :aria-label="__('下一张')"
                     x-show="images.length > 1"
                     x-on:click="nextImage()"
                 >

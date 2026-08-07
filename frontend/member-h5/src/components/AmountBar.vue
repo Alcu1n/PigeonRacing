@@ -4,11 +4,13 @@
 <!-- Protocol: When updating me, sync this header + parent folder's .folder.md -->
 <!-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md -->
 <script setup lang="ts">
-import { yuan } from '../utils/money'
+import { formatMoney, type CurrencyCode } from '../utils/money'
+import { t } from '../i18n'
 
 defineProps<{
   selectedCount: number
   totalAmountCent: number
+  currencyCode?: CurrencyCode
 }>()
 
 const emit = defineEmits<{ submit: [] }>()
@@ -17,9 +19,9 @@ const emit = defineEmits<{ submit: [] }>()
 <template>
   <footer class="amount-bar">
     <div class="amount-copy">
-      <span>已选 {{ selectedCount }} 项</span>
-      <strong>总计 {{ yuan(totalAmountCent) }}</strong>
+      <span>{{ t('已选 {count} 项', { count: selectedCount }) }}</span>
+      <strong>{{ t('总计 {amount}', { amount: formatMoney(totalAmountCent, currencyCode ?? 'CNY') }) }}</strong>
     </div>
-    <button class="primary-action" :disabled="selectedCount === 0" @click="emit('submit')">查看明细并提交</button>
+    <button class="primary-action" :disabled="selectedCount === 0" @click="emit('submit')">{{ t('查看明细并提交') }}</button>
   </footer>
 </template>

@@ -9,6 +9,7 @@ import { useRoute, useRouter } from 'vue-router'
 import MemberTopActions from '../components/MemberTopActions.vue'
 import { api } from '../api/client'
 import { registrationStatusText, registrationStatusTone, type PublishedRaceDetails, type PublishedRaceDetailsGroup } from '../types/domain'
+import { t } from '../i18n'
 
 type DetailTab = { key: string; label: string; kind: 'single' | 'multi' | 'progressive'; progressiveIndex?: number }
 
@@ -22,8 +23,8 @@ const keyword = ref('')
 
 const tabs = computed<DetailTab[]>(() => {
   const result: DetailTab[] = []
-  if ((details.value?.single.projects.length ?? 0) > 0) result.push({ key: 'single', label: '单羽组', kind: 'single' })
-  if ((details.value?.multi.length ?? 0) > 0) result.push({ key: 'multi', label: '多羽组', kind: 'multi' })
+  if ((details.value?.single.projects.length ?? 0) > 0) result.push({ key: 'single', label: t('单羽组'), kind: 'single' })
+  if ((details.value?.multi.length ?? 0) > 0) result.push({ key: 'multi', label: t('多羽组'), kind: 'multi' })
   details.value?.progressive.forEach((category, index) => {
     result.push({ key: `progressive:${category.category_id}`, label: category.category_name, kind: 'progressive', progressiveIndex: index })
   })
@@ -69,7 +70,7 @@ onMounted(async () => {
     details.value = response.data
     activeTab.value = tabs.value[0]?.key ?? 'single'
   } catch {
-    errorMessage.value = '报名明细尚未发布或加载失败'
+    errorMessage.value = t('报名明细尚未发布或加载失败')
   } finally {
     loading.value = false
   }
@@ -94,35 +95,35 @@ function dateText(value?: string | null): string {
   <main class="page published-details-page">
     <header class="page-header page-topbar compact-detail-header">
       <div>
-        <h1>报名明细</h1>
-        <p>{{ details?.race.name || '赛事报名明细发布' }}</p>
+        <h1>{{ t('报名明细') }}</h1>
+        <p>{{ details?.race.name || t('赛事报名明细发布') }}</p>
       </div>
       <MemberTopActions />
     </header>
 
-    <p v-if="loading" class="empty-note">加载报名明细中...</p>
+    <p v-if="loading" class="empty-note">{{ t('加载报名明细中...') }}</p>
     <section v-else-if="errorMessage" class="profile-card">
       <p class="empty-note">{{ errorMessage }}</p>
-      <button class="secondary-action wide" @click="router.push('/races')">返回赛事列表</button>
+      <button class="secondary-action wide" @click="router.push('/races')">{{ t('返回赛事列表') }}</button>
     </section>
 
     <template v-else-if="details">
       <section class="published-summary-card">
         <div>
-          <span>赛事</span>
+          <span>{{ t('赛事') }}</span>
           <strong>{{ details.race.name }}</strong>
         </div>
         <div>
-          <span>报名截止</span>
+          <span>{{ t('报名截止') }}</span>
           <strong>{{ dateText(details.race.registration_end_at) }}</strong>
         </div>
         <div>
-          <span>发布范围</span>
+          <span>{{ t('发布范围') }}</span>
           <strong>{{ details.scope_label }}</strong>
         </div>
       </section>
 
-      <nav class="tabs published-tabs" aria-label="报名明细分类">
+      <nav class="tabs published-tabs" :aria-label="t('报名明细分类')">
         <button
           v-for="tab in tabs"
           :key="tab.key"
@@ -133,17 +134,17 @@ function dateText(value?: string | null): string {
         </button>
       </nav>
 
-      <input v-model="keyword" class="published-search" placeholder="搜索棚号、参赛名、足环号" type="search" />
+      <input v-model="keyword" class="published-search" :placeholder="t('搜索棚号、参赛名、足环号')" type="search" />
 
       <section v-if="active?.kind === 'single'" class="published-card">
         <div class="published-card-head">
-          <h2>单羽组</h2>
-          <span>{{ filteredSingleRows.length }} 条</span>
+          <h2>{{ t('单羽组') }}</h2>
+          <span>{{ filteredSingleRows.length }} {{ t('条') }}</span>
         </div>
-        <p v-if="filteredSingleRows.length === 0" class="empty-note">暂无匹配的单羽明细</p>
+        <p v-if="filteredSingleRows.length === 0" class="empty-note">{{ t('暂无匹配的单羽明细') }}</p>
         <div v-else class="published-table-wrap single-publication-wrap">
           <div class="published-single-grid" :style="{ '--published-project-count': details.single.projects.length }">
-            <div class="published-sticky-cell published-corner-cell">棚号 / 参赛名 / 足环</div>
+            <div class="published-sticky-cell published-corner-cell">{{ t('棚号 / 参赛名 / 足环') }}</div>
             <div v-for="project in details.single.projects" :key="project.id" class="published-project-head">{{ project.name }}</div>
             <template v-for="row in filteredSingleRows" :key="`${row.loft_number}-${row.ring_number}`">
               <div class="published-sticky-cell identity-cell">
@@ -156,7 +157,7 @@ function dateText(value?: string | null): string {
                   v-if="row.selected_projects[String(project.id)]"
                   :class="['registration-status-pill', registrationStatusTone(row.selected_projects[String(project.id)])]"
                 >
-                  {{ details.scope === 'all_submitted' ? registrationStatusText(row.selected_projects[String(project.id)]) : '★' }}
+                  {{ details.scope === 'all_submitted' ? t(registrationStatusText(row.selected_projects[String(project.id)])) : '★' }}
                 </span>
                 <span v-else class="empty-check">○</span>
               </div>
@@ -167,24 +168,24 @@ function dateText(value?: string | null): string {
 
       <section v-else-if="active?.kind === 'multi'" class="published-card">
         <div class="published-card-head">
-          <h2>多羽组</h2>
-          <span>{{ filteredMulti.reduce((sum, project) => sum + project.groups.length, 0) }} 组</span>
+          <h2>{{ t('多羽组') }}</h2>
+          <span>{{ filteredMulti.reduce((sum, project) => sum + project.groups.length, 0) }} {{ t('组') }}</span>
         </div>
-        <p v-if="filteredMulti.length === 0" class="empty-note">暂无匹配的多羽组明细</p>
+        <p v-if="filteredMulti.length === 0" class="empty-note">{{ t('暂无匹配的多羽组明细') }}</p>
         <article v-for="project in filteredMulti" :key="project.project_id" class="published-group-block">
           <header>
             <strong>{{ project.project_name }}</strong>
-            <span>{{ project.group_size }} 羽 / {{ project.groups.length }} 组</span>
+            <span>{{ project.group_size }} {{ t('羽') }} / {{ project.groups.length }} {{ t('组') }}</span>
           </header>
           <div class="published-group-table">
             <div class="published-group-row published-group-header">
-              <b>棚号</b><b>参赛名</b><b>足环号码</b><b>状态</b>
+              <b>{{ t('棚号') }}</b><b>{{ t('参赛名') }}</b><b>{{ t('足环号码') }}</b><b>{{ t('状态') }}</b>
             </div>
             <div v-for="group in project.groups" :key="`${group.loft_number}-${group.group_index}`" class="published-group-row">
               <span>{{ group.loft_number }}</span>
               <span>{{ group.participant_name }}</span>
               <span class="ring-lines">{{ group.rings.join('\n') }}</span>
-              <span :class="['registration-status-pill', registrationStatusTone(group.status)]">{{ registrationStatusText(group.status) }}</span>
+              <span :class="['registration-status-pill', registrationStatusTone(group.status)]">{{ t(registrationStatusText(group.status)) }}</span>
             </div>
           </div>
         </article>
@@ -193,29 +194,29 @@ function dateText(value?: string | null): string {
       <section v-else-if="active?.kind === 'progressive' && activeProgressive" class="published-card">
         <div class="published-card-head">
           <h2>{{ activeProgressive.category_name }}</h2>
-          <span>{{ activeProgressive.stages.reduce((sum, stage) => sum + stage.groups.length, 0) }} 组</span>
+          <span>{{ activeProgressive.stages.reduce((sum, stage) => sum + stage.groups.length, 0) }} {{ t('组') }}</span>
         </div>
-        <p v-if="activeProgressive.stages.length === 0" class="empty-note">暂无匹配的递进阶段明细</p>
+        <p v-if="activeProgressive.stages.length === 0" class="empty-note">{{ t('暂无匹配的递进阶段明细') }}</p>
         <article v-for="stage in activeProgressive.stages" :key="stage.stage_project_id" class="published-group-block">
           <header>
             <strong>{{ stage.stage_project_name }}</strong>
-            <span>{{ stage.group_size }} 羽 / {{ stage.groups.length }} 组</span>
+            <span>{{ stage.group_size }} {{ t('羽') }} / {{ stage.groups.length }} {{ t('组') }}</span>
           </header>
           <div class="published-group-table">
             <div class="published-group-row published-group-header">
-              <b>棚号</b><b>参赛名</b><b>足环号码</b><b>状态</b>
+              <b>{{ t('棚号') }}</b><b>{{ t('参赛名') }}</b><b>{{ t('足环号码') }}</b><b>{{ t('状态') }}</b>
             </div>
             <div v-for="group in stage.groups" :key="`${group.loft_number}-${group.group_index}`" class="published-group-row">
               <span>{{ group.loft_number }}</span>
               <span>{{ group.participant_name }}</span>
               <span class="ring-lines">{{ group.rings.join('\n') }}</span>
-              <span :class="['registration-status-pill', registrationStatusTone(group.status)]">{{ registrationStatusText(group.status) }}</span>
+              <span :class="['registration-status-pill', registrationStatusTone(group.status)]">{{ t(registrationStatusText(group.status)) }}</span>
             </div>
           </div>
         </article>
       </section>
 
-      <button class="secondary-action wide" @click="router.push('/races')">返回赛事列表</button>
+      <button class="secondary-action wide" @click="router.push('/races')">{{ t('返回赛事列表') }}</button>
     </template>
   </main>
 </template>

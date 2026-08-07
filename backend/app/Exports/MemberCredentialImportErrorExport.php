@@ -19,7 +19,7 @@ class MemberCredentialImportErrorExport extends StringValueBinder implements Fro
 
     public function headings(): array
     {
-        return ['行号', '会员棚号', '手机号', '错误原因'];
+        return [__('行号'), __('会员棚号'), __('手机号'), __('错误原因')];
     }
 
     public function array(): array

@@ -6,6 +6,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import MemberLogoutButton from './MemberLogoutButton.vue'
+import { t } from '../i18n'
 
 defineProps<{
   showRaceListReturn?: boolean
@@ -17,7 +18,7 @@ const router = useRouter()
 <template>
   <div class="member-actions-panel">
     <div class="member-actions">
-      <button class="profile-action" type="button" @click="router.push('/profile')">个人信息</button>
+      <button class="profile-action" type="button" @click="router.push('/profile')">{{ t('个人信息') }}</button>
       <MemberLogoutButton />
     </div>
     <button
@@ -26,7 +27,7 @@ const router = useRouter()
       type="button"
       @click="router.push('/races')"
     >
-      返回赛事列表
+      {{ t('返回赛事列表') }}
     </button>
   </div>
 </template>

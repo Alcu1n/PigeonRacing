@@ -7,7 +7,8 @@
 import { storeToRefs } from 'pinia'
 import starIcon from '../assets/star.svg'
 import { useRegistrationStore } from '../stores/registration'
-import { yuan } from '../utils/money'
+import { formatMoney } from '../utils/money'
+import { t } from '../i18n'
 
 const store = useRegistrationStore()
 const { filteredPigeons, singleProjects, singleProjectStats, singleMatrix } = storeToRefs(store)
@@ -24,17 +25,17 @@ function projectHeadLines(name: string): [string, string] {
 
 <template>
   <section class="single-panel">
-    <div class="project-stats" aria-label="单羽项目统计">
+    <div class="project-stats" :aria-label="t('单羽项目统计')">
       <div v-for="stat in singleProjectStats" :key="stat.project.id" class="stat-chip">
         <strong>{{ stat.project.name }}</strong>
-        <span>{{ stat.count }} 羽 / {{ yuan(stat.amount_cent) }}</span>
+        <span>{{ stat.count }} {{ t('羽') }} / {{ formatMoney(stat.amount_cent, store.race?.currency_code ?? 'CNY') }}</span>
       </div>
     </div>
 
     <div class="matrix-wrap single-matrix-wrap">
       <div class="matrix-grid header-row" :style="{ '--project-count': singleProjects.length }">
-        <div class="select-all-cell sticky-select-cell">全选</div>
-        <div class="ring-cell sticky-ring-cell">足环</div>
+        <div class="select-all-cell sticky-select-cell">{{ t('全选') }}</div>
+        <div class="ring-cell sticky-ring-cell">{{ t('足环') }}</div>
         <div v-for="project in singleProjects" :key="project.id" class="project-head">
           <span>{{ projectHeadLines(project.name)[0] }}</span>
           <span>{{ projectHeadLines(project.name)[1] }}</span>

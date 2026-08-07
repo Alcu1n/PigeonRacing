@@ -41,7 +41,7 @@ class RegistrationDetailPageTest extends TestCase
             ->get(RegistrationResource::getUrl('view', ['record' => $registration]))
             ->assertOk()
             ->assertSee('报名概览')
-            ->assertSeeInOrder(['会员棚号', 'A001', '会员参赛名', '张三鸽舍', '总金额', '￥', '350'])
+            ->assertSeeInOrder(['会员棚号', 'A001', '会员参赛名', '张三鸽舍', '总金额', '¥', '350'])
             ->assertSeeInOrder(['报名编号', 'REG-DETAIL', '赛事名称', '测试赛事', '确认状态', '未确认'])
             ->assertSee('单羽项目矩阵')
             ->assertSee('多羽组明细')

@@ -49,7 +49,7 @@ class ListRegistrations extends ListRecords
     public function getTabs(): array
     {
         $tabs = [
-            'all' => Tab::make('全部赛事')
+            'all' => Tab::make(__('全部赛事'))
                 ->badge(Registration::query()->count()),
         ];
 
@@ -69,7 +69,7 @@ class ListRegistrations extends ListRecords
     {
         return [
             Action::make('refreshRegistrations')
-                ->label('刷新报名记录')
+                ->label(__('刷新报名记录'))
                 ->icon('heroicon-o-arrow-path')
                 ->visible(fn (): bool => RegistrationResource::hasModulePermission('view'))
                 ->action(function (): void {
@@ -78,16 +78,16 @@ class ListRegistrations extends ListRecords
                     $this->flushCachedTableRecords();
 
                     Notification::make()
-                        ->title('报名记录已刷新')
+                        ->title(__('报名记录已刷新'))
                         ->success()
                         ->send();
                 }),
             Action::make('exportExcel')
-                ->label('导出 Excel')
+                ->label(__('导出 Excel'))
                 ->visible(fn (): bool => RegistrationResource::hasModulePermission('view'))
                 ->form([
                     Select::make('race_id')
-                        ->label('赛事')
+                        ->label(__('赛事'))
                         ->options(fn (): array => Race::query()->orderByDesc('registration_end_at')->pluck('name', 'id')->all())
                         ->searchable()
                         ->required(),
@@ -99,14 +99,14 @@ class ListRegistrations extends ListRecords
                     return Excel::download($export, $export->fileName());
                 }),
             Action::make('deleteAllRegistrations')
-                ->label('删除所有报名记录')
+                ->label(__('删除所有报名记录'))
                 ->visible(fn (): bool => RegistrationResource::hasModulePermission('delete'))
                 ->color('danger')
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
-                ->modalHeading('删除所有报名记录')
-                ->modalDescription('此操作会删除全部报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这些报名。')
-                ->modalSubmitActionLabel('确认删除')
+                ->modalHeading(__('删除所有报名记录'))
+                ->modalDescription(__('此操作会删除全部报名记录、普通报名明细和递进报名明细。删除后会员端不再恢复这些报名。'))
+                ->modalSubmitActionLabel(__('确认删除'))
                 ->action(fn () => $this->deleteAllRegistrations()),
         ];
     }
@@ -127,7 +127,7 @@ class ListRegistrations extends ListRecords
     private function activeScopeLabel(): string
     {
         if ($this->activeRaceId() === null) {
-            return '全部赛事';
+            return __('全部赛事');
         }
 
         return (string) $this->getCachedTabs()[$this->activeTab]->getLabel();
@@ -140,7 +140,7 @@ class ListRegistrations extends ListRecords
         $deleted = RegistrationResource::deleteRegistrations(Registration::query()->get());
 
         Notification::make()
-            ->title("已删除 {$deleted} 条报名记录")
+            ->title(__('已删除 :count 条报名记录', ['count' => $deleted]))
             ->success()
             ->send();
     }

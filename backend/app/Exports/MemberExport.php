@@ -20,7 +20,7 @@ class MemberExport implements FromCollection, ShouldAutoSize, WithColumnFormatti
 {
     public function headings(): array
     {
-        return ['序号', '手机号', '会员棚号', '会员参赛名', '足环数量', '状态', '最近登录', '备注', '创建时间'];
+        return [__('序号'), __('手机号'), __('会员棚号'), __('会员参赛名'), __('足环数量'), __('状态'), __('最近登录'), __('备注'), __('创建时间')];
     }
 
     public function collection(): Collection

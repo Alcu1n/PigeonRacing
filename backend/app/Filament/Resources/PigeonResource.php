@@ -33,15 +33,25 @@ class PigeonResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-identification';
 
-    protected static ?string $navigationLabel = '足环管理';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '足环';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('足环管理');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('足环');
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
             Select::make('pigeon_library_id')
-                ->label('足环库')
+                ->label(__('足环库'))
                 ->options(fn (): array => PigeonLibrary::query()
                     ->orderByDesc('is_enabled')
                     ->orderBy('sort_order')
@@ -52,7 +62,7 @@ class PigeonResource extends Resource
                 ->searchable()
                 ->required(),
             Select::make('member_id')
-                ->label('会员棚号')
+                ->label(__('会员棚号'))
                 ->relationship('member', 'loft_number')
                 ->searchable()
                 ->preload()
@@ -66,22 +76,22 @@ class PigeonResource extends Resource
                 }),
             TextInput::make('loft_number')->hidden()->dehydrated(),
             TextInput::make('participant_name')
-                ->label('参赛名')
+                ->label(__('参赛名'))
                 ->readOnly()
                 ->dehydrated(),
             TextInput::make('ring_number')
-                ->label('足环号码')
+                ->label(__('足环号码'))
                 ->placeholder('2025-13-0001')
                 ->required(fn (string $operation): bool => $operation === 'edit'),
             TextInput::make('batch_start_ring')
-                ->label('批量起始足环号')
+                ->label(__('批量起始足环号'))
                 ->placeholder('2025-13-0001')
                 ->visible(fn (string $operation): bool => $operation === 'create')
                 ->dehydrated(fn (string $operation): bool => $operation === 'create'),
             TextInput::make('batch_end_ring')
-                ->label('批量结束足环号')
+                ->label(__('批量结束足环号'))
                 ->placeholder('2025-13-0020')
-                ->helperText('填写批量起止时，将忽略单个足环号码。')
+                ->helperText(__('填写批量起止时，将忽略单个足环号码。'))
                 ->visible(fn (string $operation): bool => $operation === 'create')
                 ->dehydrated(fn (string $operation): bool => $operation === 'create'),
         ]);
@@ -90,12 +100,12 @@ class PigeonResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
-            TextColumn::make('library.name')->label('足环库')->searchable(),
-            TextColumn::make('ring_number')->label('足环号码')->searchable(),
-            TextColumn::make('loft_number')->label('棚号')->searchable(),
-            TextColumn::make('participant_name')->label('参赛名')->searchable(),
-            TextColumn::make('status')->label('状态'),
-            TextColumn::make('created_at')->label('导入时间')->dateTime(),
+            TextColumn::make('library.name')->label(__('足环库'))->searchable(),
+            TextColumn::make('ring_number')->label(__('足环号码'))->searchable(),
+            TextColumn::make('loft_number')->label(__('棚号'))->searchable(),
+            TextColumn::make('participant_name')->label(__('参赛名'))->searchable(),
+            TextColumn::make('status')->label(__('状态')),
+            TextColumn::make('created_at')->label(__('导入时间'))->dateTime(),
         ])->recordActions([EditAction::make(), DeleteAction::make()]);
     }
 

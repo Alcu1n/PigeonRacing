@@ -40,30 +40,40 @@ class InformationPostResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-newspaper';
 
-    protected static ?string $navigationLabel = '信息发布';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '信息发布';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('信息发布');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('信息发布');
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('title')->label('标题')->required()->maxLength(160),
-            TextInput::make('slug')->label('链接标识')->helperText('可留空，系统会根据标题自动生成。')->maxLength(180)->unique(ignoreRecord: true),
+            TextInput::make('title')->label(__('标题'))->required()->maxLength(160),
+            TextInput::make('slug')->label(__('链接标识'))->helperText(__('可留空，系统会根据标题自动生成。'))->maxLength(180)->unique(ignoreRecord: true),
             Select::make('category')
-                ->label('分类')
+                ->label(__('分类'))
                 ->options(InformationPost::categoryOptions())
                 ->default(InformationPost::CATEGORY_NOTICE)
                 ->required(),
             Select::make('status')
-                ->label('状态')
+                ->label(__('状态'))
                 ->options(InformationPost::statusOptions())
                 ->default(InformationPost::STATUS_DRAFT)
                 ->required(),
-            Toggle::make('is_pinned')->label('置顶')->default(false),
-            DateTimePicker::make('published_at')->label('发布时间')->helperText('发布状态下可留空，系统保存时自动填入当前时间。'),
-            Textarea::make('summary')->label('摘要')->rows(3)->maxLength(240),
+            Toggle::make('is_pinned')->label(__('置顶'))->default(false),
+            DateTimePicker::make('published_at')->label(__('发布时间'))->helperText(__('发布状态下可留空，系统保存时自动填入当前时间。')),
+            Textarea::make('summary')->label(__('摘要'))->rows(3)->maxLength(240),
             RichEditor::make('content_html')
-                ->label('正文')
+                ->label(__('正文'))
                 ->required()
                 ->fileAttachmentsDisk('public')
                 ->fileAttachmentsDirectory('information')
@@ -113,23 +123,23 @@ class InformationPostResource extends Resource
         return $table
             ->modifyQueryUsing(fn ($query) => $query->orderByDesc('is_pinned')->orderByDesc('published_at')->orderByDesc('id'))
             ->columns([
-                IconColumn::make('is_pinned')->label('置顶')->boolean(),
-                TextColumn::make('title')->label('标题')->searchable()->wrap(),
+                IconColumn::make('is_pinned')->label(__('置顶'))->boolean(),
+                TextColumn::make('title')->label(__('标题'))->searchable()->wrap(),
                 TextColumn::make('category')
-                    ->label('分类')
+                    ->label(__('分类'))
                     ->badge()
                     ->formatStateUsing(fn (?string $state): string => InformationPost::categoryLabel($state)),
                 TextColumn::make('status')
-                    ->label('状态')
+                    ->label(__('状态'))
                     ->badge()
                     ->formatStateUsing(fn (?string $state): string => InformationPost::statusLabel($state))
                     ->color(fn (?string $state): string => $state === InformationPost::STATUS_PUBLISHED ? 'success' : 'gray'),
-                TextColumn::make('published_at')->label('发布时间')->dateTime()->placeholder('-'),
-                TextColumn::make('updated_at')->label('更新时间')->dateTime(),
+                TextColumn::make('published_at')->label(__('发布时间'))->dateTime()->placeholder('-'),
+                TextColumn::make('updated_at')->label(__('更新时间'))->dateTime(),
             ])
             ->filters([
-                SelectFilter::make('category')->label('分类')->options(InformationPost::categoryOptions()),
-                SelectFilter::make('status')->label('状态')->options(InformationPost::statusOptions()),
+                SelectFilter::make('category')->label(__('分类'))->options(InformationPost::categoryOptions()),
+                SelectFilter::make('status')->label(__('状态'))->options(InformationPost::statusOptions()),
             ])
             ->recordActions([EditAction::make(), DeleteAction::make()]);
     }
@@ -146,7 +156,7 @@ class InformationPostResource extends Resource
     private static function textColorPaletteTool(): RichEditorTool
     {
         return RichEditorTool::make('textColorPalette')
-            ->label('文字颜色')
+            ->label(__('文字颜色'))
             ->icon(Heroicon::Swatch)
             ->activeKey('textColor')
             ->jsHandler(self::textColorPaletteJs());
@@ -169,25 +179,25 @@ class InformationPostResource extends Resource
     private static function editorColorOptions(): array
     {
         return [
-            'slate' => ['label' => '墨灰', 'color' => '#334155', 'darkColor' => '#cbd5e1'],
-            'gray' => ['label' => '中灰', 'color' => '#4b5563', 'darkColor' => '#d1d5db'],
-            'red' => ['label' => '正红', 'color' => '#dc2626', 'darkColor' => '#f87171'],
-            'rose' => ['label' => '玫红', 'color' => '#e11d48', 'darkColor' => '#fb7185'],
-            'orange' => ['label' => '橙色', 'color' => '#ea580c', 'darkColor' => '#fb923c'],
-            'amber' => ['label' => '琥珀', 'color' => '#d97706', 'darkColor' => '#fbbf24'],
-            'yellow' => ['label' => '黄色', 'color' => '#ca8a04', 'darkColor' => '#fde047'],
-            'lime' => ['label' => '青柠', 'color' => '#65a30d', 'darkColor' => '#bef264'],
-            'green' => ['label' => '绿色', 'color' => '#16a34a', 'darkColor' => '#4ade80'],
-            'emerald' => ['label' => '翠绿', 'color' => '#059669', 'darkColor' => '#34d399'],
-            'teal' => ['label' => '蓝绿', 'color' => '#0d9488', 'darkColor' => '#2dd4bf'],
-            'cyan' => ['label' => '青色', 'color' => '#0891b2', 'darkColor' => '#22d3ee'],
-            'sky' => ['label' => '天蓝', 'color' => '#0284c7', 'darkColor' => '#38bdf8'],
-            'blue' => ['label' => '蓝色', 'color' => '#2563eb', 'darkColor' => '#60a5fa'],
-            'indigo' => ['label' => '靛蓝', 'color' => '#4f46e5', 'darkColor' => '#818cf8'],
-            'violet' => ['label' => '紫罗兰', 'color' => '#7c3aed', 'darkColor' => '#a78bfa'],
-            'purple' => ['label' => '紫色', 'color' => '#9333ea', 'darkColor' => '#c084fc'],
-            'fuchsia' => ['label' => '紫红', 'color' => '#c026d3', 'darkColor' => '#e879f9'],
-            'pink' => ['label' => '粉色', 'color' => '#db2777', 'darkColor' => '#f472b6'],
+            'slate' => ['label' => __('墨灰'), 'color' => '#334155', 'darkColor' => '#cbd5e1'],
+            'gray' => ['label' => __('中灰'), 'color' => '#4b5563', 'darkColor' => '#d1d5db'],
+            'red' => ['label' => __('正红'), 'color' => '#dc2626', 'darkColor' => '#f87171'],
+            'rose' => ['label' => __('玫红'), 'color' => '#e11d48', 'darkColor' => '#fb7185'],
+            'orange' => ['label' => __('橙色'), 'color' => '#ea580c', 'darkColor' => '#fb923c'],
+            'amber' => ['label' => __('琥珀'), 'color' => '#d97706', 'darkColor' => '#fbbf24'],
+            'yellow' => ['label' => __('黄色'), 'color' => '#ca8a04', 'darkColor' => '#fde047'],
+            'lime' => ['label' => __('青柠'), 'color' => '#65a30d', 'darkColor' => '#bef264'],
+            'green' => ['label' => __('绿色'), 'color' => '#16a34a', 'darkColor' => '#4ade80'],
+            'emerald' => ['label' => __('翠绿'), 'color' => '#059669', 'darkColor' => '#34d399'],
+            'teal' => ['label' => __('蓝绿'), 'color' => '#0d9488', 'darkColor' => '#2dd4bf'],
+            'cyan' => ['label' => __('青色'), 'color' => '#0891b2', 'darkColor' => '#22d3ee'],
+            'sky' => ['label' => __('天蓝'), 'color' => '#0284c7', 'darkColor' => '#38bdf8'],
+            'blue' => ['label' => __('蓝色'), 'color' => '#2563eb', 'darkColor' => '#60a5fa'],
+            'indigo' => ['label' => __('靛蓝'), 'color' => '#4f46e5', 'darkColor' => '#818cf8'],
+            'violet' => ['label' => __('紫罗兰'), 'color' => '#7c3aed', 'darkColor' => '#a78bfa'],
+            'purple' => ['label' => __('紫色'), 'color' => '#9333ea', 'darkColor' => '#c084fc'],
+            'fuchsia' => ['label' => __('紫红'), 'color' => '#c026d3', 'darkColor' => '#e879f9'],
+            'pink' => ['label' => __('粉色'), 'color' => '#db2777', 'darkColor' => '#f472b6'],
         ];
     }
 
@@ -204,6 +214,7 @@ class InformationPostResource extends Resource
         );
 
         $colorsJson = Js::from($colors)->toHtml();
+        $clearColorLabel = Js::from(__('清除颜色'))->toHtml();
 
         return <<<JS
             (() => {
@@ -306,7 +317,7 @@ class InformationPostResource extends Resource
                 })
 
                 clearButton.type = 'button'
-                clearButton.textContent = '清除颜色'
+                clearButton.textContent = {$clearColorLabel}
                 clearButton.style.border = '0'
                 clearButton.style.borderRadius = '8px'
                 clearButton.style.padding = '6px 10px'

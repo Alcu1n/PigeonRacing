@@ -26,7 +26,7 @@ class RingSaleCategory extends Model
         static::saving(function (RingSaleCategory $category): void {
             if ((int) $category->unit_price_cent <= 0) {
                 throw ValidationException::withMessages([
-                    'unit_price_cent' => '足环类别单价必须大于 0。',
+                    'unit_price_cent' => __('足环类别单价必须大于 0。'),
                 ]);
             }
         });
@@ -34,7 +34,7 @@ class RingSaleCategory extends Model
         static::updating(function (RingSaleCategory $category): void {
             if ($category->isDirty(['name', 'unit_price_cent']) && $category->isUsed()) {
                 throw ValidationException::withMessages([
-                    'name' => '已用于售环记录的类别不能修改名称或单价，只能停用。',
+                    'name' => __('已用于售环记录的类别不能修改名称或单价，只能停用。'),
                 ]);
             }
         });

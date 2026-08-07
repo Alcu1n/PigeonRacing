@@ -31,27 +31,37 @@ class PigeonLibraryResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-archive-box';
 
-    protected static ?string $navigationLabel = '足环库管理';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '足环库';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('足环库管理');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('足环库');
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('name')->label('足环库名称')->required()->maxLength(128)->unique(ignoreRecord: true),
-            TextInput::make('sort_order')->label('排序')->numeric()->default(0),
-            Toggle::make('is_enabled')->label('启用')->default(true),
+            TextInput::make('name')->label(__('足环库名称'))->required()->maxLength(128)->unique(ignoreRecord: true),
+            TextInput::make('sort_order')->label(__('排序'))->numeric()->default(0),
+            Toggle::make('is_enabled')->label(__('启用'))->default(true),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table->columns([
-            TextColumn::make('name')->label('足环库名称')->searchable(),
-            TextColumn::make('pigeons_count')->label('足环数')->counts('pigeons'),
-            TextColumn::make('sort_order')->label('排序'),
-            IconColumn::make('is_enabled')->label('启用')->boolean(),
-            TextColumn::make('updated_at')->label('更新时间')->dateTime(),
+            TextColumn::make('name')->label(__('足环库名称'))->searchable(),
+            TextColumn::make('pigeons_count')->label(__('足环数'))->counts('pigeons'),
+            TextColumn::make('sort_order')->label(__('排序')),
+            IconColumn::make('is_enabled')->label(__('启用'))->boolean(),
+            TextColumn::make('updated_at')->label(__('更新时间'))->dateTime(),
         ])->recordActions([EditAction::make(), DeleteAction::make()]);
     }
 

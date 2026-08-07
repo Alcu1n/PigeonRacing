@@ -40,4 +40,29 @@ class BrandSettingsPageTest extends TestCase
             ->assertSee('/admin/service-worker.js', false)
             ->assertSee('scope: \'/admin/\'', false);
     }
+
+    public function test_language_switcher_is_rendered_on_admin_login_and_authenticated_pages(): void
+    {
+        $admin = User::query()->create([
+            'name' => 'Locale Admin',
+            'email' => 'locale-admin@example.com',
+            'password' => 'password',
+        ]);
+        $admin->assignRole('super-admin');
+
+        $this->withUnencryptedCookie('app_locale', 'zh-TW')
+            ->get('/admin/login')
+            ->assertOk()
+            ->assertSee('data-app-language-switcher', false)
+            ->assertSee('語言')
+            ->assertSee('臺灣繁體中文');
+
+        $this->withUnencryptedCookie('app_locale', 'zh-TW')
+            ->actingAs($admin)
+            ->get('/admin/brand-settings')
+            ->assertOk()
+            ->assertSee('data-app-language-switcher', false)
+            ->assertSee('新賽事預設報名幣別')
+            ->assertSee('臺灣繁體中文');
+    }
 }

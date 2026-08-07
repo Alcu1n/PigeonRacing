@@ -4,6 +4,7 @@
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 import type { ExistingProgressiveEntry, ExistingRegistration, ExistingRegistrationEntry } from '../types/domain'
+import { t } from '../i18n'
 
 export interface HistorySingleProject {
   id: number
@@ -152,7 +153,7 @@ function buildProgressiveGroups(entries: ExistingProgressiveEntry[]): HistoryPro
     const key = `${entry.category_id}:${entry.stage_project_id}`
     const group = groups.get(key) ?? {
       category_id: entry.category_id,
-      category_name: entry.category_name ?? '递进报名',
+      category_name: entry.category_name ?? t('递进报名'),
       stage_project_id: entry.stage_project_id,
       stage_project_name: entry.stage_project_name,
       price_cent: entry.price_cent,

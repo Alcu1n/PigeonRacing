@@ -12,7 +12,7 @@ return [
     'url' => env('APP_URL', 'http://localhost'),
     'timezone' => 'Asia/Shanghai',
     'locale' => 'zh_CN',
-    'fallback_locale' => 'en',
+    'fallback_locale' => 'zh_CN',
     'faker_locale' => 'zh_CN',
     'key' => env('APP_KEY'),
     'cipher' => 'AES-256-CBC',

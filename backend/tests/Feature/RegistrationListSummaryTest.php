@@ -9,6 +9,7 @@
 namespace Tests\Feature;
 
 use App\Enums\RaceStatus;
+use App\Enums\CurrencyCode;
 use App\Enums\RegistrationStatus;
 use App\Filament\Resources\RegistrationResource;
 use App\Filament\Resources\RegistrationResource\Pages\ListRegistrations;
@@ -59,11 +60,11 @@ class RegistrationListSummaryTest extends TestCase
             ->get('/admin/registrations')
             ->assertOk()
             ->assertSee('已报名总金额')
-            ->assertSee('250 元')
+            ->assertSee('¥250')
             ->assertSee('已确认金额')
-            ->assertSee('50 元')
+            ->assertSee('¥50')
             ->assertSee('未确认金额')
-            ->assertSee('200 元')
+            ->assertSee('¥200')
             ->assertSee('报名总棚数')
             ->assertSee('2 棚')
             ->assertSee('刷新报名记录');
@@ -161,6 +162,36 @@ class RegistrationListSummaryTest extends TestCase
         $this->assertSame(1, $autumnTotals['loft_count']);
     }
 
+    public function test_all_race_summary_keeps_cny_and_twd_amounts_separate(): void
+    {
+        $cnyRace = Race::query()->create([
+            'name' => '人民币赛事',
+            'registration_start_at' => now()->subDay(),
+            'registration_end_at' => now()->addDay(),
+            'status' => RaceStatus::Published,
+            'is_visible' => true,
+            'currency_code' => CurrencyCode::CNY,
+        ]);
+        $twdRace = Race::query()->create([
+            'name' => '新台币赛事',
+            'registration_start_at' => now()->subDay(),
+            'registration_end_at' => now()->addDay(),
+            'status' => RaceStatus::Published,
+            'is_visible' => true,
+            'currency_code' => CurrencyCode::TWD,
+        ]);
+
+        $this->registration($cnyRace, 'CNY001', RegistrationStatus::Confirmed, 5000);
+        $this->registration($twdRace, 'TWD001', RegistrationStatus::PendingConfirmation, 7000, CurrencyCode::TWD);
+
+        $totals = app(RegistrationSummaryService::class)->totals();
+
+        $this->assertSame(5000, $totals['amounts_by_currency']['CNY']['total_amount_cent']);
+        $this->assertSame(7000, $totals['amounts_by_currency']['TWD']['total_amount_cent']);
+        $this->assertSame('¥50', $totals['amounts_by_currency']['CNY']['total']);
+        $this->assertSame('NT$70', $totals['amounts_by_currency']['TWD']['total']);
+    }
+
     public function test_admin_can_run_the_manual_registration_refresh_action(): void
     {
         $admin = User::query()->create([
@@ -236,7 +267,7 @@ class RegistrationListSummaryTest extends TestCase
         $this->assertSame('点击确认', $statusColumn->formatState($pending->status));
         $this->assertSame('已确认', $statusColumn->formatState($confirmed->status));
         $this->assertSame(
-            '请确认报名信息：棚号：A151；会员名：A151鸽舍；总金额：123.45 元。确认后将标记为已确认。',
+            '请确认报名信息：棚号：A151；会员名：A151鸽舍；总金额：¥123.45。确认后将标记为已确认。',
             $confirmationAction->getModalDescription(),
         );
         $this->assertSame(
@@ -307,7 +338,13 @@ class RegistrationListSummaryTest extends TestCase
             ->assertJsonCount(0);
     }
 
-    private function registration(Race $race, string $loftNumber, RegistrationStatus $status, int $amountCent): Registration
+    private function registration(
+        Race $race,
+        string $loftNumber,
+        RegistrationStatus $status,
+        int $amountCent,
+        ?CurrencyCode $currency = null,
+    ): Registration
     {
         $member = Member::query()->create([
             'phone' => null,
@@ -322,6 +359,7 @@ class RegistrationListSummaryTest extends TestCase
             'race_id' => $race->id,
             'member_id' => $member->id,
             'total_amount_cent' => $amountCent,
+            'currency_code' => $currency ?? CurrencyCode::fromValue($race->currency_code),
             'status' => $status,
             'idempotency_key' => (string) Str::uuid(),
             'submitted_at' => now(),

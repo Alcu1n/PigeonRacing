@@ -12,13 +12,28 @@ use Filament\Pages\Page;
 
 class UsageTutorial extends Page
 {
-    protected static ?string $title = '使用教程';
+    protected static ?string $title = null;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-book-open';
 
-    protected static ?string $navigationLabel = '使用教程';
+    protected static ?string $navigationLabel = null;
 
-    protected static string|\UnitEnum|null $navigationGroup = '系统设置';
+    protected static string|\UnitEnum|null $navigationGroup = null;
+
+    public function getTitle(): string
+    {
+        return __('使用教程');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('使用教程');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('系统设置');
+    }
 
     protected static ?int $navigationSort = 91;
 

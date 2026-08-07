@@ -5,8 +5,10 @@
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
 
 @php
-    use App\Services\RegistrationSummaryService;
+    use App\Support\CurrencyFormatter;
 
+    $currency = $registration->currency_code ?? null;
+    $formatAmount = fn (int|float|null $cent): string => CurrencyFormatter::format((int) ($cent ?? 0), $currency);
     $single = $matrix['single'];
     $multi = $matrix['multi'];
     $progressive = $matrix['progressive'] ?? [];
@@ -166,25 +168,25 @@
 <div class="registration-detail-stack">
     <section class="registration-detail-panel">
         <div class="registration-detail-heading">
-            <div class="registration-detail-title">单羽项目矩阵</div>
+            <div class="registration-detail-title">{{ __('单羽项目矩阵') }}</div>
             <div class="registration-detail-meta">
-                {{ $single['total_count'] }} 项 / {{ RegistrationSummaryService::formatYuan($single['total_amount_cent']) }} 元
+                {{ $single['total_count'] }} {{ __('项') }} / {{ $formatAmount($single['total_amount_cent']) }}
             </div>
         </div>
 
         @if ($single['rows'] === [] || $single['projects'] === [])
-            <div class="registration-detail-subpanel registration-detail-empty">暂无单羽项目报名。</div>
+            <div class="registration-detail-subpanel registration-detail-empty">{{ __('暂无单羽项目报名。') }}</div>
         @else
             <div class="registration-detail-scroll">
                 <table class="registration-detail-table">
                     <thead>
                         <tr>
-                            <th class="registration-detail-ring registration-detail-sticky">足环号</th>
+                            <th class="registration-detail-ring registration-detail-sticky">{{ __('足环号') }}</th>
                             @foreach ($single['projects'] as $project)
                                 <th class="registration-detail-project">{{ $project['project_name'] }}</th>
                             @endforeach
-                            <th>数量</th>
-                            <th>金额</th>
+                            <th>{{ __('数量') }}</th>
+                            <th>{{ __('金额') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -201,7 +203,7 @@
                                     </td>
                                 @endforeach
                                 <td>{{ $row['count'] }}</td>
-                                <td>{{ RegistrationSummaryService::formatYuan($row['amount_cent']) }}</td>
+                                <td>{{ $formatAmount($row['amount_cent']) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -212,42 +214,42 @@
 
     <section class="registration-detail-panel">
         <div class="registration-detail-heading">
-            <div class="registration-detail-title">多羽组明细</div>
+            <div class="registration-detail-title">{{ __('多羽组明细') }}</div>
             <div class="registration-detail-meta">
-                {{ collect($multi)->sum('group_count') }} 组 / {{ RegistrationSummaryService::formatYuan(collect($multi)->sum('amount_cent')) }} 元
+                {{ collect($multi)->sum('group_count') }} {{ __('组') }} / {{ $formatAmount(collect($multi)->sum('amount_cent')) }}
             </div>
         </div>
 
         @if ($multi === [])
-            <div class="registration-detail-subpanel registration-detail-empty">暂无多羽组报名。</div>
+            <div class="registration-detail-subpanel registration-detail-empty">{{ __('暂无多羽组报名。') }}</div>
         @else
             @foreach ($multi as $project)
                 <div class="registration-detail-subpanel">
                     <div class="registration-detail-project-title">
                         <span>{{ $project['project_name'] }}</span>
                         <span class="registration-detail-meta">
-                            {{ $project['group_count'] }} 组 / {{ RegistrationSummaryService::formatYuan($project['amount_cent']) }} 元
+                            {{ $project['group_count'] }} {{ __('组') }} / {{ $formatAmount($project['amount_cent']) }}
                         </span>
                     </div>
                     <div class="registration-detail-scroll">
                         <table class="registration-detail-table">
                             <thead>
                                 <tr>
-                                    <th style="width: 96px;">组号</th>
+                                    <th style="width: 96px;">{{ __('组号') }}</th>
                                     @for ($index = 1; $index <= $project['group_size']; $index++)
-                                        <th>第{{ $index }}羽</th>
+                                        <th>{{ __('第:index羽', ['index' => $index]) }}</th>
                                     @endfor
-                                    <th style="width: 100px;">金额</th>
+                                    <th style="width: 100px;">{{ __('金额') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach ($project['groups'] as $group)
                                     <tr>
-                                        <td>第{{ $group['group_index'] }}组</td>
+                                        <td>{{ __('第:index组', ['index' => $group['group_index']]) }}</td>
                                         @for ($index = 0; $index < $project['group_size']; $index++)
                                             <td class="registration-detail-ring">{{ $group['rings'][$index] ?? '-' }}</td>
                                         @endfor
-                                        <td>{{ RegistrationSummaryService::formatYuan($project['price_cent']) }}</td>
+                                        <td>{{ $formatAmount($project['price_cent']) }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -260,32 +262,32 @@
 
     <section class="registration-detail-panel">
         <div class="registration-detail-heading">
-            <div class="registration-detail-title">递进阶段明细</div>
+            <div class="registration-detail-title">{{ __('递进阶段明细') }}</div>
             <div class="registration-detail-meta">
-                {{ collect($progressive)->sum('total_count') }} 组 / {{ RegistrationSummaryService::formatYuan(collect($progressive)->sum('total_amount_cent')) }} 元
+                {{ collect($progressive)->sum('total_count') }} {{ __('组') }} / {{ $formatAmount(collect($progressive)->sum('total_amount_cent')) }}
             </div>
         </div>
 
         @if ($progressive === [])
-            <div class="registration-detail-subpanel registration-detail-empty">暂无递进阶段报名。</div>
+            <div class="registration-detail-subpanel registration-detail-empty">{{ __('暂无递进阶段报名。') }}</div>
         @else
             @foreach ($progressive as $category)
                 <div class="registration-detail-subpanel">
                     <div class="registration-detail-project-title">
                         <strong>{{ $category['category_name'] }}</strong>
                         <span class="registration-detail-meta">
-                            {{ $category['total_count'] }} 组 / {{ RegistrationSummaryService::formatYuan($category['total_amount_cent']) }} 元
+                            {{ $category['total_count'] }} {{ __('组') }} / {{ $formatAmount($category['total_amount_cent']) }}
                         </span>
                     </div>
                     <div class="registration-detail-scroll">
                         <table class="registration-detail-table">
                             <thead>
                                 <tr>
-                                    <th>阶段项目</th>
-                                    <th>组号</th>
-                                    <th>足环号</th>
-                                    <th>状态</th>
-                                    <th>金额（元）</th>
+                                    <th>{{ __('阶段项目') }}</th>
+                                    <th>{{ __('组号') }}</th>
+                                    <th>{{ __('足环号') }}</th>
+                                    <th>{{ __('状态') }}</th>
+                                    <th>{{ __('金额') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -293,10 +295,10 @@
                                     @foreach ($project['groups'] as $group)
                                         <tr>
                                             <td>{{ $project['project_name'] }}</td>
-                                            <td>第 {{ $group['group_index'] }} 组</td>
+                                            <td>{{ __('第 :index 组', ['index' => $group['group_index']]) }}</td>
                                             <td class="registration-detail-ring">{{ implode(' / ', $group['rings']) }}</td>
-                                            <td>{{ $group['status'] === 'confirmed' ? '已确认' : '未确认' }}</td>
-                                            <td>{{ RegistrationSummaryService::formatYuan($project['price_cent']) }}</td>
+                                            <td>{{ $group['status'] === 'confirmed' ? __('已确认') : __('未确认') }}</td>
+                                            <td>{{ $formatAmount($project['price_cent']) }}</td>
                                         </tr>
                                     @endforeach
                                 @endforeach

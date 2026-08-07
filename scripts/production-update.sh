@@ -273,7 +273,16 @@ prepare_backend() {
     normalize_backend_permissions
 }
 
+verify_geoip_database() {
+    printf 'Checking optional MaxMind Country database readability...\n'
+
+    if ! compose run --rm --no-deps --user www-data app sh -c 'db="$$(printenv MAXMIND_COUNTRY_DB_PATH 2>/dev/null || true)"; if [ -z "$$db" ]; then exit 0; fi; test -r "$$db"'; then
+        abort_backend_update "MAXMIND_COUNTRY_DB_PATH is configured but the GeoLite2/MaxMind Country database is not readable"
+    fi
+}
+
 preflight_backend() {
+    verify_geoip_database
     printf 'Running Laravel route preflight as www-data...\n'
 
     if ! compose run --rm --no-deps --user www-data app php artisan route:list --no-ansi --no-interaction >/dev/null; then

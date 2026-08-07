@@ -59,7 +59,7 @@ class CreatePigeon extends CreateRecord
         $member = $memberId ? Member::query()->find($memberId) : null;
 
         if (! $member) {
-            throw ValidationException::withMessages(['member_id' => '请选择有效的会员棚号。']);
+            throw ValidationException::withMessages(['member_id' => __('请选择有效的会员棚号。')]);
         }
 
         return [
@@ -81,7 +81,7 @@ class CreatePigeon extends CreateRecord
         $ringNumber = trim((string) ($data['ring_number'] ?? ''));
 
         if ($ringNumber === '') {
-            throw ValidationException::withMessages(['ring_number' => '请输入足环号码。']);
+            throw ValidationException::withMessages(['ring_number' => __('请输入足环号码。')]);
         }
 
         return [$ringNumber];
@@ -90,22 +90,22 @@ class CreatePigeon extends CreateRecord
     private function ringNumbersFromRange(string $start, string $end): array
     {
         if ($start === '' || $end === '') {
-            throw ValidationException::withMessages(['batch_start_ring' => '批量增加必须同时填写起始和结束足环号。']);
+            throw ValidationException::withMessages(['batch_start_ring' => __('批量增加必须同时填写起始和结束足环号。')]);
         }
 
         [$startPrefix, $startNumber, $startWidth] = $this->splitRing($start, 'batch_start_ring');
         [$endPrefix, $endNumber, $endWidth] = $this->splitRing($end, 'batch_end_ring');
 
         if ($startPrefix !== $endPrefix || $startWidth !== $endWidth) {
-            throw ValidationException::withMessages(['batch_end_ring' => '批量足环号只能改变末尾数字，前缀和数字位数必须一致。']);
+            throw ValidationException::withMessages(['batch_end_ring' => __('批量足环号只能改变末尾数字，前缀和数字位数必须一致。')]);
         }
 
         if ($startNumber > $endNumber) {
-            throw ValidationException::withMessages(['batch_end_ring' => '结束足环号必须大于或等于起始足环号。']);
+            throw ValidationException::withMessages(['batch_end_ring' => __('结束足环号必须大于或等于起始足环号。')]);
         }
 
         if (($endNumber - $startNumber + 1) > 500) {
-            throw ValidationException::withMessages(['batch_end_ring' => '单次批量增加最多支持 500 个足环。']);
+            throw ValidationException::withMessages(['batch_end_ring' => __('单次批量增加最多支持 500 个足环。')]);
         }
 
         $ringNumbers = [];
@@ -120,7 +120,7 @@ class CreatePigeon extends CreateRecord
     private function splitRing(string $ringNumber, string $field): array
     {
         if (! preg_match('/^(.*?)(\d+)$/', $ringNumber, $matches)) {
-            throw ValidationException::withMessages([$field => '足环号必须以数字结尾，例如 2025-13-0001。']);
+            throw ValidationException::withMessages([$field => __('足环号必须以数字结尾，例如 2025-13-0001。')]);
         }
 
         return [$matches[1], (int) $matches[2], strlen($matches[2])];
@@ -139,7 +139,7 @@ class CreatePigeon extends CreateRecord
         }
 
         throw ValidationException::withMessages([
-            'ring_number' => '以下足环号已存在：'.implode('、', array_slice($existing, 0, 10)),
+            'ring_number' => __('以下足环号已存在：:rings', ['rings' => implode('、', array_slice($existing, 0, 10))]),
         ]);
     }
 

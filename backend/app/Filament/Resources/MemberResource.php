@@ -34,31 +34,41 @@ class MemberResource extends Resource
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-group';
 
-    protected static ?string $navigationLabel = '会员管理';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '会员';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('会员管理');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('会员');
+    }
 
     public static function form(Schema $schema): Schema
     {
         return $schema->components([
-            TextInput::make('phone')->label('手机号')->maxLength(32)->unique(ignoreRecord: true),
-            TextInput::make('password')->label('密码')->password()->dehydrated(fn ($state): bool => filled($state)),
-            TextInput::make('loft_number')->label('会员棚号')->required()->maxLength(64)->unique(ignoreRecord: true),
-            TextInput::make('participant_name')->label('参赛名')->required()->maxLength(128),
-            TextInput::make('status')->label('状态')->default('enabled')->required(),
-            TextInput::make('remark')->label('备注'),
+            TextInput::make('phone')->label(__('手机号'))->maxLength(32)->unique(ignoreRecord: true),
+            TextInput::make('password')->label(__('密码'))->password()->dehydrated(fn ($state): bool => filled($state)),
+            TextInput::make('loft_number')->label(__('会员棚号'))->required()->maxLength(64)->unique(ignoreRecord: true),
+            TextInput::make('participant_name')->label(__('参赛名'))->required()->maxLength(128),
+            TextInput::make('status')->label(__('状态'))->default('enabled')->required(),
+            TextInput::make('remark')->label(__('备注')),
         ]);
     }
 
     public static function table(Table $table): Table
     {
         return $table->columns([
-            TextColumn::make('phone')->label('手机号')->searchable(),
-            TextColumn::make('loft_number')->label('棚号')->searchable(),
-            TextColumn::make('participant_name')->label('参赛名')->searchable(),
-            TextColumn::make('pigeons_count')->counts('pigeons')->label('足环数量'),
-            TextColumn::make('status')->label('状态'),
-            TextColumn::make('last_login_at')->label('最近登录')->dateTime(),
+            TextColumn::make('phone')->label(__('手机号'))->searchable(),
+            TextColumn::make('loft_number')->label(__('棚号'))->searchable(),
+            TextColumn::make('participant_name')->label(__('参赛名'))->searchable(),
+            TextColumn::make('pigeons_count')->counts('pigeons')->label(__('足环数量')),
+            TextColumn::make('status')->label(__('状态')),
+            TextColumn::make('last_login_at')->label(__('最近登录'))->dateTime(),
         ])->recordActions([
             EditAction::make(),
             DeleteAction::make()
@@ -66,20 +76,20 @@ class MemberResource extends Resource
         ])
             ->bulkActions([
                 BulkAction::make('deleteSelectedMembers')
-                    ->label('删除所选会员')
+                    ->label(__('删除所选会员'))
                     ->visible(fn (): bool => self::hasModulePermission('delete'))
                     ->icon('heroicon-o-trash')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->modalHeading('删除所选会员')
-                    ->modalDescription('此操作会删除所选会员，并同步删除这些会员的足环和报名记录。')
-                    ->modalSubmitActionLabel('确认删除')
+                    ->modalHeading(__('删除所选会员'))
+                    ->modalDescription(__('此操作会删除所选会员，并同步删除这些会员的足环和报名记录。'))
+                    ->modalSubmitActionLabel(__('确认删除'))
                     ->action(function (Collection $records): void {
                         abort_unless(self::hasModulePermission('delete'), 403);
                         $deleted = self::deleteMembers($records);
 
                         Notification::make()
-                            ->title("已删除 {$deleted} 个会员")
+                            ->title(__('已删除 :count 个会员', ['count' => $deleted]))
                             ->success()
                             ->send();
                     })

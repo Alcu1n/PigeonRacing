@@ -19,7 +19,7 @@ class InformationController extends Controller
         $category = $request->query('category');
 
         if ($category !== null && ! InformationPost::isValidCategory((string) $category)) {
-            return response()->json(['message' => '分类不存在'], 422);
+            return response()->json(['message' => __('分类不存在')], 422);
         }
 
         $posts = InformationPost::query()

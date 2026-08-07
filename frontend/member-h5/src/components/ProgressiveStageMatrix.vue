@@ -8,7 +8,8 @@ import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import starIcon from '../assets/star.svg'
 import { useRegistrationStore } from '../stores/registration'
-import { yuan } from '../utils/money'
+import { formatMoney } from '../utils/money'
+import { t } from '../i18n'
 
 const store = useRegistrationStore()
 const { activeProgressiveCategory, searchQuery } = storeToRefs(store)
@@ -48,22 +49,22 @@ function ringTail(ringNumber: string): string {
     <div class="progressive-current">
       <div>
         <strong>{{ activeProgressiveCategory.name }}</strong>
-        <span>{{ activeProgressiveCategory.current_stage?.name ?? '未配置当前阶段' }}</span>
+        <span>{{ activeProgressiveCategory.current_stage?.name ?? t('未配置当前阶段') }}</span>
       </div>
       <div>
         <b>{{ selectedCount }}</b>
-        <span>组 / {{ yuan(selectedCount * (activeProgressiveCategory.current_stage?.price_cent ?? 0)) }}</span>
+        <span>{{ t('组') }} / {{ formatMoney(selectedCount * (activeProgressiveCategory.current_stage?.price_cent ?? 0), store.race?.currency_code ?? 'CNY') }}</span>
       </div>
     </div>
 
-    <p v-if="!activeProgressiveCategory.current_stage" class="empty-note">后台尚未配置当前开放阶段。</p>
-    <p v-else-if="store.progressiveEligibleGroups(activeProgressiveCategory).length === 0" class="empty-note">暂无上一阶段已确认足环组。</p>
+    <p v-if="!activeProgressiveCategory.current_stage" class="empty-note">{{ t('后台尚未配置当前开放阶段。') }}</p>
+    <p v-else-if="store.progressiveEligibleGroups(activeProgressiveCategory).length === 0" class="empty-note">{{ t('暂无上一阶段已确认足环组。') }}</p>
     <div v-else class="matrix-wrap progressive-matrix-wrap">
       <div class="progressive-grid header-row">
-        <div class="ring-cell sticky-ring-cell">足环组</div>
+        <div class="ring-cell sticky-ring-cell">{{ t('足环组') }}</div>
         <div class="project-head">
           <span>{{ activeProgressiveCategory.current_stage.name }}</span>
-          <small>{{ yuan(activeProgressiveCategory.current_stage.price_cent) }}</small>
+          <small>{{ formatMoney(activeProgressiveCategory.current_stage.price_cent, store.race?.currency_code ?? 'CNY') }}</small>
         </div>
       </div>
       <div

@@ -55,17 +55,17 @@ class InformationPost extends Model
     public static function categoryOptions(): array
     {
         return [
-            self::CATEGORY_RULES => '赛事规程',
-            self::CATEGORY_RESULTS => '成绩发布',
-            self::CATEGORY_NOTICE => '通知公告',
+            self::CATEGORY_RULES => __('赛事规程'),
+            self::CATEGORY_RESULTS => __('成绩发布'),
+            self::CATEGORY_NOTICE => __('通知公告'),
         ];
     }
 
     public static function statusOptions(): array
     {
         return [
-            self::STATUS_DRAFT => '草稿',
-            self::STATUS_PUBLISHED => '发布',
+            self::STATUS_DRAFT => __('草稿'),
+            self::STATUS_PUBLISHED => __('发布'),
         ];
     }
 

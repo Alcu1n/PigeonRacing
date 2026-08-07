@@ -29,12 +29,12 @@ class ListRingSales extends ListRecords
     {
         return [
             Action::make('createSale')
-                ->label('新增售环')
+                ->label(__('新增售环'))
                 ->icon('heroicon-o-plus')
                 ->visible(fn (): bool => RingSaleResource::hasModulePermission('create'))
                 ->schema(fn (): array => RingSaleResource::saleFormComponents(true))
-                ->modalHeading('新增售环记录')
-                ->modalSubmitActionLabel('保存售环单')
+                ->modalHeading(__('新增售环记录'))
+                ->modalSubmitActionLabel(__('保存售环单'))
                 ->stickyModalHeader()
                 ->stickyModalFooter()
                 ->modalWidth(Width::ScreenExtraLarge)
@@ -50,42 +50,42 @@ class ListRingSales extends ListRecords
                     );
 
                     Notification::make()
-                        ->title("已新增 {$sale->sale_no}")
-                        ->body("共 {$sale->total_quantity} 枚，应收 ".RingSaleResource::formatYuan($sale->total_amount_cent).'。')
+                        ->title(__('已新增 :sale_no', ['sale_no' => $sale->sale_no]))
+                        ->body(__('共 :count 枚，应收 :amount。', ['count' => $sale->total_quantity, 'amount' => RingSaleResource::formatYuan($sale->total_amount_cent)]))
                         ->success()
                         ->send();
                 }),
             Action::make('exportExcel')
-                ->label('导出 Excel')
+                ->label(__('导出 Excel'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->visible(fn (): bool => RingSaleResource::hasModulePermission('view'))
                 ->schema([
                     DatePicker::make('start_date')
-                        ->label('开始日期')
+                        ->label(__('开始日期'))
                         ->default(today()->startOfMonth())
                         ->maxDate(today())
                         ->required(),
                     DatePicker::make('end_date')
-                        ->label('结束日期')
+                        ->label(__('结束日期'))
                         ->default(today())
                         ->maxDate(today())
                         ->required(),
                     Toggle::make('include_voided')
-                        ->label('包含作废售环单')
+                        ->label(__('包含作废售环单'))
                         ->default(false),
                 ])
-                ->modalHeading('按售环日期导出')
-                ->modalSubmitActionLabel('导出 Excel')
+                ->modalHeading(__('按售环日期导出'))
+                ->modalSubmitActionLabel(__('导出 Excel'))
                 ->modalWidth(Width::Medium)
                 ->action(function (array $data) {
                     abort_unless(RingSaleResource::hasModulePermission('view'), 403);
                     if ($data['end_date'] < $data['start_date']) {
                         throw ValidationException::withMessages([
-                            'end_date' => '结束日期不能早于开始日期。',
+                            'end_date' => __('结束日期不能早于开始日期。'),
                         ]);
                     }
 
-                    $filename = "售环记录_{$data['start_date']}_至_{$data['end_date']}.xlsx";
+                    $filename = __('售环记录').'_'.$data['start_date'].'_'.__('至').'_'.$data['end_date'].'.xlsx';
 
                     return Excel::download(new RingSaleExport(
                         $data['start_date'],

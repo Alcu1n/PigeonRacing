@@ -8,11 +8,13 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\CurrencyCode;
 use App\Models\AppSetting;
 use App\Models\User;
 use App\Support\AdminPermissions;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
@@ -24,13 +26,13 @@ use Illuminate\Support\Facades\Storage;
 
 class BrandSettings extends Page
 {
-    protected static ?string $title = '品牌设置';
+    protected static ?string $title = null;
 
     protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $navigationLabel = '品牌设置';
+    protected static ?string $navigationLabel = null;
 
-    protected static string|\UnitEnum|null $navigationGroup = '系统设置';
+    protected static string|\UnitEnum|null $navigationGroup = null;
 
     protected static ?int $navigationSort = 90;
 
@@ -47,6 +49,7 @@ class BrandSettings extends Page
     {
         $this->form->fill([
             'brand_logo_path' => AppSetting::getValue(AppSetting::BRAND_LOGO_PATH),
+            'registration_default_currency' => AppSetting::defaultRegistrationCurrency()->value,
         ]);
     }
 
@@ -55,14 +58,22 @@ class BrandSettings extends Page
         return $schema
             ->components([
                 FileUpload::make('brand_logo_path')
-                    ->label('会员端登录页 Logo')
+                    ->label(__('会员端登录页 Logo'))
                     ->disk('public')
                     ->directory('branding')
                     ->visibility('public')
                     ->image()
                     ->acceptedFileTypes(['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/avif', 'image/svg+xml'])
                     ->maxSize(2048)
-                    ->helperText('支持 PNG、JPG、JPEG、WebP、GIF、AVIF、SVG，建议使用透明背景或横向 Logo。'),
+                    ->helperText(__('支持 PNG、JPG、JPEG、WebP、GIF、AVIF、SVG，建议使用透明背景或横向 Logo。')),
+                Select::make('registration_default_currency')
+                    ->label(__('新赛事默认报名币种'))
+                    ->options([
+                        CurrencyCode::CNY->value => CurrencyCode::CNY->label(),
+                        CurrencyCode::TWD->value => CurrencyCode::TWD->label(),
+                    ])
+                    ->required()
+                    ->helperText(__('只影响之后新建的赛事；已存在赛事和历史报名不会改变。')),
             ])
             ->statePath('data');
     }
@@ -70,8 +81,8 @@ class BrandSettings extends Page
     public function content(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('品牌 Logo')
-                ->description('上传后会显示在会员登录页顶部；未上传时只显示居中的页面标题。')
+            Section::make(__('品牌 Logo 与赛事默认设置'))
+                ->description(__('Logo 用于会员登录页；默认报名币种只用于新建赛事，已存在赛事不会随设置变化。'))
                 ->schema([
                     Form::make([EmbeddedSchema::make('form')])
                         ->id('form')
@@ -79,7 +90,7 @@ class BrandSettings extends Page
                         ->footer([
                             Actions::make([
                                 Action::make('save')
-                                    ->label('保存设置')
+                                    ->label(__('保存设置'))
                                     ->submit('save'),
                             ]),
                         ]),
@@ -99,10 +110,29 @@ class BrandSettings extends Page
         }
 
         AppSetting::putValue(AppSetting::BRAND_LOGO_PATH, $path);
+        AppSetting::putValue(
+            AppSetting::REGISTRATION_DEFAULT_CURRENCY,
+            CurrencyCode::fromValue($data['registration_default_currency'] ?? null)->value,
+        );
 
         Notification::make()
-            ->title('品牌设置已保存')
+            ->title(__('品牌设置已保存'))
             ->success()
             ->send();
+    }
+
+    public function getTitle(): string
+    {
+        return __('品牌设置');
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        return __('品牌设置');
+    }
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('系统设置');
     }
 }

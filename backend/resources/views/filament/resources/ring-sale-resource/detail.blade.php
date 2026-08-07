@@ -6,12 +6,9 @@
 
 @php
     $money = static fn (int $cent): string => '¥'.number_format($cent / 100, 2);
-    $statusClass = match ($sale->payment_status_label) {
-        '付清' => 'is-paid',
-        '部分付款' => 'is-partial',
-        '未付款' => 'is-unpaid',
-        default => 'is-void',
-    };
+    $statusClass = $sale->status === 'void'
+        ? 'is-void'
+        : ($sale->paid_amount_cent === 0 ? 'is-unpaid' : ($sale->unpaid_amount_cent === 0 ? 'is-paid' : 'is-partial'));
 @endphp
 
 <div class="ring-sale-detail">
@@ -22,59 +19,59 @@
             <p>{{ $sale->sale_date->format('Y-m-d') }} · {{ $sale->sale_no }}</p>
         </div>
         <div class="ring-sale-detail__amount">
-            <span>未付金额</span>
+            <span>{{ __('未付金额') }}</span>
             <strong>{{ $money($sale->unpaid_amount_cent) }}</strong>
         </div>
     </section>
 
     <section class="ring-sale-detail__stats">
-        <div><span>足环数量</span><strong>{{ $sale->total_quantity }}</strong></div>
-        <div><span>总金额</span><strong>{{ $money($sale->total_amount_cent) }}</strong></div>
-        <div><span>已付</span><strong>{{ $money($sale->paid_amount_cent) }}</strong></div>
+        <div><span>{{ __('足环数量') }}</span><strong>{{ $sale->total_quantity }}</strong></div>
+        <div><span>{{ __('总金额') }}</span><strong>{{ $money($sale->total_amount_cent) }}</strong></div>
+        <div><span>{{ __('已付') }}</span><strong>{{ $money($sale->paid_amount_cent) }}</strong></div>
     </section>
 
     <section class="ring-sale-detail__section">
-        <h4>号码段明细</h4>
+        <h4>{{ __('号码段明细') }}</h4>
         <div class="ring-sale-detail__list">
             @foreach($sale->items as $item)
                 <article>
                     <div>
                         <strong>{{ $item->category_name_snapshot }}</strong>
-                        <span>{{ $money($item->unit_price_cent) }}/枚</span>
+                        <span>{{ $money($item->unit_price_cent) }}/{{ __('枚') }}</span>
                     </div>
                     <p>{{ $item->start_ring }} – {{ $item->end_ring }}</p>
-                    <small>{{ $item->quantity }} 枚 · {{ $money($item->line_amount_cent) }}</small>
+                    <small>{{ $item->quantity }} {{ __('枚') }} · {{ $money($item->line_amount_cent) }}</small>
                 </article>
             @endforeach
         </div>
     </section>
 
     <section class="ring-sale-detail__section">
-        <h4>收款流水</h4>
+        <h4>{{ __('收款流水') }}</h4>
         <div class="ring-sale-detail__list">
             @forelse($sale->payments as $payment)
                 <article class="{{ $payment->status === 'void' ? 'is-muted' : '' }}">
                     <div>
                         <strong>{{ $money($payment->amount_cent) }}</strong>
-                        <span>{{ $payment->status === 'active' ? '有效' : '已作废' }}</span>
+                        <span>{{ $payment->status === 'active' ? __('有效') : __('已作废') }}</span>
                     </div>
                     <p>{{ $payment->payment_date->format('Y-m-d') }} · {{ $payment->creator?->name ?? '—' }}</p>
                     @if($payment->remark)<small>{{ $payment->remark }}</small>@endif
-                    @if($payment->void_reason)<small>作废原因：{{ $payment->void_reason }}</small>@endif
+                    @if($payment->void_reason)<small>{{ __('作废原因：') }}{{ $payment->void_reason }}</small>@endif
                 </article>
             @empty
-                <p class="ring-sale-detail__empty">尚未登记收款</p>
+                <p class="ring-sale-detail__empty">{{ __('尚未登记收款') }}</p>
             @endforelse
         </div>
     </section>
 
     @if($sale->receipts->isNotEmpty())
         <section class="ring-sale-detail__section">
-            <h4>收据照片</h4>
+            <h4>{{ __('收据照片') }}</h4>
             <div class="ring-sale-detail__receipts">
                 @foreach($sale->receipts as $receipt)
                     <a href="{{ route('admin.ring-sale-receipts.show', $receipt) }}" target="_blank" rel="noopener">
-                        <img src="{{ route('admin.ring-sale-receipts.show', $receipt) }}" alt="收据照片 {{ $loop->iteration }}">
+                        <img src="{{ route('admin.ring-sale-receipts.show', $receipt) }}" alt="{{ __('收据照片 :number', ['number' => $loop->iteration]) }}">
                     </a>
                 @endforeach
             </div>
@@ -83,28 +80,28 @@
 
     @if($sale->remark || $sale->status === 'void')
         <section class="ring-sale-detail__section">
-            <h4>备注与状态</h4>
+            <h4>{{ __('备注与状态') }}</h4>
             @if($sale->remark)<p>{{ $sale->remark }}</p>@endif
             @if($sale->status === 'void')
-                <p class="ring-sale-detail__danger">作废原因：{{ $sale->void_reason }}</p>
+                <p class="ring-sale-detail__danger">{{ __('作废原因：') }}{{ $sale->void_reason }}</p>
             @endif
         </section>
     @endif
 
     @if($logs->isNotEmpty())
         <section class="ring-sale-detail__section">
-            <h4>操作记录</h4>
+            <h4>{{ __('操作记录') }}</h4>
             <div class="ring-sale-detail__timeline">
                 @foreach($logs as $log)
                     <div>
                         <span>{{ $log->created_at?->format('Y-m-d H:i') }}</span>
                         <strong>{{ match($log->action) {
-                            'ring_sale.created' => '新增售环单',
-                            'ring_sale.updated' => '编辑售环单',
-                            'ring_sale.voided' => '作废售环单',
-                            'ring_sale_payment.created' => '登记收款',
-                            'ring_sale_payment.updated' => '修改收款',
-                            'ring_sale_payment.voided' => '作废收款',
+                            'ring_sale.created' => __('新增售环单'),
+                            'ring_sale.updated' => __('编辑售环单'),
+                            'ring_sale.voided' => __('作废售环单'),
+                            'ring_sale_payment.created' => __('登记收款'),
+                            'ring_sale_payment.updated' => __('修改收款'),
+                            'ring_sale_payment.voided' => __('作废收款'),
                             default => $log->action,
                         } }}</strong>
                         <small>{{ $log->admin?->name ?? '—' }}</small>
@@ -115,7 +112,7 @@
     @endif
 
     <p class="ring-sale-detail__meta">
-        创建人：{{ $sale->creator?->name ?? '—' }} · 创建时间：{{ $sale->created_at?->format('Y-m-d H:i') }}
+        {{ __('创建人：') }}{{ $sale->creator?->name ?? '—' }} · {{ __('创建时间：') }}{{ $sale->created_at?->format('Y-m-d H:i') }}
     </p>
 </div>
 

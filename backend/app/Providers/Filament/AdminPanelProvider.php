@@ -36,10 +36,19 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login(Login::class)
             ->profile(EditAdminPassword::class)
+            ->brandName(fn (): string => __('赛鸽赛事报名系统'))
             ->colors(['primary' => Color::Emerald])
             ->renderHook(
                 PanelsRenderHook::GLOBAL_SEARCH_BEFORE,
                 fn () => view('filament.admin-topbar-contact'),
+            )
+            ->renderHook(
+                PanelsRenderHook::TOPBAR_END,
+                fn () => view('filament.admin-language-switcher'),
+            )
+            ->renderHook(
+                PanelsRenderHook::SIMPLE_LAYOUT_START,
+                fn () => view('filament.admin-language-switcher'),
             )
             ->renderHook(
                 PanelsRenderHook::HEAD_END,

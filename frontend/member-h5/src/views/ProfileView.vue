@@ -13,7 +13,8 @@ import RegistrationReceiptDownload from '../components/RegistrationReceiptDownlo
 import { useAuthStore } from '../stores/auth'
 import { registrationStatusText, registrationStatusTone, type Pigeon, type PigeonLibrary, type RegistrationHistoryItem } from '../types/domain'
 import { api } from '../api/client'
-import { yuan } from '../utils/money'
+import { formatMoney } from '../utils/money'
+import { t } from '../i18n'
 
 const route = useRoute()
 const router = useRouter()
@@ -47,7 +48,7 @@ async function loadRegistrationHistory(): Promise<void> {
     registrations.value = response.data
   } catch {
     registrations.value = []
-    showToast('报名记录加载失败')
+    showToast(t('报名记录加载失败'))
   }
 }
 
@@ -61,15 +62,15 @@ async function updatePassword(): Promise<void> {
     setPigeonLibraries(profile.pigeon_libraries ?? [])
     password.value = ''
     passwordConfirmation.value = ''
-    showToast('密码已修改')
+    showToast(t('密码修改成功'))
     await router.replace('/races')
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      showToast(error.response?.data?.message ?? '修改密码失败')
+      showToast(error.response?.data?.message ?? t('密码修改失败，请检查输入'))
       return
     }
 
-    showToast('修改密码失败')
+    showToast(t('密码修改失败，请检查输入'))
   } finally {
     submitting.value = false
   }
@@ -89,69 +90,69 @@ const visiblePigeons = computed(() => activeLibrary.value?.pigeons ?? pigeons.va
     <header class="member-hero compact">
       <div class="member-hero-top">
         <button v-if="!forcePassword" class="member-hero-back" type="button" @click="router.push('/races')">
-          返回赛事
+          {{ t('返回赛事') }}
         </button>
-        <span v-else class="member-hero-brand">赛鸽会员系统</span>
+        <span v-else class="member-hero-brand">{{ t('赛鸽会员系统') }}</span>
         <MemberLogoutButton class="member-hero-logout" />
       </div>
       <div class="member-hero-identity">
         <span class="member-avatar large">{{ (auth.member?.participant_name || '会').slice(0, 1) }}</span>
         <div class="member-hero-title">
-          <p>{{ forcePassword ? '首次登录请先修改密码' : '会员档案与名下足环' }}</p>
-          <h1>{{ auth.member?.participant_name || '会员' }}</h1>
-          <span>棚号 {{ auth.member?.loft_number || '-' }} · {{ auth.member?.phone || '未设置手机号' }}</span>
+          <p>{{ forcePassword ? t('首次登录请先修改密码') : t('会员档案与名下足环') }}</p>
+          <h1>{{ auth.member?.participant_name || t('会员') }}</h1>
+          <span>{{ t('棚号') }} {{ auth.member?.loft_number || '-' }} · {{ auth.member?.phone || t('未设置手机号') }}</span>
         </div>
       </div>
     </header>
 
-    <p v-if="loading" class="empty-note">加载个人信息中...</p>
+    <p v-if="loading" class="empty-note">{{ t('加载个人信息中...') }}</p>
     <template v-else-if="auth.member">
       <div class="profile-grid">
         <section class="profile-card">
           <div class="profile-section-head">
-            <h2>会员档案</h2>
+            <h2>{{ t('会员档案') }}</h2>
           </div>
           <dl class="member-rows">
             <div>
-              <dt>棚号</dt>
+              <dt>{{ t('棚号') }}</dt>
               <dd>{{ auth.member.loft_number }}</dd>
             </div>
             <div>
-              <dt>参赛名</dt>
+              <dt>{{ t('参赛名') }}</dt>
               <dd>{{ auth.member.participant_name }}</dd>
             </div>
             <div>
-              <dt>手机号</dt>
-              <dd>{{ auth.member.phone || '未设置' }}</dd>
+              <dt>{{ t('手机号') }}</dt>
+              <dd>{{ auth.member.phone || t('未设置') }}</dd>
             </div>
           </dl>
         </section>
 
         <section class="profile-card">
           <div class="profile-section-head">
-            <h2>修改密码</h2>
+            <h2>{{ t('修改密码') }}</h2>
           </div>
-          <p v-if="forcePassword" class="force-note">当前账号必须先修改密码，完成后才能进入赛事报名。</p>
+          <p v-if="forcePassword" class="force-note">{{ t('当前账号必须先修改密码，完成后才能进入赛事报名。') }}</p>
           <label>
-            <span>新密码</span>
-            <input v-model="password" type="password" autocomplete="new-password" placeholder="至少 6 位" />
+            <span>{{ t('新密码') }}</span>
+            <input v-model="password" type="password" autocomplete="new-password" :placeholder="t('至少 6 位')" />
           </label>
           <label>
-            <span>确认新密码</span>
-            <input v-model="passwordConfirmation" type="password" autocomplete="new-password" placeholder="请再次输入新密码" />
+            <span>{{ t('确认新密码') }}</span>
+            <input v-model="passwordConfirmation" type="password" autocomplete="new-password" :placeholder="t('请再次输入新密码')" />
           </label>
           <button class="primary-action wide" :disabled="submitting" @click="updatePassword">
-            {{ submitting ? '保存中...' : '保存新密码' }}
+            {{ submitting ? t('保存中...') : t('保存新密码') }}
           </button>
         </section>
       </div>
 
       <section v-if="!forcePassword" class="profile-card">
         <div class="profile-section-head">
-          <h2>报名记录</h2>
-          <span v-if="registrations.length > 0" class="profile-section-badge">{{ registrations.length }} 条</span>
+          <h2>{{ t('报名记录') }}</h2>
+          <span v-if="registrations.length > 0" class="profile-section-badge">{{ registrations.length }} {{ t('条') }}</span>
         </div>
-        <p v-if="registrations.length === 0" class="empty-note">暂无报名记录</p>
+        <p v-if="registrations.length === 0" class="empty-note">{{ t('暂无报名记录') }}</p>
         <div v-else class="history-list">
           <article
             v-for="item in registrations"
@@ -162,14 +163,14 @@ const visiblePigeons = computed(() => activeLibrary.value?.pigeons ?? pigeons.va
               <div class="history-list-title-row">
                 <strong>{{ item.race_name }}</strong>
                 <b :class="['registration-status-pill', registrationStatusTone(item.status)]">
-                  {{ registrationStatusText(item.status) }}
+                  {{ t(registrationStatusText(item.status)) }}
                 </b>
               </div>
-              <span>{{ item.submitted_at }} · 报名号 {{ item.registration_no }}</span>
-              <small>{{ yuan(item.total_amount_cent) }} · 单羽 {{ item.single_count }} 项 · 多羽 {{ item.multi_group_count }} 组 · 递进 {{ item.progressive_count ?? 0 }} 组</small>
+              <span>{{ item.submitted_at }} · {{ t('报名号 {registrationNo}', { registrationNo: item.registration_no }) }}</span>
+              <small>{{ formatMoney(item.total_amount_cent, item.currency_code ?? 'CNY') }} · {{ t('单羽') }} {{ item.single_count }} {{ t('项') }} · {{ t('多羽') }} {{ item.multi_group_count }} {{ t('组') }} · {{ t('递进') }} {{ item.progressive_count ?? 0 }} {{ t('组') }}</small>
             </div>
             <div class="history-list-actions">
-              <button type="button" class="history-detail-action" @click="router.push(`/profile/registrations/${item.registration_id}`)">查看明细</button>
+              <button type="button" class="history-detail-action" @click="router.push(`/profile/registrations/${item.registration_id}`)">{{ t('查看明细') }}</button>
               <RegistrationReceiptDownload compact :registration-id="item.registration_id" />
             </div>
           </article>
@@ -178,8 +179,8 @@ const visiblePigeons = computed(() => activeLibrary.value?.pigeons ?? pigeons.va
 
       <section class="profile-card profile-pigeon-card">
         <div class="profile-section-head">
-          <h2>名下足环</h2>
-          <span v-if="pigeons.length > 0" class="profile-section-badge">{{ visiblePigeons.length }} 羽</span>
+          <h2>{{ t('名下足环') }}</h2>
+          <span v-if="pigeons.length > 0" class="profile-section-badge">{{ visiblePigeons.length }} {{ t('羽') }}</span>
         </div>
         <div v-if="pigeonLibraries.length > 0" class="profile-library-tabs">
           <button
@@ -192,7 +193,7 @@ const visiblePigeons = computed(() => activeLibrary.value?.pigeons ?? pigeons.va
             {{ library.name }} · {{ library.pigeon_count }}
           </button>
         </div>
-        <p v-if="pigeons.length === 0" class="empty-note">暂无足环信息</p>
+        <p v-if="pigeons.length === 0" class="empty-note">{{ t('暂无足环信息') }}</p>
         <div v-else class="profile-pigeon-scroll">
           <ul class="profile-pigeon-list">
             <li v-for="pigeon in visiblePigeons" :key="pigeon.id">{{ pigeon.ring_number }}</li>

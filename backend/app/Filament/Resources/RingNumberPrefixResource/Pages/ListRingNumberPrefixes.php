@@ -18,6 +18,6 @@ class ListRingNumberPrefixes extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [CreateAction::make()->label('新增前缀')];
+        return [CreateAction::make()->label(__('新增前缀'))];
     }
 }

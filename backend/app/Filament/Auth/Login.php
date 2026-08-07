@@ -51,7 +51,7 @@ class Login extends BaseLogin
     protected function getEmailFormComponent(): TextInput
     {
         return TextInput::make('account')
-            ->label('手机号或邮箱')
+            ->label(__('手机号或邮箱'))
             ->required()
             ->autocomplete('username')
             ->autofocus();
@@ -60,14 +60,14 @@ class Login extends BaseLogin
     protected function getRememberFormComponent(): Checkbox
     {
         return Checkbox::make('remember')
-            ->label('保持登录')
+            ->label(__('保持登录'))
             ->default(true);
     }
 
     protected function throwFailureValidationException(): never
     {
         throw ValidationException::withMessages([
-            'data.account' => '账号或密码错误。',
+            'data.account' => __('账号或密码错误。'),
         ]);
     }
 }

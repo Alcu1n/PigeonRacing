@@ -38,6 +38,6 @@
 </style>
 
 <div class="admin-topbar-contact">
-    <span>联系电话：<strong>18650024626</strong></span>
-    <span>定制开发 微信：<strong>lemonrere</strong></span>
+    <span>{{ __('联系电话：') }}<strong>18650024626</strong></span>
+    <span>{{ __('定制开发 微信：') }}<strong>lemonrere</strong></span>
 </div>

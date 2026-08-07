@@ -11,10 +11,12 @@ use App\Http\Controllers\Api\Member\ProfileController;
 use App\Http\Controllers\Api\Member\RaceController;
 use App\Http\Controllers\Api\Member\RegistrationController;
 use App\Http\Controllers\Api\Public\InformationController;
+use App\Http\Controllers\Api\Public\RuntimeConfigController;
 use App\Http\Middleware\NoStoreMemberApiResponse;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('public')->group(function (): void {
+    Route::get('/runtime-config', [RuntimeConfigController::class, 'show']);
     Route::get('/information', [InformationController::class, 'index']);
     Route::get('/information/{slug}', [InformationController::class, 'show']);
 });

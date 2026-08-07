@@ -29,13 +29,13 @@ class MemberCredentialImportService
         $rows = $sheets[0] ?? [];
 
         if ($rows === []) {
-            throw ValidationException::withMessages(['upload' => 'Excel 文件为空。']);
+            throw ValidationException::withMessages(['upload' => __('Excel 文件为空。')]);
         }
 
         $header = array_map(fn ($value): string => trim((string) $value), array_values(array_shift($rows)));
 
         if ($header !== self::HEADERS) {
-            throw ValidationException::withMessages(['upload' => 'Excel 表头必须严格为：会员棚号，手机号，密码。']);
+            throw ValidationException::withMessages(['upload' => __('Excel 表头必须严格为：会员棚号，手机号，密码。')]);
         }
 
         $normalized = [];
@@ -57,7 +57,7 @@ class MemberCredentialImportService
         }
 
         if ($normalized === []) {
-            throw ValidationException::withMessages(['upload' => 'Excel 文件没有有效数据行。']);
+            throw ValidationException::withMessages(['upload' => __('Excel 文件没有有效数据行。')]);
         }
 
         return $normalized;
@@ -83,21 +83,21 @@ class MemberCredentialImportService
             $phoneOwner = $membersByPhone->get($row['phone']);
 
             if (($loftCounts->get($row['loft_number'], 0)) > 1) {
-                $businessErrors[] = '本次文件内会员棚号重复';
+                $businessErrors[] = __('本次文件内会员棚号重复');
             }
 
             if (($phoneCounts->get($row['phone'], 0)) > 1) {
-                $businessErrors[] = '本次文件内手机号重复';
+                $businessErrors[] = __('本次文件内手机号重复');
             }
 
             if (! $member && ($row['loft_number'] ?? '') !== '') {
-                $businessErrors[] = '会员棚号不存在';
+                $businessErrors[] = __('会员棚号不存在');
             } elseif ($member && filled($member->phone)) {
-                $businessErrors[] = '该会员已有手机号';
+                $businessErrors[] = __('该会员已有手机号');
             }
 
             if ($phoneOwner && (! $member || $phoneOwner->id !== $member->id)) {
-                $businessErrors[] = '手机号已属于其他会员';
+                $businessErrors[] = __('手机号已属于其他会员');
             }
 
             $errors = array_values(array_unique([...$formatErrors, ...$businessErrors]));
@@ -124,7 +124,7 @@ class MemberCredentialImportService
             'invalid_rows' => $previewRows->where('status', 'invalid')->count(),
             'failed_rows' => $previewRows->whereIn('status', ['skipped', 'invalid'])->count(),
             'duplicate_rows' => $previewRows->filter(fn (array $row): bool => collect($row['errors'])->contains(
-                fn (string $error): bool => str_contains($error, '重复') || str_contains($error, '已属于')
+                fn (string $error): bool => str_contains($error, __('重复')) || str_contains($error, __('已属于'))
             ))->count(),
             'rows' => $rowsPreview,
         ];
@@ -237,20 +237,20 @@ class MemberCredentialImportService
         $errors = [];
 
         if (($row['loft_number'] ?? '') === '') {
-            $errors[] = '会员棚号为空';
+            $errors[] = __('会员棚号为空');
         } elseif (mb_strlen($row['loft_number']) > 64) {
-            $errors[] = '会员棚号过长';
+            $errors[] = __('会员棚号过长');
         }
 
         if (($row['phone'] ?? '') === '') {
-            $errors[] = '手机号为空';
+            $errors[] = __('手机号为空');
         } elseif (! preg_match('/^1[3-9]\d{9}$/', $row['phone'])) {
-            $errors[] = '手机号格式不正确';
+            $errors[] = __('手机号格式不正确');
         }
 
         $passwordLength = mb_strlen($row['password'] ?? '');
         if ($passwordLength < 6 || $passwordLength > 128) {
-            $errors[] = '密码长度必须为 6–128 个字符';
+            $errors[] = __('密码长度必须为 6–128 个字符');
         }
 
         return $errors;

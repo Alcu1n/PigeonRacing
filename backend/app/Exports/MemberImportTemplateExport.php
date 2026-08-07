@@ -14,7 +14,7 @@ class MemberImportTemplateExport implements FromArray, WithHeadings
 {
     public function headings(): array
     {
-        return ['序号', '棚号', '参赛名', '手机号', '密码'];
+        return [__('序号'), __('棚号'), __('参赛名'), __('手机号'), __('密码')];
     }
 
     public function array(): array

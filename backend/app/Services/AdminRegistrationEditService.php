@@ -130,7 +130,7 @@ class AdminRegistrationEditService
         foreach ($projectGroups as $projectId => $groups) {
             $project = $projects->get((int) $projectId);
             if (! $project instanceof RaceProject) {
-                throw new RegistrationRuleException('project_disabled', '报名项目不存在或已停用。');
+                throw new RegistrationRuleException('project_disabled', __('报名项目不存在或已停用。'));
             }
 
             $validatedGroups = $this->validateGroups($project, $groups, $pigeons, enforceNoRepeatFlag: true);
@@ -161,7 +161,7 @@ class AdminRegistrationEditService
                 ->first();
 
             if (! $category instanceof RegistrationCategory) {
-                throw new RegistrationRuleException('progressive_category_disabled', '递进报名类别不存在。');
+                throw new RegistrationRuleException('progressive_category_disabled', __('递进报名类别不存在。'));
             }
 
             $stageProjects = $category->stageProjects
@@ -172,7 +172,7 @@ class AdminRegistrationEditService
             foreach ($stageGroups as $projectId => $groups) {
                 $project = $stageProjects->get((int) $projectId);
                 if (! $project instanceof RaceProject) {
-                    throw new RegistrationRuleException('progressive_stage_not_configured', "类别 {$category->name} 的阶段项目不存在或已停用。");
+                    throw new RegistrationRuleException('progressive_stage_not_configured', __('类别 :name 的阶段项目不存在或已停用。', ['name' => $category->name]));
                 }
 
                 $result = $this->replaceProgressiveStage($race, $member, $category, $project, $groups, $registration, $adminId);
@@ -401,19 +401,19 @@ class AdminRegistrationEditService
             }
 
             if ($pigeonIds->count() !== (int) $project->group_size) {
-                throw new RegistrationRuleException('group_size_mismatch', "项目 {$project->name} 必须选择 {$project->group_size} 羽。");
+                throw new RegistrationRuleException('group_size_mismatch', __('项目 :name 必须选择 :count 羽。', ['name' => $project->name, 'count' => $project->group_size]));
             }
 
             $signature = $this->groupSignature($pigeonIds->all());
             if (isset($seen[$signature])) {
-                throw new RegistrationRuleException('duplicate_group', "项目 {$project->name} 已存在相同足环组合。");
+                throw new RegistrationRuleException('duplicate_group', __('项目 :name 已存在相同足环组合。', ['name' => $project->name]));
             }
             $seen[$signature] = true;
 
             $groupPigeons = $pigeonIds->map(function (int $pigeonId) use ($pigeons): Pigeon {
                 $pigeon = $pigeons->get($pigeonId);
                 if (! $pigeon instanceof Pigeon) {
-                    throw new RegistrationRuleException('pigeon_not_owned', '存在不属于当前会员或不可报名的足环。', 403);
+                throw new RegistrationRuleException('pigeon_not_owned', __('存在不属于当前会员或不可报名的足环。'), 403);
                 }
 
                 return $pigeon;
@@ -427,15 +427,15 @@ class AdminRegistrationEditService
         }
 
         if ($project->max_entries_per_member !== null && count($validated) > (int) $project->max_entries_per_member) {
-            throw new RegistrationRuleException('project_entry_limit_exceeded', "项目 {$project->name} 已超过每会员报名上限。");
+                throw new RegistrationRuleException('project_entry_limit_exceeded', __('项目 :name 已超过每会员报名上限。', ['name' => $project->name]));
         }
 
         foreach ($usage as $count) {
             if ($enforceNoRepeatFlag && ! $project->allow_repeat_pigeon_in_project && $count > 1) {
-                throw new RegistrationRuleException('repeat_pigeon_not_allowed', "项目 {$project->name} 不允许同一足环重复进入多个组合。");
+                throw new RegistrationRuleException('repeat_pigeon_not_allowed', __('项目 :name 不允许同一足环重复进入多个组合。', ['name' => $project->name]));
             }
             if ($project->max_usage_per_pigeon !== null && $count > (int) $project->max_usage_per_pigeon) {
-                throw new RegistrationRuleException('pigeon_usage_limit_exceeded', "项目 {$project->name} 已超过每只足环最大使用次数。");
+                throw new RegistrationRuleException('pigeon_usage_limit_exceeded', __('项目 :name 已超过每只足环最大使用次数。', ['name' => $project->name]));
             }
         }
 

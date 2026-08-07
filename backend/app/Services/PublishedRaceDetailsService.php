@@ -7,6 +7,7 @@
 
 namespace App\Services;
 
+use App\Enums\CurrencyCode;
 use App\Enums\RegistrationStatus;
 use App\Models\ProgressiveStageEntry;
 use App\Models\Race;
@@ -33,6 +34,7 @@ class PublishedRaceDetailsService
                 'id' => $race->id,
                 'name' => $race->name,
                 'registration_end_at' => $race->registration_end_at?->toDateTimeString(),
+                'currency_code' => CurrencyCode::fromValue($race->currency_code)->value,
             ],
             'published_at' => $race->registration_details_published_at?->toDateTimeString(),
             'scope' => $race->registration_details_scope ?: Race::DETAILS_SCOPE_CONFIRMED_ONLY,
@@ -190,7 +192,7 @@ class PublishedRaceDetailsService
 
                 return [
                     'category_id' => $firstCategory->registration_category_id,
-                    'category_name' => $firstCategory->category?->name ?? '递进报名',
+                    'category_name' => $firstCategory->category?->name ?? __('递进报名'),
                     'stages' => $currentStageEntries
                         ->groupBy('race_project_id')
                         ->map(function (Collection $stageEntries): array {
@@ -253,6 +255,6 @@ class PublishedRaceDetailsService
 
     private function scopeLabel(Race $race): string
     {
-        return $race->registration_details_scope === Race::DETAILS_SCOPE_ALL_SUBMITTED ? '全部提交' : '仅已确认';
+        return $race->registration_details_scope === Race::DETAILS_SCOPE_ALL_SUBMITTED ? __('全部提交') : __('仅已确认');
     }
 }

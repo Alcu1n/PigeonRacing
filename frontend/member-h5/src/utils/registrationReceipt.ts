@@ -3,8 +3,9 @@
 // [POS]: Registration receipt data boundary / 报名凭证数据边界
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
-import type { ExistingRegistration } from '../types/domain'
+import type { ExistingRegistration, CurrencyCode } from '../types/domain'
 import { buildRegistrationHistoryMatrix, type HistoryMatrix } from './registrationHistory'
+import { t } from '../i18n'
 
 export interface RegistrationReceiptProjectSummary {
   category: '单羽组' | '多羽组' | '递进阶段'
@@ -23,6 +24,7 @@ export interface RegistrationReceiptData extends HistoryMatrix {
   submitted_at: string
   status: string
   total_amount_cent: number
+  currency_code: CurrencyCode
   project_summaries: RegistrationReceiptProjectSummary[]
 }
 
@@ -37,6 +39,7 @@ export function buildRegistrationReceiptData(registration: ExistingRegistration)
     submitted_at: registration.submitted_at,
     status: registration.status,
     total_amount_cent: registration.total_amount_cent,
+    currency_code: registration.currency_code ?? 'CNY',
     project_summaries: [
       ...matrix.single.projects.map((project) => {
         const quantity = matrix.single.rows.filter((row) => row.selected_project_ids[project.id]).length
@@ -72,8 +75,8 @@ export function buildRegistrationReceiptData(registration: ExistingRegistration)
 }
 
 export function receiptFileName(receipt: Pick<RegistrationReceiptData, 'race_name' | 'registration_no'>): string {
-  const safeRaceName = receipt.race_name.replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-').replace(/\s+/g, ' ').trim() || '赛事'
-  const safeRegistrationNo = receipt.registration_no.replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-').trim() || '报名'
+  const safeRaceName = receipt.race_name.replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-').replace(/\s+/g, ' ').trim() || t('赛事')
+  const safeRegistrationNo = receipt.registration_no.replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-').trim() || t('报名')
 
-  return `${safeRaceName}-报名明细-${safeRegistrationNo}.png`
+  return [safeRaceName, t('报名明细'), safeRegistrationNo].join('-') + '.png'
 }

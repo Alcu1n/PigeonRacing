@@ -30,12 +30,12 @@ class MemberImportService
         $rows = $sheets[0] ?? [];
 
         if ($rows === []) {
-            throw ValidationException::withMessages(['upload' => 'Excel 文件为空。']);
+            throw ValidationException::withMessages(['upload' => __('Excel 文件为空。')]);
         }
 
         $header = array_map(fn ($value): string => trim((string) $value), array_values(array_shift($rows)));
         if (array_slice($header, 0, 5) !== self::HEADERS) {
-            throw ValidationException::withMessages(['upload' => 'Excel 表头必须为：序号，棚号，参赛名，手机号，密码。']);
+            throw ValidationException::withMessages(['upload' => __('Excel 表头必须为：序号，棚号，参赛名，手机号，密码。')]);
         }
 
         $normalized = [];
@@ -78,17 +78,17 @@ class MemberImportService
             $errors = $this->validateRow($row);
 
             if ($row['loft_number'] !== '' && isset($seenLofts[$row['loft_number']])) {
-                $errors[] = '本次文件内棚号重复';
+                $errors[] = __('本次文件内棚号重复');
             }
 
             if ($row['phone'] !== '' && isset($seenPhones[$row['phone']])) {
-                $errors[] = '本次文件内手机号重复';
+                $errors[] = __('本次文件内手机号重复');
             }
 
             $member = $membersByLoft->get($row['loft_number']);
             $phoneOwner = $row['phone'] === '' ? null : $membersByPhone->get($row['phone']);
             if ($phoneOwner && (! $member || $phoneOwner->id !== $member->id)) {
-                $errors[] = '手机号已属于其他棚号';
+                $errors[] = __('手机号已属于其他棚号');
             }
 
             $seenLofts[$row['loft_number']] = true;
@@ -120,7 +120,7 @@ class MemberImportService
             'total_rows' => count($rows),
             'valid_rows' => count($rowsPreview) - $failedRows->count(),
             'failed_rows' => $failedRows->count(),
-            'duplicate_rows' => $failedRows->filter(fn (array $row): bool => collect($row['errors'])->contains(fn (string $error): bool => str_contains($error, '重复') || str_contains($error, '已属于')))->count(),
+            'duplicate_rows' => $failedRows->filter(fn (array $row): bool => collect($row['errors'])->contains(fn (string $error): bool => str_contains($error, __('重复')) || str_contains($error, __('已属于'))))->count(),
             'create_member_rows' => collect($rowsPreview)->where('errors', [])->where('will_create_member', true)->count(),
             'update_member_rows' => collect($rowsPreview)->where('errors', [])->where('will_update_member', true)->count(),
             'reset_password_rows' => collect($rowsPreview)->where('errors', [])->where('will_reset_password', true)->count(),
@@ -155,7 +155,7 @@ class MemberImportService
             });
         } catch (QueryException $exception) {
             if (in_array((int) ($exception->errorInfo[1] ?? 0), [1205, 1213], true)) {
-                throw ValidationException::withMessages(['upload' => '另一项会员导入正在执行，请稍后重试。']);
+                throw ValidationException::withMessages(['upload' => __('另一项会员导入正在执行，请稍后重试。')]);
             }
 
             throw $exception;
@@ -235,18 +235,18 @@ class MemberImportService
     {
         $errors = [];
 
-        foreach (['loft_number' => '棚号为空', 'participant_name' => '参赛名为空'] as $field => $message) {
+        foreach (['loft_number' => __('棚号为空'), 'participant_name' => __('参赛名为空')] as $field => $message) {
             if (($row[$field] ?? '') === '') {
                 $errors[] = $message;
             }
         }
 
         if (($row['phone'] ?? '') !== '' && mb_strlen($row['phone']) > 32) {
-            $errors[] = '手机号过长';
+            $errors[] = __('手机号过长');
         }
 
         if (($row['password'] ?? '') !== '' && mb_strlen($row['password']) < 6) {
-            $errors[] = '密码至少 6 位';
+            $errors[] = __('密码至少 6 位');
         }
 
         return $errors;

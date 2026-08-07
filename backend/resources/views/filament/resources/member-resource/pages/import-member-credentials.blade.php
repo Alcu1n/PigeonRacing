@@ -29,77 +29,77 @@
     @endonce
 
     <div class="excel-import-page">
-        <x-filament::section heading="上传 Excel">
+        <x-filament::section :heading="__('上传 Excel')">
             <div class="excel-import-stack">
                 <div class="excel-import-note">
-                    <div class="excel-import-note-title">Excel 导入格式</div>
+                    <div class="excel-import-note-title">{{ __('Excel 导入格式') }}</div>
                     <div>
-                        表头必须严格为：<span class="font-semibold">会员棚号、手机号、密码</span>
+                        {{ __('表头必须严格为：') }}<span class="font-semibold">{{ __('会员棚号、手机号、密码') }}</span>
                     </div>
                     <div class="excel-import-note-help">
-                        仅给已有会员补充登录凭据；已有手机号的会员将整行跳过。手机号须为 11 位大陆手机号，密码须为 6–128 个字符。
+                        {{ __('仅给已有会员补充登录凭据；已有手机号的会员将整行跳过。手机号须为 11 位大陆手机号，密码须为 6–128 个字符。') }}
                     </div>
                 </div>
 
                 <div class="excel-import-upload-row">
                     <input id="member-credential-import-upload" type="file" wire:model="upload" accept=".xlsx,.xls" style="display: none;" />
                     <x-filament::button tag="label" for="member-credential-import-upload" icon="heroicon-o-arrow-up-tray" color="gray">
-                        选择文件
+                        {{ __('选择文件') }}
                     </x-filament::button>
                     <span class="excel-import-file-name">
-                        {{ $upload?->getClientOriginalName() ?? '尚未选择文件' }}
+                        {{ $upload?->getClientOriginalName() ?? __('尚未选择文件') }}
                     </span>
-                    <span wire:loading wire:target="upload" class="excel-import-loading">正在上传...</span>
+                    <span wire:loading wire:target="upload" class="excel-import-loading">{{ __('正在上传...') }}</span>
                 </div>
                 @error('upload')
                     <p class="excel-import-error">{{ $message }}</p>
                 @enderror
                 <div class="excel-import-actions">
-                    <x-filament::button wire:click="previewUpload" wire:loading.attr="disabled">预览导入</x-filament::button>
-                    <x-filament::button color="gray" outlined wire:click="resetImport" wire:loading.attr="disabled">清空</x-filament::button>
+                    <x-filament::button wire:click="previewUpload" wire:loading.attr="disabled">{{ __('预览导入') }}</x-filament::button>
+                    <x-filament::button color="gray" outlined wire:click="resetImport" wire:loading.attr="disabled">{{ __('清空') }}</x-filament::button>
                 </div>
             </div>
         </x-filament::section>
 
         @if ($lastResult)
-            <x-filament::section heading="最近一次导入结果">
+            <x-filament::section :heading="__('最近一次导入结果')">
                 <div class="excel-import-result">
-                    <span>成功：<strong>{{ $lastResult['success_rows'] }}</strong> 行</span>
-                    <span>跳过/错误：<strong>{{ $lastResult['failed_rows'] }}</strong> 行</span>
+                    <span>{{ __('成功：') }}<strong>{{ $lastResult['success_rows'] }}</strong> {{ __('行') }}</span>
+                    <span>{{ __('跳过/错误：') }}<strong>{{ $lastResult['failed_rows'] }}</strong> {{ __('行') }}</span>
                     @if ($lastResult['has_error_report'])
-                        <x-filament::button color="warning" wire:click="downloadErrorReport">下载错误报告</x-filament::button>
+                        <x-filament::button color="warning" wire:click="downloadErrorReport">{{ __('下载错误报告') }}</x-filament::button>
                     @endif
                 </div>
             </x-filament::section>
         @endif
 
         @if ($preview)
-            <x-filament::section heading="导入预览">
+            <x-filament::section :heading="__('导入预览')">
                 <div class="excel-import-stats">
-                    <div class="excel-import-stat">总行数：<strong>{{ $preview['total_rows'] }}</strong></div>
-                    <div class="excel-import-stat">可导入：<strong>{{ $preview['valid_rows'] }}</strong></div>
-                    <div class="excel-import-stat">已跳过：<strong>{{ $preview['skipped_rows'] }}</strong></div>
-                    <div class="excel-import-stat">格式错误：<strong>{{ $preview['invalid_rows'] }}</strong></div>
-                    <div class="excel-import-stat">重复/冲突：<strong>{{ $preview['duplicate_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('总行数：') }}<strong>{{ $preview['total_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('可导入：') }}<strong>{{ $preview['valid_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('已跳过：') }}<strong>{{ $preview['skipped_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('格式错误：') }}<strong>{{ $preview['invalid_rows'] }}</strong></div>
+                    <div class="excel-import-stat">{{ __('重复/冲突：') }}<strong>{{ $preview['duplicate_rows'] }}</strong></div>
                 </div>
 
                 <div class="excel-import-preview-actions">
                     <x-filament::button color="success" wire:click="confirmImport" wire:loading.attr="disabled">
-                        确认导入
+                        {{ __('确认导入') }}
                     </x-filament::button>
-                    <x-filament::button color="gray" wire:click="resetImport" wire:loading.attr="disabled">重新选择</x-filament::button>
+                    <x-filament::button color="gray" wire:click="resetImport" wire:loading.attr="disabled">{{ __('重新选择') }}</x-filament::button>
                 </div>
 
                 <div class="excel-import-table-wrap">
                     <table class="w-full min-w-[680px] text-left text-sm">
                         <thead class="bg-gray-50 dark:bg-gray-800">
                             <tr>
-                                <th class="px-3 py-2">行号</th>
-                                <th class="px-3 py-2">会员棚号</th>
-                                <th class="px-3 py-2">手机号</th>
-                                <th class="px-3 py-2">密码</th>
-                                <th class="px-3 py-2">处理</th>
-                                <th class="px-3 py-2">原因</th>
+                                <th class="px-3 py-2">{{ __('行号') }}</th>
+                                <th class="px-3 py-2">{{ __('会员棚号') }}</th>
+                                <th class="px-3 py-2">{{ __('手机号') }}</th>
+                                <th class="px-3 py-2">{{ __('密码') }}</th>
+                                <th class="px-3 py-2">{{ __('处理') }}</th>
+                                <th class="px-3 py-2">{{ __('原因') }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -108,14 +108,14 @@
                                     <td class="px-3 py-2">{{ $row['line'] }}</td>
                                     <td class="px-3 py-2">{{ $row['data']['loft_number'] }}</td>
                                     <td class="px-3 py-2">{{ $row['data']['phone'] }}</td>
-                                    <td class="px-3 py-2">{{ $row['password_filled'] ? '已填写' : '未填写' }}</td>
+                                    <td class="px-3 py-2">{{ $row['password_filled'] ? __('已填写') : __('未填写') }}</td>
                                     <td class="px-3 py-2">
                                         @if ($row['status'] === 'ready')
-                                            导入凭据
+                                            {{ __('导入凭据') }}
                                         @elseif ($row['status'] === 'skipped')
-                                            跳过
+                                            {{ __('跳过') }}
                                         @else
-                                            格式错误
+                                            {{ __('格式错误') }}
                                         @endif
                                     </td>
                                     <td class="px-3 py-2 text-danger-600">{{ implode('；', $row['errors']) }}</td>

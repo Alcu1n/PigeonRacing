@@ -24,7 +24,7 @@ use Illuminate\Validation\ValidationException;
 
 class EditAdminPassword extends EditProfile
 {
-    protected static ?string $title = '修改密码';
+    protected static ?string $title = null;
 
     protected static bool $shouldRegisterNavigation = false;
 
@@ -32,16 +32,16 @@ class EditAdminPassword extends EditProfile
 
     public static function getLabel(): string
     {
-        return '修改密码';
+        return __('修改密码');
     }
 
     public function form(Schema $schema): Schema
     {
         return $schema
             ->components([
-                TextInput::make('current_password')->label('当前密码')->password()->required()->currentPassword(),
-                TextInput::make('password')->label('新密码')->password()->required()->minLength(8)->same('password_confirmation'),
-                TextInput::make('password_confirmation')->label('确认新密码')->password()->required(),
+                TextInput::make('current_password')->label(__('当前密码'))->password()->required()->currentPassword(),
+                TextInput::make('password')->label(__('新密码'))->password()->required()->minLength(8)->same('password_confirmation'),
+                TextInput::make('password_confirmation')->label(__('确认新密码'))->password()->required(),
             ])
             ->statePath('data');
     }
@@ -49,15 +49,15 @@ class EditAdminPassword extends EditProfile
     public function content(Schema $schema): Schema
     {
         return $schema->components([
-            Section::make('修改密码')
-                ->description('请先验证当前密码。新密码至少 8 位。')
+            Section::make(__('修改密码'))
+                ->description(__('请先验证当前密码。新密码至少 8 位。'))
                 ->schema([
                     Form::make([EmbeddedSchema::make('form')])
                         ->id('form')
                         ->livewireSubmitHandler('save')
                         ->footer([
                             Actions::make([
-                                Action::make('save')->label('保存新密码')->submit('save'),
+                                Action::make('save')->label(__('保存新密码'))->submit('save'),
                             ]),
                         ]),
                 ]),
@@ -72,13 +72,13 @@ class EditAdminPassword extends EditProfile
         abort_unless($user instanceof User, 403);
 
         if (! Hash::check((string) $data['current_password'], $user->password)) {
-            throw ValidationException::withMessages(['data.current_password' => '当前密码不正确。']);
+            throw ValidationException::withMessages(['data.current_password' => __('当前密码不正确。')]);
         }
 
         $user->forceFill(['password' => $data['password']])->save();
         session()->put('password_hash_'.Filament::getAuthGuard(), $user->getAuthPassword());
         $this->form->fill();
 
-        Notification::make()->title('密码已修改')->success()->send();
+        Notification::make()->title(__('密码已修改'))->success()->send();
     }
 }

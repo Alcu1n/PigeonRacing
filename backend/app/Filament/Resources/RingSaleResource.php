@@ -61,9 +61,19 @@ class RingSaleResource extends Resource
 
     protected static ?string $slug = 'records';
 
-    protected static ?string $navigationLabel = '售环记录';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '售环记录';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('售环记录');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('售环记录');
+    }
 
     protected static ?int $navigationSort = 1;
 
@@ -85,7 +95,7 @@ class RingSaleResource extends Resource
             ->searchable([
                 fn (Builder $query, string $search): Builder => $query->containingRing($search),
             ])
-            ->searchPlaceholder('搜索单号、姓名、棚号或足环号码')
+            ->searchPlaceholder(__('搜索单号、姓名、棚号或足环号码'))
             ->header(fn ($livewire) => view('filament.resources.ring-sale-resource.summary', [
                 'summary' => app(RingSaleSummaryService::class)->summarize(
                     $livewire->getFilteredTableQuery(),
@@ -93,13 +103,13 @@ class RingSaleResource extends Resource
             ]))
             ->columns([
                 TextColumn::make('payment_status')
-                    ->label('付款')
+                    ->label(__('付款'))
                     ->state(fn (RingSale $record): string => $record->payment_status_label)
                     ->badge()
                     ->color(fn (RingSale $record): string => $record->payment_status_color)
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('buyer_name')
-                    ->label('姓名')
+                    ->label(__('姓名'))
                     ->searchable()
                     ->url(fn (RingSale $record): string => self::getUrl('buyer-summary', [
                         'buyer_name' => $record->buyer_name,
@@ -107,22 +117,22 @@ class RingSaleResource extends Resource
                     ->color('primary')
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('loft_number')
-                    ->label('棚号')
+                    ->label(__('棚号'))
                     ->searchable()
                     ->placeholder('—')
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('total_amount_cent')
-                    ->label('总金额')
+                    ->label(__('总金额'))
                     ->formatStateUsing(fn (int $state): string => self::formatYuan($state))
                     ->sortable()
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('paid_amount_cent')
-                    ->label('已付')
+                    ->label(__('已付'))
                     ->state(fn (RingSale $record): int => $record->paid_amount_cent)
                     ->formatStateUsing(fn (int $state): string => self::formatYuan($state))
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('unpaid_amount_cent')
-                    ->label('未付')
+                    ->label(__('未付'))
                     ->state(fn (RingSale $record): int => $record->unpaid_amount_cent)
                     ->formatStateUsing(fn (int $state): string => self::formatYuan($state))
                     ->color(fn (RingSale $record): string => $record->unpaid_amount_cent > 0 ? 'danger' : 'success')
@@ -130,44 +140,44 @@ class RingSaleResource extends Resource
                         ->orderByRaw("(ring_sales.total_amount_cent - ({$paidSql})) {$direction}"))
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('items_summary')
-                    ->label('号码段')
+                    ->label(__('号码段'))
                     ->state(fn (RingSale $record): string => self::itemsSummary($record))
                     ->extraAttributes([
                         'class' => 'ring-sale-segments-scroll',
                         'tabindex' => '0',
                     ]),
                 TextColumn::make('total_quantity')
-                    ->label('数量')
+                    ->label(__('数量'))
                     ->sortable()
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('sale_no')
-                    ->label('售环单号')
+                    ->label(__('售环单号'))
                     ->searchable()
                     ->copyable()
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
                 TextColumn::make('sale_date')
-                    ->label('售环日期')
+                    ->label(__('售环日期'))
                     ->date()
                     ->sortable()
                     ->extraAttributes(['class' => 'ring-sale-nowrap']),
             ])
             ->filters([
                 Filter::make('sale_date')
-                    ->label('售环日期')
+                    ->label(__('售环日期'))
                     ->schema([
-                        DatePicker::make('from')->label('开始日期')->maxDate(today()),
-                        DatePicker::make('until')->label('结束日期')->maxDate(today()),
+                        DatePicker::make('from')->label(__('开始日期'))->maxDate(today()),
+                        DatePicker::make('until')->label(__('结束日期'))->maxDate(today()),
                     ])
                     ->columns(2)
                     ->query(fn (Builder $query, array $data): Builder => $query
                         ->when($data['from'] ?? null, fn (Builder $query, $date): Builder => $query->whereDate('sale_date', '>=', $date))
                         ->when($data['until'] ?? null, fn (Builder $query, $date): Builder => $query->whereDate('sale_date', '<=', $date))),
                 SelectFilter::make('payment_status')
-                    ->label('付款状态')
+                    ->label(__('付款状态'))
                     ->options([
-                        'paid' => '付清',
-                        'partial' => '部分付款',
-                        'unpaid' => '未付款',
+                        'paid' => __('付清'),
+                        'partial' => __('部分付款'),
+                        'unpaid' => __('未付款'),
                     ])
                     ->query(function (Builder $query, array $data) use ($paidSql): Builder {
                         return match ($data['value'] ?? null) {
@@ -180,7 +190,7 @@ class RingSaleResource extends Resource
                         };
                     }),
                 SelectFilter::make('category_id')
-                    ->label('足环类别')
+                    ->label(__('足环类别'))
                     ->options(fn (): array => RingSaleCategory::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->query(fn (Builder $query, array $data): Builder => $query->when(
                         $data['value'] ?? null,
@@ -190,8 +200,8 @@ class RingSaleResource extends Resource
                         ),
                     )),
                 SelectFilter::make('status')
-                    ->label('记录状态')
-                    ->options(['active' => '有效', 'void' => '作废'])
+                    ->label(__('记录状态'))
+                    ->options(['active' => __('有效'), 'void' => __('作废')])
                     ->default('active'),
             ])
             ->recordActions([
@@ -210,14 +220,14 @@ class RingSaleResource extends Resource
     public static function saleFormComponents(bool $includeInitialPayment, int $existingPaidAmountCent = 0): array
     {
         return [
-            Section::make('购买人')
+            Section::make(__('购买人'))
                 ->compact()
                 ->schema([
                     Grid::make(2)
                         ->extraAttributes(['class' => 'ring-sale-paired-grid'])
                         ->schema([
                             Select::make('member_id')
-                                ->label('关联会员（可选）')
+                                ->label(__('关联会员（可选）'))
                                 ->relationship('member', 'loft_number')
                                 ->getOptionLabelFromRecordUsing(fn (Member $record): string => "{$record->loft_number} · {$record->participant_name}")
                                 ->searchable(['loft_number', 'participant_name', 'phone'])
@@ -231,7 +241,7 @@ class RingSaleResource extends Resource
                                     }
                                 }),
                             DatePicker::make('sale_date')
-                                ->label('售环日期')
+                                ->label(__('售环日期'))
                                 ->default(today())
                                 ->maxDate(today())
                                 ->required(),
@@ -240,15 +250,15 @@ class RingSaleResource extends Resource
                         ->extraAttributes(['class' => 'ring-sale-paired-grid'])
                         ->schema([
                             TextInput::make('buyer_name')
-                                ->label('姓名')
+                                ->label(__('姓名'))
                                 ->required()
                                 ->maxLength(100),
                             TextInput::make('loft_number')
-                                ->label('棚号（可选）')
+                                ->label(__('棚号（可选）'))
                                 ->maxLength(100),
                         ]),
                 ]),
-            Section::make('号码段明细')
+            Section::make(__('号码段明细'))
                 ->compact()
                 ->schema([
                     Repeater::make('items')
@@ -258,7 +268,7 @@ class RingSaleResource extends Resource
                                 ->extraAttributes(['class' => 'ring-sale-paired-grid'])
                                 ->schema([
                                     Select::make('category_id')
-                                        ->label('足环类别')
+                                        ->label(__('足环类别'))
                                         ->options(fn (Get $get): array => RingSaleCategory::query()
                                             ->where(function (Builder $query) use ($get): void {
                                                 $query->where('is_enabled', true);
@@ -270,15 +280,15 @@ class RingSaleResource extends Resource
                                             ->get()
                                             ->mapWithKeys(fn (RingSaleCategory $category): array => [
                                                 $category->id => "{$category->name} · ".self::formatYuan($category->unit_price_cent).'/枚'
-                                                    .($category->is_enabled ? '' : '（已停用）'),
+                                                    .($category->is_enabled ? '' : __('（已停用）')),
                                             ])
                                             ->all())
                                         ->searchable()
                                         ->required()
                                         ->live(),
                                     ToggleButtons::make('entry_mode')
-                                        ->label('录入方式')
-                                        ->options(['prefix' => '前缀', 'full' => '完整号码'])
+                                        ->label(__('录入方式'))
+                                        ->options(['prefix' => __('前缀'), 'full' => __('完整号码')])
                                         ->default('prefix')
                                         ->inline()
                                         ->required()
@@ -286,7 +296,7 @@ class RingSaleResource extends Resource
                                         ->extraAttributes(['class' => 'ring-sale-entry-mode']),
                                 ]),
                             Select::make('prefix_id')
-                                ->label('号码前缀')
+                                        ->label(__('号码前缀'))
                                 ->options(fn (Get $get): array => RingNumberPrefix::query()
                                     ->where(function (Builder $query) use ($get): void {
                                         $query->where('is_enabled', true);
@@ -297,8 +307,11 @@ class RingSaleResource extends Resource
                                     ->orderBy('id')
                                     ->get()
                                     ->mapWithKeys(fn (RingNumberPrefix $prefix): array => [
-                                        $prefix->id => "{$prefix->prefix}（{$prefix->suffix_width} 位尾号）"
-                                            .($prefix->is_enabled ? '' : '（已停用）'),
+                                        $prefix->id => __('号码前缀选项 :prefix（:width 位尾号）', [
+                                            'prefix' => $prefix->prefix,
+                                            'width' => $prefix->suffix_width,
+                                        ])
+                                            .($prefix->is_enabled ? '' : __('（已停用）')),
                                     ])
                                     ->all())
                                 ->searchable()
@@ -315,13 +328,13 @@ class RingSaleResource extends Resource
                                 ->visible(fn (Get $get): bool => $get('entry_mode') !== 'full')
                                 ->schema([
                                     TextInput::make('start_suffix')
-                                        ->label('起始尾号')
+                                        ->label(__('起始尾号'))
                                         ->inputMode('numeric')
                                         ->placeholder('0001')
                                         ->required(fn (Get $get): bool => $get('entry_mode') !== 'full')
                                         ->live(onBlur: true),
                                     TextInput::make('end_suffix')
-                                        ->label('结束尾号')
+                                        ->label(__('结束尾号'))
                                         ->inputMode('numeric')
                                         ->placeholder('0020')
                                         ->required(fn (Get $get): bool => $get('entry_mode') !== 'full')
@@ -332,11 +345,11 @@ class RingSaleResource extends Resource
                                 ->visible(fn (Get $get): bool => $get('entry_mode') === 'full')
                                 ->schema([
                                     TextInput::make('start_ring')
-                                        ->label('完整起始号')
+                                        ->label(__('完整起始号'))
                                         ->required(fn (Get $get): bool => $get('entry_mode') === 'full')
                                         ->live(onBlur: true),
                                     TextInput::make('end_ring')
-                                        ->label('完整结束号')
+                                        ->label(__('完整结束号'))
                                         ->required(fn (Get $get): bool => $get('entry_mode') === 'full')
                                         ->live(onBlur: true),
                                 ]),
@@ -352,30 +365,30 @@ class RingSaleResource extends Resource
                         ->minItems(1)
                         ->cloneable()
                         ->reorderable(false)
-                        ->addActionLabel('新增号码段')
+                        ->addActionLabel(__('新增号码段'))
                         ->itemLabel(fn (array $state): ?string => filled($state['start_ring'] ?? null)
                             ? ($state['start_ring'].' – '.($state['end_ring'] ?? ''))
                             : null)
                         ->columnSpanFull(),
                 ]),
-            Section::make('金额与凭证')
+            Section::make(__('金额与凭证'))
                 ->compact()
                 ->schema([
                     Grid::make(['default' => 2, 'md' => 4])
                         ->extraAttributes(['class' => 'ring-sale-amount-summary-grid'])
                         ->schema([
                             Placeholder::make('total_quantity_preview')
-                                ->label('足环总数')
+                                ->label(__('足环总数'))
                                 ->content(fn (Get $get): string => (string) self::formSummary($get, $existingPaidAmountCent)['quantity'])
                                 ->inlineLabel()
                                 ->extraAttributes(['class' => 'ring-sale-summary-value']),
                             Placeholder::make('total_amount_preview')
-                                ->label('总金额')
+                                ->label(__('总金额'))
                                 ->content(fn (Get $get): string => self::formatYuan(self::formSummary($get, $existingPaidAmountCent)['total_amount_cent']))
                                 ->inlineLabel()
                                 ->extraAttributes(['class' => 'ring-sale-summary-value']),
                             TextInput::make('initial_paid_amount_cent')
-                                ->label('首付款')
+                                ->label(__('首付款'))
                                 ->prefix('¥')
                                 ->numeric()
                                 ->step(0.01)
@@ -385,21 +398,21 @@ class RingSaleResource extends Resource
                                 ->required($includeInitialPayment)
                                 ->live(onBlur: true),
                             DatePicker::make('initial_payment_date')
-                                ->label('首付款日期')
+                                ->label(__('首付款日期'))
                                 ->default(today())
                                 ->maxDate(today())
                                 ->visible($includeInitialPayment),
                             Placeholder::make('unpaid_amount_preview')
-                                ->label('未付金额')
+                                ->label(__('未付金额'))
                                 ->content(fn (Get $get): string => self::formatYuan(self::formSummary($get, $existingPaidAmountCent)['unpaid_amount_cent'])),
                         ]),
                     Textarea::make('remark')
-                        ->label('备注')
+                        ->label(__('备注'))
                         ->rows(2)
                         ->columnSpanFull(),
                     FileUpload::make('receipt_paths')
-                        ->label('收据照片')
-                        ->helperText('最多 3 张，每张不超过 10 MB；手机可直接拍摄或从相册选择。')
+                        ->label(__('收据照片'))
+                        ->helperText(__('最多 3 张，每张不超过 10 MB；手机可直接拍摄或从相册选择。'))
                         ->disk('local')
                         ->directory('ring-sale-receipts')
                         ->visibility('private')
@@ -474,12 +487,12 @@ class RingSaleResource extends Resource
     private static function viewAction(): Action
     {
         return Action::make('viewSale')
-            ->label('查看详情')
+            ->label(__('查看详情'))
             ->icon('heroicon-o-eye')
-            ->modalHeading(fn (RingSale $record): string => "售环单 {$record->sale_no}")
+            ->modalHeading(fn (RingSale $record): string => __('售环单 :sale_no', ['sale_no' => $record->sale_no]))
             ->modalContent(fn (RingSale $record): View => self::detailView($record))
             ->modalSubmitAction(false)
-            ->modalCancelActionLabel('关闭')
+            ->modalCancelActionLabel(__('关闭'))
             ->modalWidth(Width::FiveExtraLarge)
             ->slideOver();
     }
@@ -487,13 +500,13 @@ class RingSaleResource extends Resource
     private static function editAction(): Action
     {
         return Action::make('editSale')
-            ->label('编辑售环单')
+            ->label(__('编辑售环单'))
             ->icon('heroicon-o-pencil-square')
             ->visible(fn (RingSale $record): bool => self::hasModulePermission('update') && $record->status === 'active')
             ->fillForm(fn (RingSale $record): array => self::formData($record))
             ->schema(fn (RingSale $record): array => self::saleFormComponents(false, $record->paid_amount_cent))
-            ->modalHeading(fn (RingSale $record): string => "编辑 {$record->sale_no}")
-            ->modalSubmitActionLabel('保存修改')
+            ->modalHeading(fn (RingSale $record): string => __('编辑 :sale_no', ['sale_no' => $record->sale_no]))
+            ->modalSubmitActionLabel(__('保存修改'))
             ->stickyModalHeader()
             ->stickyModalFooter()
             ->modalWidth(Width::ScreenExtraLarge)
@@ -505,45 +518,45 @@ class RingSaleResource extends Resource
                     self::normalizeActionData($data, false),
                     self::admin(),
                 );
-                Notification::make()->title('售环单已更新')->success()->send();
+                Notification::make()->title(__('售环单已更新'))->success()->send();
             });
     }
 
     private static function addPaymentAction(): Action
     {
         return Action::make('addPayment')
-            ->label('登记收款')
+            ->label(__('登记收款'))
             ->icon('heroicon-o-banknotes')
             ->color('success')
             ->visible(fn (RingSale $record): bool => self::hasModulePermission('update')
                 && $record->status === 'active'
                 && $record->unpaid_amount_cent > 0)
             ->schema([
-                DatePicker::make('payment_date')->label('收款日期')->default(today())->maxDate(today())->required(),
-                TextInput::make('amount_cent')->label('收款金额')->prefix('¥')->numeric()->step(0.01)->minValue(0.01)->required(),
-                Textarea::make('remark')->label('备注')->rows(2),
+                DatePicker::make('payment_date')->label(__('收款日期'))->default(today())->maxDate(today())->required(),
+                TextInput::make('amount_cent')->label(__('收款金额'))->prefix('¥')->numeric()->step(0.01)->minValue(0.01)->required(),
+                Textarea::make('remark')->label(__('备注'))->rows(2),
             ])
-            ->modalHeading(fn (RingSale $record): string => '登记收款 · 尚欠 '.self::formatYuan($record->unpaid_amount_cent))
-            ->modalSubmitActionLabel('确认收款')
+            ->modalHeading(fn (RingSale $record): string => __('登记收款 · 尚欠 :amount', ['amount' => self::formatYuan($record->unpaid_amount_cent)]))
+            ->modalSubmitActionLabel(__('确认收款'))
             ->action(function (array $data, RingSale $record): void {
                 abort_unless(self::hasModulePermission('update'), 403);
                 $data['amount_cent'] = self::yuanInputToCent($data['amount_cent']);
                 app(RingSaleService::class)->addPayment($record, $data, self::admin());
-                Notification::make()->title('收款已登记')->success()->send();
+                Notification::make()->title(__('收款已登记'))->success()->send();
             });
     }
 
     private static function editPaymentAction(): Action
     {
         return Action::make('editPayment')
-            ->label('修改收款')
+            ->label(__('修改收款'))
             ->icon('heroicon-o-pencil')
             ->visible(fn (RingSale $record): bool => self::hasModulePermission('update')
                 && $record->status === 'active'
                 && $record->payments()->where('status', 'active')->exists())
             ->schema([
                 Select::make('payment_id')
-                    ->label('选择收款流水')
+                    ->label(__('选择收款流水'))
                     ->options(fn (RingSale $record): array => $record->payments()
                         ->where('status', 'active')
                         ->orderBy('payment_date')
@@ -560,32 +573,32 @@ class RingSaleResource extends Resource
                         $set('amount_cent', $payment ? $payment->amount_cent / 100 : null);
                         $set('remark', $payment?->remark);
                     }),
-                DatePicker::make('payment_date')->label('收款日期')->maxDate(today())->required(),
-                TextInput::make('amount_cent')->label('收款金额')->prefix('¥')->numeric()->step(0.01)->minValue(0.01)->required(),
-                Textarea::make('remark')->label('备注')->rows(2),
+                DatePicker::make('payment_date')->label(__('收款日期'))->maxDate(today())->required(),
+                TextInput::make('amount_cent')->label(__('收款金额'))->prefix('¥')->numeric()->step(0.01)->minValue(0.01)->required(),
+                Textarea::make('remark')->label(__('备注'))->rows(2),
             ])
-            ->modalHeading('修改收款流水')
-            ->modalSubmitActionLabel('保存修改')
+            ->modalHeading(__('修改收款流水'))
+            ->modalSubmitActionLabel(__('保存修改'))
             ->action(function (array $data, RingSale $record): void {
                 abort_unless(self::hasModulePermission('update'), 403);
                 $payment = $record->payments()->whereKey($data['payment_id'])->firstOrFail();
                 $data['amount_cent'] = self::yuanInputToCent($data['amount_cent']);
                 app(RingSaleService::class)->updatePayment($payment, $data, self::admin());
-                Notification::make()->title('收款流水已更新')->success()->send();
+                Notification::make()->title(__('收款流水已更新'))->success()->send();
             });
     }
 
     private static function voidPaymentAction(): Action
     {
         return Action::make('voidPayment')
-            ->label('作废收款')
+            ->label(__('作废收款'))
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->visible(fn (RingSale $record): bool => self::hasModulePermission('delete')
                 && $record->payments()->where('status', 'active')->exists())
             ->schema([
                 Select::make('payment_id')
-                    ->label('选择收款流水')
+                    ->label(__('选择收款流水'))
                     ->options(fn (RingSale $record): array => $record->payments()
                         ->where('status', 'active')
                         ->orderBy('payment_date')
@@ -595,37 +608,37 @@ class RingSaleResource extends Resource
                         ])
                         ->all())
                     ->required(),
-                Textarea::make('void_reason')->label('作废原因')->required()->rows(2),
+                Textarea::make('void_reason')->label(__('作废原因'))->required()->rows(2),
             ])
             ->requiresConfirmation()
-            ->modalHeading('作废收款流水')
-            ->modalSubmitActionLabel('确认作废')
+            ->modalHeading(__('作废收款流水'))
+            ->modalSubmitActionLabel(__('确认作废'))
             ->action(function (array $data, RingSale $record): void {
                 abort_unless(self::hasModulePermission('delete'), 403);
                 $payment = $record->payments()->whereKey($data['payment_id'])->firstOrFail();
                 app(RingSaleService::class)->voidPayment($payment, $data['void_reason'], self::admin());
-                Notification::make()->title('收款流水已作废')->success()->send();
+                Notification::make()->title(__('收款流水已作废'))->success()->send();
             });
     }
 
     private static function voidSaleAction(): Action
     {
         return Action::make('voidSale')
-            ->label('作废售环单')
+            ->label(__('作废售环单'))
             ->icon('heroicon-o-trash')
             ->color('danger')
             ->visible(fn (RingSale $record): bool => self::hasModulePermission('delete') && $record->status === 'active')
             ->schema([
-                Textarea::make('void_reason')->label('作废原因')->required()->rows(3),
+                Textarea::make('void_reason')->label(__('作废原因'))->required()->rows(3),
             ])
             ->requiresConfirmation()
-            ->modalHeading(fn (RingSale $record): string => "作废 {$record->sale_no}")
-            ->modalDescription('作废后保留历史明细、收款和收据，并释放全部号码；此操作不能恢复。')
-            ->modalSubmitActionLabel('确认作废')
+            ->modalHeading(fn (RingSale $record): string => __('作废 :sale_no', ['sale_no' => $record->sale_no]))
+            ->modalDescription(__('作废后保留历史明细、收款和收据，并释放全部号码；此操作不能恢复。'))
+            ->modalSubmitActionLabel(__('确认作废'))
             ->action(function (array $data, RingSale $record): void {
                 abort_unless(self::hasModulePermission('delete'), 403);
                 app(RingSaleService::class)->voidSale($record, $data['void_reason'], self::admin());
-                Notification::make()->title('售环单已作废')->success()->send();
+                Notification::make()->title(__('售环单已作废'))->success()->send();
             });
     }
 
@@ -684,7 +697,7 @@ class RingSaleResource extends Resource
         try {
             $range = self::rangeFromGet($get);
 
-            return $range ? "{$range->startRing} – {$range->endRing}" : '请完成号码段';
+            return $range ? "{$range->startRing} – {$range->endRing}" : __('请完成号码段');
         } catch (Throwable $exception) {
             return $exception->getMessage();
         }
@@ -698,7 +711,12 @@ class RingSaleResource extends Resource
             return $range;
         }
 
-        return "{$range} · {$metrics['quantity']} 枚 · {$metrics['unit_price']}/枚 · {$metrics['line_amount']}";
+        return __(':range · :quantity 枚 · :unit_price/枚 · :line_amount', [
+            'range' => $range,
+            'quantity' => $metrics['quantity'],
+            'unit_price' => $metrics['unit_price'],
+            'line_amount' => $metrics['line_amount'],
+        ]);
     }
 
     private static function rangeFromGet(Get $get): ?RingNumberRange

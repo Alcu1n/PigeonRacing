@@ -9,6 +9,7 @@
 namespace App\Models;
 
 use App\Enums\RegistrationStatus;
+use App\Enums\CurrencyCode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -23,6 +24,7 @@ class Registration extends Model
         'loft_number_snapshot',
         'participant_name_snapshot',
         'total_amount_cent',
+        'currency_code',
         'status',
         'idempotency_key',
         'submitted_at',
@@ -37,6 +39,7 @@ class Registration extends Model
             'status' => RegistrationStatus::class,
             'submitted_at' => 'datetime',
             'confirmed_at' => 'datetime',
+            'currency_code' => CurrencyCode::class,
         ];
     }
 
@@ -62,7 +65,7 @@ class Registration extends Model
 
     public static function statusLabel(RegistrationStatus|string|null $status): string
     {
-        return self::normalizeStatus($status) === RegistrationStatus::Confirmed ? '已确认' : '未确认';
+        return self::normalizeStatus($status) === RegistrationStatus::Confirmed ? __('已确认') : __('未确认');
     }
 
     public static function statusColor(RegistrationStatus|string|null $status): string

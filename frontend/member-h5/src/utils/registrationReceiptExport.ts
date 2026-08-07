@@ -4,6 +4,7 @@
 // Protocol: When updating me, sync this header + parent folder's .folder.md
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 import html2canvas from 'html2canvas'
+import { t } from '../i18n'
 
 const TARGET_SCALE = 2
 const MAX_CANVAS_EDGE = 16_000
@@ -54,7 +55,7 @@ export async function renderRegistrationReceipt(node: HTMLElement): Promise<Blob
     }
   }
 
-  throw lastError instanceof Error ? lastError : new Error('报名明细图片生成失败')
+  throw lastError instanceof Error ? lastError : new Error(t('报名明细图片生成失败，请重试'))
 }
 
 export function isMobileReceiptClient(userAgent = globalThis.navigator?.userAgent ?? ''): boolean {
@@ -68,14 +69,14 @@ export function isWechatClient(userAgent = globalThis.navigator?.userAgent ?? ''
 export function receiptBlobDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
-    reader.onerror = () => reject(reader.error ?? new Error('报名明细图片读取失败'))
+    reader.onerror = () => reject(reader.error ?? new Error(t('报名明细图片读取失败')))
     reader.onload = () => {
       if (typeof reader.result === 'string') {
         resolve(reader.result)
         return
       }
 
-      reject(new Error('报名明细图片读取失败'))
+      reject(new Error(t('报名明细图片读取失败')))
     }
     reader.readAsDataURL(blob)
   })

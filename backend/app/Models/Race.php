@@ -8,6 +8,7 @@
 namespace App\Models;
 
 use App\Enums\RaceStatus;
+use App\Enums\CurrencyCode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -28,6 +29,7 @@ class Race extends Model
         'is_visible',
         'registration_details_published_at',
         'registration_details_scope',
+        'currency_code',
     ];
 
     protected function casts(): array
@@ -40,7 +42,21 @@ class Race extends Model
             'require_admin_confirm' => 'boolean',
             'is_visible' => 'boolean',
             'registration_details_published_at' => 'datetime',
+            'currency_code' => CurrencyCode::class,
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Race $race): void {
+            $race->currency_code ??= AppSetting::defaultRegistrationCurrency();
+        });
+
+        static::updating(function (Race $race): void {
+            if ($race->isDirty('currency_code')) {
+                $race->currency_code = $race->getRawOriginal('currency_code') ?: CurrencyCode::CNY->value;
+            }
+        });
     }
 
     public function projects(): HasMany

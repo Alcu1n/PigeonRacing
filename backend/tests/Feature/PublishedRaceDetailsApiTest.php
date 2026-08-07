@@ -95,6 +95,7 @@ class PublishedRaceDetailsApiTest extends TestCase
         $this->actingAs($member, 'member')
             ->getJson("/api/member/races/{$race->id}/published-details")
             ->assertOk()
+            ->assertJsonPath('race.currency_code', 'CNY')
             ->assertJsonPath('scope', Race::DETAILS_SCOPE_CONFIRMED_ONLY)
             ->assertJsonPath('single.rows.0.loft_number', 'A001')
             ->assertJsonPath('multi.0.groups.0.loft_number', 'A001')

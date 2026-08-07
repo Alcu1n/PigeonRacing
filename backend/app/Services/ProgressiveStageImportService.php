@@ -38,7 +38,7 @@ class ProgressiveStageImportService
             ->first();
 
         if (! $stage instanceof RaceProject) {
-            throw ValidationException::withMessages(['upload' => '请先为该类别配置阶段顺序为 1 的第一阶段项目。']);
+            throw ValidationException::withMessages(['upload' => __('请先为该类别配置阶段顺序为 1 的第一阶段项目。')]);
         }
 
         return $stage;
@@ -51,14 +51,14 @@ class ProgressiveStageImportService
         $rows = $sheets[0] ?? [];
 
         if ($rows === []) {
-            throw ValidationException::withMessages(['upload' => 'Excel 文件为空。']);
+            throw ValidationException::withMessages(['upload' => __('Excel 文件为空。')]);
         }
 
         $header = array_map(fn ($value): string => trim((string) $value), array_values(array_shift($rows)));
         $expected = ['序号', '会员棚号', '会员参赛名', '足环号码', $stage->name];
 
         if (array_slice($header, 0, 5) !== $expected) {
-            throw ValidationException::withMessages(['upload' => 'Excel 表头必须为：'.implode('，', $expected).'。']);
+            throw ValidationException::withMessages(['upload' => __('Excel 表头必须为：:headers。', ['headers' => implode('，', $expected)])]);
         }
 
         $normalized = [];
@@ -111,24 +111,24 @@ class ProgressiveStageImportService
             $member = $members->get($row['loft_number']);
 
             if ($row['stage_marker'] !== '' && ! $selected && ! $this->isUnselectedMarker($row['stage_marker'])) {
-                $errors[] = '阶段标记只能为 ✓、√、1、是、yes、空值、×、x、0、否、no';
+                $errors[] = __('阶段标记只能为 ✓、√、1、是、yes、空值、×、x、0、否、no');
             }
 
             if ($selected && $rowRingNumbers !== []) {
                 $groupSignature = $this->groupSignatureFromRingNumbers($rowRingNumbers);
                 if (isset($seenSelectedGroups[$row['loft_number']][$groupSignature])) {
-                    $errors[] = '本次文件内相同足环组重复';
+                    $errors[] = __('本次文件内相同足环组重复');
                 }
 
                 $rowUsage = array_count_values($rowRingNumbers);
                 foreach ($rowUsage as $ringNumber => $usage) {
                     if ($usage > 1) {
-                        $errors[] = '同一组内足环号码不能重复';
+                        $errors[] = __('同一组内足环号码不能重复');
                         break;
                     }
 
                     if ($stage?->max_usage_per_pigeon !== null && (($selectedRingUsage[$row['loft_number']][$ringNumber] ?? 0) + 1) > (int) $stage->max_usage_per_pigeon) {
-                        $errors[] = "足环 {$ringNumber} 超过每足环最大使用次数";
+                        $errors[] = __('足环 :ring 超过每足环最大使用次数', ['ring' => $ringNumber]);
                     }
                 }
             }
@@ -137,11 +137,11 @@ class ProgressiveStageImportService
                 foreach ($rowRingNumbers as $ringNumber) {
                     $pigeon = $pigeons->get($ringNumber);
                     if ($pigeon instanceof Pigeon && $member instanceof Member && $pigeon->member_id !== $member->id) {
-                        $errors[] = "足环 {$ringNumber} 已属于其他会员棚号";
+                        $errors[] = __('足环 :ring 已属于其他会员棚号', ['ring' => $ringNumber]);
                     }
 
                     if ($pigeon instanceof Pigeon && ! ($member instanceof Member) && $pigeon->loft_number !== $row['loft_number']) {
-                        $errors[] = "足环 {$ringNumber} 已属于其他会员棚号";
+                        $errors[] = __('足环 :ring 已属于其他会员棚号', ['ring' => $ringNumber]);
                     }
                 }
             }
@@ -180,7 +180,7 @@ class ProgressiveStageImportService
             'selected_rows' => collect($rowsPreview)->where('is_selected', true)->count(),
             'valid_rows' => collect($rowsPreview)->where('is_selected', true)->where('errors', [])->count(),
             'failed_rows' => $failedRows->count(),
-            'duplicate_rows' => $failedRows->filter(fn (array $row): bool => collect($row['errors'])->contains(fn (string $error): bool => str_contains($error, '重复')))->count(),
+            'duplicate_rows' => $failedRows->filter(fn (array $row): bool => collect($row['errors'])->contains(fn (string $error): bool => str_contains($error, __('重复'))))->count(),
             'create_member_rows' => collect($rowsPreview)->where('is_selected', true)->where('errors', [])->where('will_create_member', true)->pluck('data.loft_number')->unique()->count(),
             'create_pigeon_rows' => collect($rowsPreview)->where('is_selected', true)->where('errors', [])->sum('will_create_pigeon'),
             'rows' => $rowsPreview,
@@ -208,7 +208,7 @@ class ProgressiveStageImportService
         $token = (string) Str::uuid();
         $payload = json_encode(['rows' => $rows], JSON_UNESCAPED_UNICODE);
         if ($payload === false || ! Storage::disk('local')->put($this->previewPath($token), $payload)) {
-            throw ValidationException::withMessages(['upload' => '导入预览缓存保存失败，请重新上传。']);
+            throw ValidationException::withMessages(['upload' => __('导入预览缓存保存失败，请重新上传。')]);
         }
 
         return $token;
@@ -375,16 +375,16 @@ class ProgressiveStageImportService
     {
         $errors = [];
         if ($row['loft_number'] === '') {
-            $errors[] = '会员棚号不能为空';
+            $errors[] = __('会员棚号不能为空');
         }
         if ($row['participant_name'] === '') {
-            $errors[] = '会员参赛名不能为空';
+            $errors[] = __('会员参赛名不能为空');
         }
         if ($row['ring_number'] === '') {
-            $errors[] = '足环号码不能为空';
+            $errors[] = __('足环号码不能为空');
         }
         if ($row['ring_number'] !== '' && count($ringNumbers) !== $groupSize) {
-            $errors[] = "该阶段项目必须填写 {$groupSize} 羽足环";
+            $errors[] = __('该阶段项目必须填写 :count 羽足环', ['count' => $groupSize]);
         }
 
         return $errors;
@@ -427,12 +427,12 @@ class ProgressiveStageImportService
     private function rowsFromStoredPreview(string $token): array
     {
         if (! Str::isUuid($token)) {
-            throw ValidationException::withMessages(['upload' => '导入预览已失效，请重新上传。']);
+            throw ValidationException::withMessages(['upload' => __('导入预览已失效，请重新上传。')]);
         }
 
         $path = $this->previewPath($token);
         if (! Storage::disk('local')->exists($path)) {
-            throw ValidationException::withMessages(['upload' => '导入预览已失效，请重新上传。']);
+            throw ValidationException::withMessages(['upload' => __('导入预览已失效，请重新上传。')]);
         }
 
         $payload = json_decode((string) Storage::disk('local')->get($path), true);

@@ -17,7 +17,7 @@ class MemberCredentialImportTemplateExport implements FromArray, WithColumnForma
 {
     public function headings(): array
     {
-        return ['会员棚号', '手机号', '密码'];
+        return [__('会员棚号'), __('手机号'), __('密码')];
     }
 
     public function array(): array

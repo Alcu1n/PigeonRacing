@@ -13,6 +13,7 @@ import { informationCategoryLabel } from '../utils/information'
 import { useAuthStore } from '../stores/auth'
 import MemberLogoutButton from '../components/MemberLogoutButton.vue'
 import RegistrationReceiptDownload from '../components/RegistrationReceiptDownload.vue'
+import { t } from '../i18n'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -24,10 +25,10 @@ const informationLoading = ref(true)
 const activeCategory = ref<InformationCategory | 'all'>('all')
 
 const categories: Array<{ value: InformationCategory | 'all'; label: string }> = [
-  { value: 'all', label: '全部' },
-  { value: 'rules', label: '赛事规程' },
-  { value: 'results', label: '成绩发布' },
-  { value: 'notice', label: '通知公告' },
+  { value: 'all', label: t('全部') },
+  { value: 'rules', label: t('赛事规程') },
+  { value: 'results', label: t('成绩发布') },
+  { value: 'notice', label: t('通知公告') },
 ]
 
 const openRaceCount = computed(() => races.value.filter((race) => raceListState(race) === 'open').length)
@@ -103,7 +104,7 @@ function raceListState(race: Race): RaceListState {
 }
 
 function raceStateText(state: RaceListState): string {
-  return state === 'pending' ? '未开始' : state === 'open' ? '报名中' : '报名已结束'
+  return state === 'pending' ? t('未开始') : state === 'open' ? t('报名中') : t('报名已结束')
 }
 
 function parseRaceEndAt(value: string): Date {
@@ -131,31 +132,31 @@ function categoryClass(category: InformationCategory): string {
   <main class="page race-home">
     <header class="member-hero">
       <div class="member-hero-top">
-        <p class="member-hero-greeting">你好，{{ auth.member?.participant_name || '会员' }} · 棚号 {{ auth.member?.loft_number || '-' }}</p>
+        <p class="member-hero-greeting">{{ t('你好，{name} · 棚号 {loft}', { name: auth.member?.participant_name || t('会员'), loft: auth.member?.loft_number || '-' }) }}</p>
         <MemberLogoutButton class="member-hero-logout" />
       </div>
-      <h1 class="member-hero-heading">今日赛事报名</h1>
-      <div class="member-hero-stats" aria-label="赛事概览">
+      <h1 class="member-hero-heading">{{ t('今日赛事报名') }}</h1>
+      <div class="member-hero-stats" :aria-label="t('赛事概览')">
         <span>
           <b>{{ openRaceCount }}</b>
-          <small>报名中</small>
+          <small>{{ t('报名中') }}</small>
         </span>
         <span>
           <b>{{ races.length }}</b>
-          <small>可见赛事</small>
+          <small>{{ t('可见赛事') }}</small>
         </span>
       </div>
     </header>
 
     <div class="race-home-grid">
-      <section class="race-home-races" aria-label="可报名赛事">
+      <section class="race-home-races" :aria-label="t('可报名赛事')">
         <div class="race-home-section-head featured">
-          <h2>可报名赛事</h2>
-          <span class="race-home-section-badge">{{ races.length }} 场</span>
+          <h2>{{ t('可报名赛事') }}</h2>
+          <span class="race-home-section-badge">{{ t('{count} 场', { count: races.length }) }}</span>
         </div>
 
-        <p v-if="loading" class="empty-note">加载赛事中...</p>
-        <p v-else-if="races.length === 0" class="race-home-empty">暂无可报名赛事，请留意信息发布</p>
+        <p v-if="loading" class="empty-note">{{ t('加载赛事中...') }}</p>
+        <p v-else-if="races.length === 0" class="race-home-empty">{{ t('暂无可报名赛事，请留意信息发布') }}</p>
         <section v-else class="race-list">
           <article v-for="race in races" :key="race.id" :class="['race-card', { ended: raceListState(race) === 'ended' }]">
             <div class="race-card-top">
@@ -163,7 +164,7 @@ function categoryClass(category: InformationCategory): string {
                 {{ raceStateText(raceListState(race)) }}
               </span>
               <span class="race-card-deadline">
-                截止 {{ raceEndDate(race.registration_end_at) }} {{ raceEndTime(race.registration_end_at) }}
+                {{ t('截止 {date} {time}', { date: raceEndDate(race.registration_end_at), time: raceEndTime(race.registration_end_at) }) }}
               </span>
             </div>
             <h3>{{ race.name }}</h3>
@@ -173,22 +174,22 @@ function categoryClass(category: InformationCategory): string {
                 :disabled="raceListState(race) !== 'open'"
                 @click="router.push(`/races/${race.id}/register`)"
               >
-                {{ raceListState(race) === 'open' ? '进入报名' : raceStateText(raceListState(race)) }}
+                {{ raceListState(race) === 'open' ? t('进入报名') : raceStateText(raceListState(race)) }}
               </button>
               <button
                 v-if="race.has_published_details"
                 class="race-detail-action"
                 @click="router.push(`/races/${race.id}/details`)"
               >
-                全部明细
+                {{ t('全部明细') }}
               </button>
             </div>
             <div v-if="registrationFor(race)" class="race-card-registration">
               <span class="race-card-registration-meta">
                 <b :class="['registration-status-pill', registrationStatusTone(registrationFor(race)!.status)]">
-                  {{ registrationStatusText(registrationFor(race)!.status) }}
+                  {{ t(registrationStatusText(registrationFor(race)!.status)) }}
                 </b>
-                <small>报名号 {{ registrationFor(race)!.registration_no }}</small>
+                <small>{{ t('报名号 {registrationNo}', { registrationNo: registrationFor(race)!.registration_no }) }}</small>
               </span>
               <RegistrationReceiptDownload compact :registration-id="registrationFor(race)!.registration_id" />
             </div>
@@ -197,41 +198,41 @@ function categoryClass(category: InformationCategory): string {
       </section>
 
       <aside class="race-home-side">
-        <section class="race-home-member-card" aria-label="个人信息">
+        <section class="race-home-member-card" :aria-label="t('个人信息')">
           <div class="race-home-section-head">
-            <h2>个人信息</h2>
+            <h2>{{ t('个人信息') }}</h2>
           </div>
           <div class="race-home-member-identity">
-            <span class="member-avatar">{{ (auth.member?.participant_name || '会').slice(0, 1) }}</span>
+            <span class="member-avatar">{{ (auth.member?.participant_name || t('会员')).slice(0, 1) }}</span>
             <div>
-              <strong>{{ auth.member?.participant_name || '会员' }}</strong>
-              <small>棚号 {{ auth.member?.loft_number || '-' }}</small>
+              <strong>{{ auth.member?.participant_name || t('会员') }}</strong>
+              <small>{{ t('棚号') }} {{ auth.member?.loft_number || '-' }}</small>
             </div>
           </div>
           <dl class="member-rows">
             <div>
-              <dt>手机号</dt>
-              <dd>{{ auth.member?.phone || '未设置' }}</dd>
+              <dt>{{ t('手机号') }}</dt>
+              <dd>{{ auth.member?.phone || t('未设置') }}</dd>
             </div>
             <div>
-              <dt>账号状态</dt>
-              <dd>正常</dd>
+              <dt>{{ t('账号状态') }}</dt>
+              <dd>{{ t('正常') }}</dd>
             </div>
           </dl>
           <button class="race-home-profile-action" type="button" @click="router.push('/profile')">
-            查看个人信息
+            {{ t('查看个人信息') }}
           </button>
         </section>
       </aside>
     </div>
 
-    <section class="race-home-info" aria-label="信息发布">
+    <section class="race-home-info" :aria-label="t('信息发布')">
       <div class="race-home-section-head">
-        <h2>信息发布</h2>
-        <RouterLink class="race-home-info-more" to="/information">查看全部</RouterLink>
+        <h2>{{ t('信息发布') }}</h2>
+        <RouterLink class="race-home-info-more" to="/information">{{ t('查看全部') }}</RouterLink>
       </div>
 
-      <nav class="race-home-info-tabs" aria-label="信息分类">
+      <nav class="race-home-info-tabs" :aria-label="t('信息分类')">
         <button
           v-for="category in categories"
           :key="category.value"
@@ -242,8 +243,8 @@ function categoryClass(category: InformationCategory): string {
         </button>
       </nav>
 
-      <p v-if="informationLoading" class="empty-note">加载信息中...</p>
-      <p v-else-if="visibleInformation.length === 0" class="race-home-empty">暂无发布内容</p>
+      <p v-if="informationLoading" class="empty-note">{{ t('加载信息中...') }}</p>
+      <p v-else-if="visibleInformation.length === 0" class="race-home-empty">{{ t('暂无发布内容') }}</p>
       <div v-else class="race-home-info-list">
         <button
           v-for="post in visibleInformation"
@@ -254,7 +255,7 @@ function categoryClass(category: InformationCategory): string {
           <b :class="categoryClass(post.category)">{{ informationCategoryLabel(post.category) }}</b>
           <span class="race-home-info-title">
             {{ post.title }}
-            <em v-if="post.is_pinned">置顶</em>
+            <em v-if="post.is_pinned">{{ t('置顶') }}</em>
           </span>
           <time>{{ formatTime(post.published_at) }}</time>
         </button>

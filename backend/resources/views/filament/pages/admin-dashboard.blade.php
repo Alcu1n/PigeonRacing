@@ -188,7 +188,7 @@
                 @endforeach
             </div>
         @else
-            <p class="admin-dashboard-hint">暂无后台权限，请联系超级管理员授权。</p>
+            <p class="admin-dashboard-hint">{{ __('暂无后台权限，请联系超级管理员授权。') }}</p>
         @endif
     </section>
 </x-filament-panels::page>

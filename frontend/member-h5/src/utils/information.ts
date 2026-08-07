@@ -5,15 +5,10 @@
 // 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md
 import DOMPurify from 'dompurify'
 import type { InformationCategory } from '../types/domain'
-
-export const informationCategoryLabels: Record<InformationCategory, string> = {
-  rules: '赛事规程',
-  results: '成绩发布',
-  notice: '通知公告',
-}
+import { t } from '../i18n'
 
 export function informationCategoryLabel(category: InformationCategory): string {
-  return informationCategoryLabels[category] ?? category
+  return t(category === 'rules' ? '赛事规程' : category === 'results' ? '成绩发布' : '通知公告')
 }
 
 export function sanitizeInformationHtml(html: string): string {

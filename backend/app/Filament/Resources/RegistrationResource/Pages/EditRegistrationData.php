@@ -50,7 +50,7 @@ class EditRegistrationData extends Page
 
     public function getTitle(): string
     {
-        return '修改报名数据';
+        return __('修改报名数据');
     }
 
     public function addMultiGroup(int $projectId): void
@@ -86,7 +86,7 @@ class EditRegistrationData extends Page
 
         $removedCount = count($result['removed_groups'] ?? []);
         Notification::make()
-            ->title($removedCount > 0 ? "已保存，并移除 {$removedCount} 个无效后续阶段组" : '报名数据已保存')
+            ->title($removedCount > 0 ? __('已保存，并移除 :count 个无效后续阶段组', ['count' => $removedCount]) : __('报名数据已保存'))
             ->success()
             ->send();
 

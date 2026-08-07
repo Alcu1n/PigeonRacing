@@ -33,9 +33,19 @@ class RingSaleCategoryResource extends Resource
 
     protected static ?string $slug = 'categories';
 
-    protected static ?string $navigationLabel = '足环类别';
+    protected static ?string $navigationLabel = null;
 
-    protected static ?string $modelLabel = '足环类别';
+    protected static ?string $modelLabel = null;
+
+    public static function getNavigationLabel(): string
+    {
+        return __('足环类别');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('足环类别');
+    }
 
     protected static ?int $navigationSort = 2;
 
@@ -43,14 +53,14 @@ class RingSaleCategoryResource extends Resource
     {
         return $schema->components([
             TextInput::make('name')
-                ->label('类别名称')
+                ->label(__('类别名称'))
                 ->required()
                 ->maxLength(100)
                 ->unique(ignoreRecord: true)
                 ->disabled(fn (?RingSaleCategory $record): bool => $record?->isUsed() ?? false)
-                ->helperText(fn (?RingSaleCategory $record): ?string => $record?->isUsed() ? '该类别已产生售环记录，名称和单价已锁定。' : null),
+                ->helperText(fn (?RingSaleCategory $record): ?string => $record?->isUsed() ? __('该类别已产生售环记录，名称和单价已锁定。') : null),
             TextInput::make('unit_price_cent')
-                ->label('每枚金额')
+                ->label(__('每枚金额'))
                 ->prefix('¥')
                 ->numeric()
                 ->step(0.01)
@@ -60,7 +70,7 @@ class RingSaleCategoryResource extends Resource
                 ->dehydrateStateUsing(fn (mixed $state): int => (int) round(((float) $state) * 100))
                 ->disabled(fn (?RingSaleCategory $record): bool => $record?->isUsed() ?? false),
             Toggle::make('is_enabled')
-                ->label('启用')
+                ->label(__('启用'))
                 ->default(true),
         ]);
     }
@@ -70,13 +80,13 @@ class RingSaleCategoryResource extends Resource
         return $table
             ->defaultSort('id')
             ->columns([
-                TextColumn::make('name')->label('类别名称')->searchable(),
+                TextColumn::make('name')->label(__('类别名称'))->searchable(),
                 TextColumn::make('unit_price_cent')
-                    ->label('每枚金额')
+                    ->label(__('每枚金额'))
                     ->formatStateUsing(fn (int $state): string => '¥'.number_format($state / 100, 2)),
-                TextColumn::make('items_count')->counts('items')->label('使用明细'),
-                IconColumn::make('is_enabled')->label('启用')->boolean(),
-                TextColumn::make('created_at')->label('创建时间')->dateTime(),
+                TextColumn::make('items_count')->counts('items')->label(__('使用明细')),
+                IconColumn::make('is_enabled')->label(__('启用'))->boolean(),
+                TextColumn::make('created_at')->label(__('创建时间'))->dateTime(),
             ])
             ->recordActions([
                 EditAction::make(),

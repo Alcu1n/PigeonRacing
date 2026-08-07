@@ -10,6 +10,7 @@ import { api } from '../api/client'
 import type { InformationCategory, InformationPostListItem } from '../types/domain'
 import { informationCategoryLabel } from '../utils/information'
 import { setPageTitle } from '../utils/pageTitle'
+import { t } from '../i18n'
 
 const router = useRouter()
 const activeCategory = ref<InformationCategory | 'all'>('all')
@@ -18,17 +19,17 @@ const loading = ref(false)
 const error = ref('')
 
 const categories: Array<{ value: InformationCategory | 'all'; label: string }> = [
-  { value: 'all', label: '全部' },
-  { value: 'rules', label: '赛事规程' },
-  { value: 'results', label: '成绩发布' },
-  { value: 'notice', label: '通知公告' },
+  { value: 'all', label: t('全部') },
+  { value: 'rules', label: t('赛事规程') },
+  { value: 'results', label: t('成绩发布') },
+  { value: 'notice', label: t('通知公告') },
 ]
 
-const emptyText = computed(() => error.value || (loading.value ? '加载中...' : '暂无发布内容'))
-const latestPublishedAt = computed(() => items.value[0]?.published_at ? formatTime(items.value[0].published_at) : '等待发布')
+const emptyText = computed(() => error.value || (loading.value ? t('加载中...') : t('暂无发布内容')))
+const latestPublishedAt = computed(() => items.value[0]?.published_at ? formatTime(items.value[0].published_at) : t('等待发布'))
 
 onMounted(() => {
-  setPageTitle('信息发布')
+  setPageTitle(t('信息发布'))
   void load()
 })
 
@@ -41,7 +42,7 @@ async function load(): Promise<void> {
     const response = await api.get('/api/public/information', { params })
     items.value = response.data.items ?? []
   } catch {
-    error.value = '信息加载失败，请稍后重试'
+    error.value = t('信息加载失败，请稍后重试')
     items.value = []
   } finally {
     loading.value = false
@@ -59,7 +60,7 @@ function openPost(post: InformationPostListItem): void {
 }
 
 function formatTime(value?: string | null): string {
-  return value ? value.replace('T', ' ').slice(0, 16) : '暂未设置时间'
+  return value ? value.replace('T', ' ').slice(0, 16) : t('暂未设置时间')
 }
 
 function categoryClass(category: InformationCategory): string {
@@ -71,29 +72,29 @@ function categoryClass(category: InformationCategory): string {
   <main class="information-page information-list-page">
     <header class="information-list-hero">
       <div class="information-list-hero-top">
-        <p>协会 / 俱乐部</p>
-        <button class="information-list-back" @click="router.push('/login')">返回登录</button>
+        <p>{{ t('协会 / 俱乐部') }}</p>
+        <button class="information-list-back" @click="router.push('/login')">{{ t('返回登录') }}</button>
       </div>
 
       <div class="information-list-hero-title">
-        <span>公开信息中心</span>
-        <h1>信息发布</h1>
-        <p>赛事规程、成绩发布、通知公告</p>
+        <span>{{ t('公开信息中心') }}</span>
+        <h1>{{ t('信息发布') }}</h1>
+        <p>{{ t('赛事规程、成绩发布、通知公告') }}</p>
       </div>
 
-      <div class="information-list-stats" aria-label="信息发布概览">
+      <div class="information-list-stats" :aria-label="t('信息发布概览')">
         <span>
           <b>{{ items.length }}</b>
-          <small>当前条目</small>
+          <small>{{ t('当前条目') }}</small>
         </span>
         <span>
           <b>{{ latestPublishedAt }}</b>
-          <small>最近更新</small>
+          <small>{{ t('最近更新') }}</small>
         </span>
       </div>
     </header>
 
-    <nav class="information-list-tabs" aria-label="信息分类">
+    <nav class="information-list-tabs" :aria-label="t('信息分类')">
       <button
         v-for="category in categories"
         :key="category.value"
@@ -108,16 +109,16 @@ function categoryClass(category: InformationCategory): string {
       <button v-for="post in items" :key="post.id" class="information-list-card" @click="openPost(post)">
         <span class="information-list-card-meta">
           <b :class="categoryClass(post.category)">{{ informationCategoryLabel(post.category) }}</b>
-          <em v-if="post.is_pinned">置顶</em>
+          <em v-if="post.is_pinned">{{ t('置顶') }}</em>
           <time>{{ formatTime(post.published_at) }}</time>
         </span>
         <strong>{{ post.title }}</strong>
         <small v-if="post.summary">{{ post.summary }}</small>
-        <span class="information-list-card-action">查看详情</span>
+        <span class="information-list-card-action">{{ t('查看详情') }}</span>
       </button>
     </section>
 
-    <section v-else-if="loading" class="information-list-skeleton" aria-label="信息加载中">
+    <section v-else-if="loading" class="information-list-skeleton" :aria-label="t('信息加载中')">
       <span></span>
       <span></span>
     </section>

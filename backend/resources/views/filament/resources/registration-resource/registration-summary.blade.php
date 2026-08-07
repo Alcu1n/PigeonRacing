@@ -5,33 +5,53 @@
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
 
 @php
-    use App\Services\RegistrationSummaryService;
+    use App\Enums\CurrencyCode;
+    use App\Support\CurrencyFormatter;
 
-    $cards = [
-        [
-            'label' => '已报名总金额',
-            'value' => RegistrationSummaryService::formatYuan($summary['total_amount_cent']).' 元',
-            'description' => '当前范围报名记录金额合计',
+    $currencyGroups = collect($summary['amounts_by_currency'] ?? [])
+        ->sortBy(fn (array $group): int => CurrencyCode::fromValue($group['currency_code'] ?? null) === CurrencyCode::CNY ? 0 : 1)
+        ->values();
+
+    if ($currencyGroups->isEmpty()) {
+        $currencyGroups = collect([[
+            'currency_code' => CurrencyCode::CNY->value,
+            'total_amount_cent' => 0,
+            'confirmed_amount_cent' => 0,
+            'unconfirmed_amount_cent' => 0,
+            'total' => CurrencyFormatter::format(0, CurrencyCode::CNY),
+            'confirmed' => CurrencyFormatter::format(0, CurrencyCode::CNY),
+            'unconfirmed' => CurrencyFormatter::format(0, CurrencyCode::CNY),
+        ]]);
+    }
+
+    $cards = [];
+    foreach ($currencyGroups as $group) {
+        $currency = CurrencyCode::fromValue($group['currency_code'] ?? null);
+        $code = $currency->value;
+        $cards[] = [
+            'label' => __('已报名总金额（:currency）', ['currency' => $code]),
+            'value' => $group['total'] ?? CurrencyFormatter::format((int) ($group['total_amount_cent'] ?? 0), $currency),
+            'description' => __('当前范围 :currency 报名记录金额合计', ['currency' => $code]),
             'accent' => '#10b981',
-        ],
-        [
-            'label' => '已确认金额',
-            'value' => RegistrationSummaryService::formatYuan($summary['confirmed_amount_cent']).' 元',
-            'description' => '已确认报名金额',
+        ];
+        $cards[] = [
+            'label' => __('已确认金额（:currency）', ['currency' => $code]),
+            'value' => $group['confirmed'] ?? CurrencyFormatter::format((int) ($group['confirmed_amount_cent'] ?? 0), $currency),
+            'description' => __('已确认 :currency 报名金额', ['currency' => $code]),
             'accent' => '#22c55e',
-        ],
-        [
-            'label' => '未确认金额',
-            'value' => RegistrationSummaryService::formatYuan($summary['unconfirmed_amount_cent']).' 元',
-            'description' => '等待确认的报名金额',
+        ];
+        $cards[] = [
+            'label' => __('未确认金额（:currency）', ['currency' => $code]),
+            'value' => $group['unconfirmed'] ?? CurrencyFormatter::format((int) ($group['unconfirmed_amount_cent'] ?? 0), $currency),
+            'description' => __('等待确认的 :currency 报名金额', ['currency' => $code]),
             'accent' => '#f59e0b',
-        ],
-        [
-            'label' => '报名总棚数',
-            'value' => number_format($summary['loft_count']).' 棚',
-            'description' => '当前范围已有报名记录的会员棚数',
-            'accent' => '#38bdf8',
-        ],
+        ];
+    }
+    $cards[] = [
+        'label' => __('报名总棚数'),
+        'value' => number_format($summary['loft_count']).' '.__('棚'),
+        'description' => __('当前范围已有报名记录的会员棚数'),
+        'accent' => '#38bdf8',
     ];
 @endphp
 
@@ -122,7 +142,7 @@
     }
 </style>
 
-<div class="registration-summary-scope">当前统计范围：{{ $scopeLabel }}</div>
+<div class="registration-summary-scope">{{ __('当前统计范围：') }}{{ $scopeLabel }}</div>
 
 <div class="registration-summary-grid">
     @foreach ($cards as $card)

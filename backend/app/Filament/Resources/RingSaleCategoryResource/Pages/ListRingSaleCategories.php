@@ -18,6 +18,6 @@ class ListRingSaleCategories extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        return [CreateAction::make()->label('新增类别')];
+        return [CreateAction::make()->label(__('新增类别'))];
     }
 }

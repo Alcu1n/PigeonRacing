@@ -8,6 +8,7 @@
 namespace Tests\Feature;
 
 use App\Enums\RaceStatus;
+use App\Enums\CurrencyCode;
 use App\Enums\RegistrationStatus;
 use App\Exports\RegistrationMatrixExport;
 use App\Models\Member;
@@ -119,6 +120,26 @@ class RegistrationMatrixExportTest extends TestCase
         $this->assertSame('2026-13-000001，2026-13-000002', $sheet->getCell('F7')->getValue());
         $this->assertSame(Border::BORDER_THIN, $sheet->getStyle('A1')->getBorders()->getTop()->getBorderStyle());
         $this->assertSame(Border::BORDER_THIN, $sheet->getStyle('F7')->getBorders()->getBottom()->getBorderStyle());
+
+        @unlink($path);
+    }
+
+    public function test_it_adds_numeric_currency_snapshot_summary_sheet(): void
+    {
+        [$race] = $this->fixtures();
+        Registration::query()->firstOrFail()->update(['currency_code' => CurrencyCode::TWD]);
+        $path = tempnam(sys_get_temp_dir(), 'registration-summary-').'.xlsx';
+
+        file_put_contents($path, Excel::raw(new RegistrationMatrixExport($race->id), ExcelFormat::XLSX));
+
+        $workbook = IOFactory::load($path);
+        $sheet = $workbook->getSheetByName('报名汇总');
+
+        $this->assertNotNull($sheet);
+        $this->assertSame('金额', $sheet?->getCell('D1')->getValue());
+        $this->assertSame(450, $sheet?->getCell('D2')->getValue());
+        $this->assertSame('TWD', $sheet?->getCell('E2')->getValue());
+        $this->assertSame('[NT$-zh-TW]#,##0.00', $sheet?->getStyle('D2')->getNumberFormat()->getFormatCode());
 
         @unlink($path);
     }

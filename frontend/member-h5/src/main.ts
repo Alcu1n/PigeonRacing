@@ -9,9 +9,12 @@ import 'vant/lib/index.css'
 import './style.css'
 import App from './App.vue'
 import { router } from './router'
+import { initializeLocale } from './i18n'
 
 document.addEventListener('gesturestart', (event) => event.preventDefault())
 document.addEventListener('gesturechange', (event) => event.preventDefault())
 document.addEventListener('gestureend', (event) => event.preventDefault())
 
-createApp(App).use(createPinia()).use(router).mount('#app')
+void initializeLocale().finally(() => {
+  createApp(App).use(createPinia()).use(router).mount('#app')
+})

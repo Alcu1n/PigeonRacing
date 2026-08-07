@@ -89,7 +89,7 @@ class RingSaleService
     public function update(RingSale $sale, array $data, User $admin): RingSale
     {
         if ($sale->status === 'void') {
-            throw ValidationException::withMessages(['sale' => '作废售环单不能编辑。']);
+            throw ValidationException::withMessages(['sale' => __('作废售环单不能编辑。')]);
         }
 
         $normalized = $this->normalizeSale($data, creating: false);
@@ -97,7 +97,7 @@ class RingSaleService
             return DB::transaction(function () use ($sale, $data, $normalized, $admin): RingSale {
                 $sale = RingSale::query()->lockForUpdate()->findOrFail($sale->id);
                 if ($sale->status === 'void') {
-                    throw ValidationException::withMessages(['sale' => '作废售环单不能编辑。']);
+                    throw ValidationException::withMessages(['sale' => __('作废售环单不能编辑。')]);
                 }
 
                 $before = $sale->only([
@@ -115,7 +115,7 @@ class RingSaleService
                 $activePaid = (int) $sale->payments()->where('status', 'active')->sum('amount_cent');
                 if ($activePaid > $normalized['total_amount_cent']) {
                     throw ValidationException::withMessages([
-                        'items' => '修改后的总金额不能低于当前有效收款合计，请先调整或作废收款流水。',
+                        'items' => __('修改后的总金额不能低于当前有效收款合计，请先调整或作废收款流水。'),
                     ]);
                 }
 
@@ -167,7 +167,7 @@ class RingSaleService
         return DB::transaction(function () use ($sale, $data, $admin): RingSalePayment {
             $sale = RingSale::query()->lockForUpdate()->findOrFail($sale->id);
             if ($sale->status === 'void') {
-                throw ValidationException::withMessages(['payment' => '作废售环单不能登记收款。']);
+                throw ValidationException::withMessages(['payment' => __('作废售环单不能登记收款。')]);
             }
 
             $payment = $this->createPaymentRow($sale, $data, $admin);
@@ -193,7 +193,7 @@ class RingSaleService
         $buyerName = trim($buyerName);
         if ($buyerName === '') {
             throw ValidationException::withMessages([
-                'buyer_name' => '缺少有效的购买人姓名。',
+                'buyer_name' => __('缺少有效的购买人姓名。'),
             ]);
         }
 
@@ -214,13 +214,13 @@ class RingSaleService
             );
             if ($unpaidAmountCent <= 0) {
                 throw ValidationException::withMessages([
-                    'amount_cent' => '此姓名下没有可收款的有效未付款金额。',
+                    'amount_cent' => __('此姓名下没有可收款的有效未付款金额。'),
                 ]);
             }
 
             if ($normalized['amount_cent'] > $unpaidAmountCent) {
                 throw ValidationException::withMessages([
-                    'amount_cent' => '收款金额不能超过此姓名下的有效未付款合计。',
+                    'amount_cent' => __('收款金额不能超过此姓名下的有效未付款合计。'),
                 ]);
             }
 
@@ -264,7 +264,7 @@ class RingSaleService
 
             if ($remainingAmountCent > 0) {
                 throw ValidationException::withMessages([
-                    'amount_cent' => '当前有效未付款金额已发生变化，请刷新后重试。',
+                    'amount_cent' => __('当前有效未付款金额已发生变化，请刷新后重试。'),
                 ]);
             }
 
@@ -298,7 +298,7 @@ class RingSaleService
             $sale = RingSale::query()->lockForUpdate()->findOrFail($payment->ring_sale_id);
             $payment = RingSalePayment::query()->lockForUpdate()->findOrFail($payment->id);
             if ($payment->status === 'void' || $sale->status === 'void') {
-                throw ValidationException::withMessages(['payment' => '作废记录不能编辑收款。']);
+                throw ValidationException::withMessages(['payment' => __('作废记录不能编辑收款。')]);
             }
 
             $before = $payment->only(['payment_date', 'amount_cent', 'remark']);
@@ -320,7 +320,7 @@ class RingSaleService
     {
         $reason = trim($reason);
         if ($reason === '') {
-            throw ValidationException::withMessages(['void_reason' => '请填写收款流水作废原因。']);
+            throw ValidationException::withMessages(['void_reason' => __('请填写收款流水作废原因。')]);
         }
 
         return DB::transaction(function () use ($payment, $reason, $admin): RingSalePayment {
@@ -351,7 +351,7 @@ class RingSaleService
     {
         $reason = trim($reason);
         if ($reason === '') {
-            throw ValidationException::withMessages(['void_reason' => '请填写售环单作废原因。']);
+            throw ValidationException::withMessages(['void_reason' => __('请填写售环单作废原因。')]);
         }
 
         return DB::transaction(function () use ($sale, $reason, $admin): RingSale {
@@ -390,13 +390,13 @@ class RingSaleService
     {
         $buyerName = trim((string) ($data['buyer_name'] ?? ''));
         if ($buyerName === '') {
-            throw ValidationException::withMessages(['buyer_name' => '请填写购买人姓名。']);
+            throw ValidationException::withMessages(['buyer_name' => __('请填写购买人姓名。')]);
         }
 
         $saleDate = $this->normalizeDate($data['sale_date'] ?? null, 'sale_date', '售环日期');
         $items = (array) ($data['items'] ?? []);
         if ($items === []) {
-            throw ValidationException::withMessages(['items' => '请至少添加一个号码段。']);
+            throw ValidationException::withMessages(['items' => __('请至少添加一个号码段。')]);
         }
 
         $normalizedItems = [];
@@ -406,12 +406,12 @@ class RingSaleService
 
         foreach (array_values($items) as $index => $item) {
             if (! is_array($item)) {
-                throw ValidationException::withMessages(['items' => '号码段格式无效。']);
+                throw ValidationException::withMessages(['items' => __('号码段格式无效。')]);
             }
 
             $category = RingSaleCategory::query()->find($item['category_id'] ?? null);
             if (! $category || ($creating && ! $category->is_enabled)) {
-                throw ValidationException::withMessages(["items.{$index}.category_id" => '请选择有效的足环类别。']);
+                throw ValidationException::withMessages(["items.{$index}.category_id" => __('请选择有效的足环类别。')]);
             }
 
             try {
@@ -424,7 +424,7 @@ class RingSaleService
                 $canonical = $range->canonical($ring);
                 if (isset($seenRings[$canonical])) {
                     throw ValidationException::withMessages([
-                        "items.{$index}" => "足环号码 {$ring} 在当前售环单中重复。",
+                        "items.{$index}" => __('足环号码 :ring 在当前售环单中重复。', ['ring' => $ring]),
                     ]);
                 }
                 $seenRings[$canonical] = true;
@@ -456,7 +456,7 @@ class RingSaleService
         $initialPaid = (int) ($data['initial_paid_amount_cent'] ?? 0);
         if ($initialPaid < 0 || $initialPaid > $totalAmount) {
             throw ValidationException::withMessages([
-                'initial_paid_amount_cent' => '首付款不能小于 0 或超过售环总金额。',
+                'initial_paid_amount_cent' => __('首付款不能小于 0 或超过售环总金额。'),
             ]);
         }
 
@@ -489,7 +489,7 @@ class RingSaleService
 
         $prefix = RingNumberPrefix::query()->find($item['prefix_id'] ?? null);
         if (! $prefix || ($creating && ! $prefix->is_enabled)) {
-            throw new InvalidArgumentException('请选择有效的号码前缀。');
+            throw new InvalidArgumentException(__('请选择有效的号码前缀。'));
         }
 
         return [
@@ -554,7 +554,7 @@ class RingSaleService
     {
         $amount = (int) ($data['amount_cent'] ?? 0);
         if ($amount <= 0) {
-            throw ValidationException::withMessages(['amount_cent' => '收款金额必须大于 0。']);
+            throw ValidationException::withMessages(['amount_cent' => __('收款金额必须大于 0。')]);
         }
 
         return [
@@ -568,7 +568,7 @@ class RingSaleService
     {
         $paid = (int) $sale->payments()->where('status', 'active')->sum('amount_cent');
         if ($paid > (int) $sale->total_amount_cent) {
-            throw ValidationException::withMessages(['amount_cent' => '有效收款合计不能超过售环总金额。']);
+            throw ValidationException::withMessages(['amount_cent' => __('有效收款合计不能超过售环总金额。')]);
         }
     }
 
@@ -581,7 +581,7 @@ class RingSaleService
         ))));
 
         if (count($paths) > 3) {
-            throw ValidationException::withMessages(['receipt_paths' => '每笔售环单最多保存 3 张收据照片。']);
+            throw ValidationException::withMessages(['receipt_paths' => __('每笔售环单最多保存 3 张收据照片。')]);
         }
 
         $existing = $sale->receipts()->pluck('path')->all();
@@ -594,7 +594,7 @@ class RingSaleService
 
         foreach ($paths as $index => $path) {
             if (! Storage::disk('local')->exists($path)) {
-                throw ValidationException::withMessages(['receipt_paths' => '收据照片不存在或上传未完成。']);
+                throw ValidationException::withMessages(['receipt_paths' => __('收据照片不存在或上传未完成。')]);
             }
 
             $mime = Storage::disk('local')->mimeType($path);
@@ -605,11 +605,11 @@ class RingSaleService
                 'image/heic',
                 'image/heif',
             ], true)) {
-                throw ValidationException::withMessages(['receipt_paths' => '收据仅支持 JPEG、PNG、WebP、HEIC 或 HEIF 图片。']);
+                throw ValidationException::withMessages(['receipt_paths' => __('收据仅支持 JPEG、PNG、WebP、HEIC 或 HEIF 图片。')]);
             }
 
             if (Storage::disk('local')->size($path) > 10 * 1024 * 1024) {
-                throw ValidationException::withMessages(['receipt_paths' => '每张收据照片不能超过 10 MB。']);
+                throw ValidationException::withMessages(['receipt_paths' => __('每张收据照片不能超过 10 MB。')]);
             }
 
             $sale->receipts()->updateOrCreate(
@@ -630,17 +630,17 @@ class RingSaleService
     private function normalizeDate(mixed $value, string $field, string $label): string
     {
         if (blank($value)) {
-            throw ValidationException::withMessages([$field => "请填写{$label}。"]);
+            throw ValidationException::withMessages([$field => __('请填写:label。', ['label' => __($label)])]);
         }
 
         try {
             $date = Carbon::parse((string) $value)->startOfDay();
         } catch (Throwable) {
-            throw ValidationException::withMessages([$field => "{$label}格式无效。"]);
+            throw ValidationException::withMessages([$field => __(':label 格式无效。', ['label' => __($label)])]);
         }
 
         if ($date->isAfter(today())) {
-            throw ValidationException::withMessages([$field => "{$label}不能晚于今天。"]);
+            throw ValidationException::withMessages([$field => __(':label 不能晚于今天。', ['label' => __($label)])]);
         }
 
         return $date->toDateString();
@@ -674,7 +674,7 @@ class RingSaleService
             || str_contains($message, 'canonical_ring_number')
             || str_contains($message, 'unique constraint failed')) {
             throw ValidationException::withMessages([
-                'items' => '号码段与已有有效售环记录冲突，请检查起止足环号。',
+                'items' => __('号码段与已有有效售环记录冲突，请检查起止足环号。'),
             ]);
         }
 

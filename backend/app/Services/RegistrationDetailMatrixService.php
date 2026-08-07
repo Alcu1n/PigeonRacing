@@ -179,7 +179,7 @@ class RegistrationDetailMatrixService
                     ->all();
 
                 return [
-                    'category_name' => $first->category?->name ?? '递进报名',
+                    'category_name' => $first->category?->name ?? __('递进报名'),
                     'projects' => $projects,
                     'total_count' => collect($projects)->sum('count'),
                     'total_amount_cent' => collect($projects)->sum('amount_cent'),

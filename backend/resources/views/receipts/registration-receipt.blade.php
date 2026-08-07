@@ -3,13 +3,58 @@
 {{-- [POS]: Admin registration receipt download page / 后台报名明细下载页面 --}}
 {{-- Protocol: When updating me, sync this header + parent folder's .folder.md --}}
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
+@php
+    $receiptLocale = app()->getLocale() === 'zh_TW' ? 'zh-TW' : 'zh-CN';
+    $receiptText = [
+        'detail' => __('报名明细'),
+        'download' => __('下载报名明细图片'),
+        'generating' => __('正在生成报名明细图片…'),
+        'renderFailed' => __('渲染组件加载失败，请刷新页面重试'),
+        'generateFailed' => __('报名明细图片生成失败，请重试'),
+        'downloadStarted' => __('报名明细图片已开始下载，可关闭本页'),
+        'confirmed' => __('已确认'),
+        'pending' => __('未确认'),
+        'race' => __('赛事'),
+        'registration' => __('报名'),
+        'total' => __('总金额'),
+        'loft' => __('棚号'),
+        'participant' => __('参赛名'),
+        'registrationNo' => __('报名编号'),
+        'status' => __('确认状态'),
+        'submittedAt' => __('报名时间'),
+        'summary' => __('项目汇总'),
+        'category' => __('类别'),
+        'project' => __('项目'),
+        'unitPrice' => __('单价'),
+        'quantity' => __('数量'),
+        'projectAmount' => __('项目金额'),
+        'singleGroup' => __('单羽组'),
+        'multiGroup' => __('多羽组'),
+        'progressive' => __('递进阶段'),
+        'birdUnit' => __('羽'),
+        'groupUnit' => __('组'),
+        'singleDetail' => __('单羽组明细'),
+        'ring' => __('足环'),
+        'itemCount' => __('项数'),
+        'rowAmount' => __('行金额'),
+        'multiDetail' => __('多羽组明细'),
+        'groupNo' => __('组号'),
+        'ringCombination' => __('足环组合'),
+        'groupAmount' => __('组金额'),
+        'progressiveDetail' => __('递进阶段明细'),
+        'downloadFallback' => __('下载'),
+        'registrationFallback' => __('报名'),
+        'groupPrefix' => __('第 '),
+        'groupSuffix' => __(' 组'),
+    ];
+@endphp
 <!doctype html>
-<html lang="zh-CN">
+<html lang="{{ $receiptLocale }}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>报名明细 - {{ $payload['race_name'] ?? '下载' }}</title>
+<title>{{ __('报名明细') }} - {{ $payload['race_name'] ?? __('下载') }}</title>
 <style>
   body {
     margin: 0;
@@ -236,8 +281,8 @@
 </head>
 <body>
 <div class="receipt-toolbar">
-  <span id="statusText">正在生成报名明细图片…</span>
-  <button id="downloadButton" type="button" disabled>下载报名明细图片</button>
+  <span id="statusText">{{ __('正在生成报名明细图片…') }}</span>
+  <button id="downloadButton" type="button" disabled>{{ __('下载报名明细图片') }}</button>
 </div>
 <div class="receipt-stage">
   <article id="receipt" class="registration-receipt"></article>
@@ -249,13 +294,16 @@
 
   // 以下整形逻辑移植自会员端 registrationHistory.ts / registrationReceipt.ts，保持一致 / Ported from the member app receipt shaping helpers.
   var payload = @json($payload);
+  var text = @json($receiptText);
 
-  function yuan(cent) {
-    return '¥' + (cent / 100).toLocaleString('zh-CN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  function money(cent) {
+    var symbol = payload.currency_code === 'TWD' ? 'NT$' : '¥';
+    var locale = payload.currency_code === 'TWD' ? 'zh-TW' : 'zh-CN';
+    return symbol + (cent / 100).toLocaleString(locale, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   }
 
   function statusText(status) {
-    return status === 'confirmed' ? '已确认' : '未确认';
+    return status === 'confirmed' ? text.confirmed : text.pending;
   }
 
   function buildSingleProjects(entries) {
@@ -329,7 +377,7 @@
       var key = entry.category_id + ':' + entry.stage_project_id;
       var group = groups.get(key) || {
         category_id: entry.category_id,
-        category_name: entry.category_name || '递进报名',
+        category_name: entry.category_name || text.progressive,
         stage_project_id: entry.stage_project_id,
         stage_project_name: entry.stage_project_name,
         price_cent: entry.price_cent,
@@ -386,14 +434,14 @@
     matrix.single.projects.forEach(function (project) {
       var quantity = matrix.single.rows.filter(function (row) { return row.selected_project_ids[project.id]; }).length;
       if (quantity > 0) {
-        summaries.push({ category: '单羽组', project_name: project.name, unit_price_cent: project.price_cent, quantity: quantity, quantity_unit: '羽', amount_cent: quantity * project.price_cent });
+        summaries.push({ category: text.singleGroup, project_name: project.name, unit_price_cent: project.price_cent, quantity: quantity, quantity_unit: text.birdUnit, amount_cent: quantity * project.price_cent });
       }
     });
     matrix.multi.forEach(function (project) {
-      summaries.push({ category: '多羽组', project_name: project.project_name, unit_price_cent: project.price_cent, quantity: project.group_count, quantity_unit: '组', amount_cent: project.amount_cent });
+      summaries.push({ category: text.multiGroup, project_name: project.project_name, unit_price_cent: project.price_cent, quantity: project.group_count, quantity_unit: text.groupUnit, amount_cent: project.amount_cent });
     });
     matrix.progressive.forEach(function (project) {
-      summaries.push({ category: '递进阶段', project_name: project.category_name + ' · ' + project.stage_project_name, unit_price_cent: project.price_cent, quantity: project.count, quantity_unit: '组', amount_cent: project.amount_cent });
+      summaries.push({ category: text.progressive, project_name: project.category_name + ' · ' + project.stage_project_name, unit_price_cent: project.price_cent, quantity: project.count, quantity_unit: text.groupUnit, amount_cent: project.amount_cent });
     });
 
     return {
@@ -404,6 +452,7 @@
       submitted_at: registration.submitted_at,
       status: registration.status,
       total_amount_cent: registration.total_amount_cent,
+      currency_code: registration.currency_code || 'CNY',
       project_summaries: summaries,
       single: matrix.single,
       multi: matrix.multi,
@@ -412,10 +461,10 @@
   }
 
   function receiptFileName(receipt) {
-    var safeRaceName = (receipt.race_name || '').replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-').replace(/\s+/g, ' ').trim() || '赛事';
-    var safeRegistrationNo = (receipt.registration_no || '').replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-').trim() || '报名';
+    var safeRaceName = (receipt.race_name || '').replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-').replace(/\s+/g, ' ').trim() || text.race;
+    var safeRegistrationNo = (receipt.registration_no || '').replace(/[\\/:*?"<>|\u0000-\u001F]/g, '-').trim() || text.registrationFallback;
 
-    return safeRaceName + '-报名明细-' + safeRegistrationNo + '.png';
+    return safeRaceName + '-' + text.detail + '-' + safeRegistrationNo + '.png';
   }
 
   function esc(value) {
@@ -427,63 +476,63 @@
   function renderReceipt(receipt) {
     var html = '';
     html += '<header class="receipt-heading"><h1>' + esc(receipt.race_name) + '</h1>';
-    html += '<div class="receipt-total"><span>总金额</span><strong>' + esc(yuan(receipt.total_amount_cent)) + '</strong></div></header>';
+    html += '<div class="receipt-total"><span>' + esc(text.total) + '</span><strong>' + esc(money(receipt.total_amount_cent)) + '</strong></div></header>';
 
     html += '<table class="receipt-table receipt-meta-table"><tbody>';
-    html += '<tr><th>棚号</th><td>' + esc(receipt.loft_number) + '</td><th>参赛名</th><td>' + esc(receipt.participant_name) + '</td></tr>';
-    html += '<tr><th>报名编号</th><td>' + esc(receipt.registration_no) + '</td><th>确认状态</th><td>' + esc(statusText(receipt.status)) + '</td></tr>';
-    html += '<tr><th>报名时间</th><td colspan="3">' + esc(receipt.submitted_at) + '</td></tr>';
+    html += '<tr><th>' + esc(text.loft) + '</th><td>' + esc(receipt.loft_number) + '</td><th>' + esc(text.participant) + '</th><td>' + esc(receipt.participant_name) + '</td></tr>';
+    html += '<tr><th>' + esc(text.registrationNo) + '</th><td>' + esc(receipt.registration_no) + '</td><th>' + esc(text.status) + '</th><td>' + esc(statusText(receipt.status)) + '</td></tr>';
+    html += '<tr><th>' + esc(text.submittedAt) + '</th><td colspan="3">' + esc(receipt.submitted_at) + '</td></tr>';
     html += '</tbody></table>';
 
-    html += '<section class="receipt-section"><h2>项目汇总</h2>';
-    html += '<table class="receipt-table receipt-summary-table"><thead><tr><th>类别</th><th>项目</th><th>单价</th><th>数量</th><th>项目金额</th></tr></thead><tbody>';
+    html += '<section class="receipt-section"><h2>' + esc(text.summary) + '</h2>';
+    html += '<table class="receipt-table receipt-summary-table"><thead><tr><th>' + esc(text.category) + '</th><th>' + esc(text.project) + '</th><th>' + esc(text.unitPrice) + '</th><th>' + esc(text.quantity) + '</th><th>' + esc(text.projectAmount) + '</th></tr></thead><tbody>';
     receipt.project_summaries.forEach(function (summary) {
       html += '<tr><td>' + esc(summary.category) + '</td><td>' + esc(summary.project_name) + '</td>';
-      html += '<td class="receipt-number">' + esc(yuan(summary.unit_price_cent)) + '</td>';
+      html += '<td class="receipt-number">' + esc(money(summary.unit_price_cent)) + '</td>';
       html += '<td class="receipt-number">' + esc(summary.quantity + ' ' + summary.quantity_unit) + '</td>';
-      html += '<td class="receipt-number receipt-strong">' + esc(yuan(summary.amount_cent)) + '</td></tr>';
+      html += '<td class="receipt-number receipt-strong">' + esc(money(summary.amount_cent)) + '</td></tr>';
     });
     html += '</tbody></table></section>';
 
     if (receipt.single.rows.length > 0) {
-      html += '<section class="receipt-section"><h2>单羽组明细</h2>';
-      html += '<table class="receipt-table receipt-single-table"><thead><tr><th class="receipt-ring-column">足环</th>';
+      html += '<section class="receipt-section"><h2>' + esc(text.singleDetail) + '</h2>';
+      html += '<table class="receipt-table receipt-single-table"><thead><tr><th class="receipt-ring-column">' + esc(text.ring) + '</th>';
       receipt.single.projects.forEach(function (project) { html += '<th>' + esc(project.name) + '</th>'; });
-      html += '<th class="receipt-count-column">项数</th><th class="receipt-amount-column">行金额</th></tr></thead><tbody>';
+      html += '<th class="receipt-count-column">' + esc(text.itemCount) + '</th><th class="receipt-amount-column">' + esc(text.rowAmount) + '</th></tr></thead><tbody>';
       receipt.single.rows.forEach(function (row) {
         html += '<tr><td class="receipt-ring">' + esc(row.ring_number) + '</td>';
         receipt.single.projects.forEach(function (project) {
           html += '<td class="receipt-check">' + (row.selected_project_ids[project.id] ? '✓' : '') + '</td>';
         });
         html += '<td class="receipt-number">' + esc(row.count) + '</td>';
-        html += '<td class="receipt-number receipt-strong">' + esc(yuan(row.amount_cent)) + '</td></tr>';
+        html += '<td class="receipt-number receipt-strong">' + esc(money(row.amount_cent)) + '</td></tr>';
       });
       html += '</tbody></table></section>';
     }
 
     if (receipt.multi.length > 0) {
-      html += '<section class="receipt-section"><h2>多羽组明细</h2>';
-      html += '<table class="receipt-table receipt-group-table"><thead><tr><th class="receipt-project-column">项目</th><th class="receipt-group-column">组号</th><th>足环组合</th><th class="receipt-amount-column">组金额</th></tr></thead><tbody>';
+      html += '<section class="receipt-section"><h2>' + esc(text.multiDetail) + '</h2>';
+      html += '<table class="receipt-table receipt-group-table"><thead><tr><th class="receipt-project-column">' + esc(text.project) + '</th><th class="receipt-group-column">' + esc(text.groupNo) + '</th><th>' + esc(text.ringCombination) + '</th><th class="receipt-amount-column">' + esc(text.groupAmount) + '</th></tr></thead><tbody>';
       receipt.multi.forEach(function (project) {
         project.groups.forEach(function (group) {
           html += '<tr><td class="receipt-project-column">' + esc(project.project_name) + '</td>';
-          html += '<td class="receipt-number">第 ' + esc(group.group_index) + ' 组</td>';
+          html += '<td class="receipt-number">' + esc(text.groupPrefix + group.group_index + text.groupSuffix) + '</td>';
           html += '<td class="receipt-ring receipt-ring-list">' + esc(group.rings.join(' / ')) + '</td>';
-          html += '<td class="receipt-number receipt-strong">' + esc(yuan(project.price_cent)) + '</td></tr>';
+          html += '<td class="receipt-number receipt-strong">' + esc(money(project.price_cent)) + '</td></tr>';
         });
       });
       html += '</tbody></table></section>';
     }
 
     if (receipt.progressive.length > 0) {
-      html += '<section class="receipt-section"><h2>递进阶段明细</h2>';
-      html += '<table class="receipt-table receipt-group-table"><thead><tr><th class="receipt-project-column">项目</th><th class="receipt-group-column">组号</th><th>足环组合</th><th class="receipt-amount-column">组金额</th></tr></thead><tbody>';
+      html += '<section class="receipt-section"><h2>' + esc(text.progressiveDetail) + '</h2>';
+      html += '<table class="receipt-table receipt-group-table"><thead><tr><th class="receipt-project-column">' + esc(text.project) + '</th><th class="receipt-group-column">' + esc(text.groupNo) + '</th><th>' + esc(text.ringCombination) + '</th><th class="receipt-amount-column">' + esc(text.groupAmount) + '</th></tr></thead><tbody>';
       receipt.progressive.forEach(function (project) {
         project.groups.forEach(function (group) {
           html += '<tr><td class="receipt-project-column">' + esc(project.category_name + ' · ' + project.stage_project_name) + '</td>';
-          html += '<td class="receipt-number">第 ' + esc(group.group_index) + ' 组</td>';
+          html += '<td class="receipt-number">' + esc(text.groupPrefix + group.group_index + text.groupSuffix) + '</td>';
           html += '<td class="receipt-ring receipt-ring-list">' + esc(group.rings.join(' / ')) + '</td>';
-          html += '<td class="receipt-number receipt-strong">' + esc(yuan(project.price_cent)) + '</td></tr>';
+          html += '<td class="receipt-number receipt-strong">' + esc(money(project.price_cent)) + '</td></tr>';
         });
       });
       html += '</tbody></table></section>';
@@ -518,19 +567,19 @@
     var button = document.getElementById('downloadButton');
 
     if (typeof html2canvas !== 'function') {
-      statusText.textContent = '渲染组件加载失败，请刷新页面重试';
+      statusText.textContent = text.renderFailed;
       button.disabled = false;
       generating = false;
       return;
     }
 
-    statusText.textContent = '正在生成报名明细图片…';
+    statusText.textContent = text.generating;
     button.disabled = true;
 
     try {
       attemptDownload(0, statusText, button);
     } catch (error) {
-      statusText.textContent = '报名明细图片生成失败，请重试';
+      statusText.textContent = text.generateFailed;
       button.disabled = false;
       generating = false;
     }
@@ -546,7 +595,7 @@
     var fileName = receiptFileName(receiptData);
 
     if (index >= scales.length) {
-      statusText.textContent = '报名明细图片生成失败，请重试';
+      statusText.textContent = text.generateFailed;
       button.disabled = false;
       generating = false;
       return;
@@ -573,7 +622,7 @@
         link.remove();
         setTimeout(function () { URL.revokeObjectURL(url); }, 10000);
 
-        statusText.textContent = '报名明细图片已开始下载，可关闭本页';
+        statusText.textContent = text.downloadStarted;
         button.disabled = false;
         generating = false;
       }, 'image/png');

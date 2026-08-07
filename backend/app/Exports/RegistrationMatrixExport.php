@@ -7,9 +7,12 @@
 
 namespace App\Exports;
 
+use App\Enums\CurrencyCode;
 use App\Models\Race;
 use App\Models\ProgressiveStageEntry;
 use App\Models\RegistrationEntry;
+use App\Models\Registration;
+use App\Support\CurrencyFormatter;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\FromCollection;
@@ -17,6 +20,8 @@ use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Concerns\WithMultipleSheets;
+use Maatwebsite\Excel\Concerns\WithTitle;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
@@ -24,7 +29,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithColumnWidths, WithCustomStartCell, WithEvents, WithHeadings
+class RegistrationMatrixSheet implements FromCollection, ShouldAutoSize, WithColumnWidths, WithCustomStartCell, WithEvents, WithHeadings
 {
     private const TABLE_START_ROW = 5;
 
@@ -44,12 +49,17 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
     public function headings(): array
     {
         return [
-            '序号',
-            '会员棚号',
-            '会员参赛名',
-            '足环号码',
+            __('序号'),
+            __('会员棚号'),
+            __('会员参赛名'),
+            __('足环号码'),
             ...$this->projects->pluck('name')->all(),
         ];
+    }
+
+    public function race(): Race
+    {
+        return $this->race;
     }
 
     public function collection(): Collection
@@ -235,9 +245,9 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
         $sheet->mergeCells("A2:{$lastColumn}2");
         $sheet->mergeCells("A3:{$lastColumn}3");
 
-        $sheet->setCellValue('A1', '赛事名称：'.$this->race->name);
-        $sheet->setCellValue('A2', '报名截止时间：'.$this->race->registration_end_at?->toDateTimeString());
-        $sheet->setCellValue('A3', '项目数量统计：'.$this->projectSummaryText());
+        $sheet->setCellValue('A1', __('赛事名称：').$this->race->name);
+        $sheet->setCellValue('A2', __('报名截止时间：').$this->race->registration_end_at?->toDateTimeString());
+        $sheet->setCellValue('A3', __('项目数量统计：').$this->projectSummaryText());
 
         $sheet->getStyle('A1:A3')->applyFromArray([
             'font' => ['bold' => true, 'size' => 12],
@@ -304,6 +314,130 @@ class RegistrationMatrixExport implements FromCollection, ShouldAutoSize, WithCo
     {
         $name = preg_replace('/[\\\\\\/\\:\\*\\?\\"\\<\\>\\|]+/', '-', $this->race->name);
 
-        return '报名明细-'.$name.'-'.now()->format('YmdHis').'.xlsx';
+        return __('报名明细').'-'.$name.'-'.now()->format('YmdHis').'.xlsx';
+    }
+}
+
+class RegistrationMatrixExport implements WithMultipleSheets
+{
+    private RegistrationMatrixSheet $matrix;
+
+    public function __construct(int $raceId)
+    {
+        $this->matrix = new RegistrationMatrixSheet($raceId);
+    }
+
+    public function sheets(): array
+    {
+        return [
+            $this->matrix,
+            new RegistrationSummarySheet($this->matrix->race()),
+        ];
+    }
+
+    public function headings(): array
+    {
+        return $this->matrix->headings();
+    }
+
+    public function collection(): Collection
+    {
+        return $this->matrix->collection();
+    }
+
+    public function startCell(): string
+    {
+        return $this->matrix->startCell();
+    }
+
+    public function columnWidths(): array
+    {
+        return $this->matrix->columnWidths();
+    }
+
+    public function registerEvents(): array
+    {
+        return $this->matrix->registerEvents();
+    }
+
+    public function fileName(): string
+    {
+        return $this->matrix->fileName();
+    }
+}
+
+class RegistrationSummarySheet implements FromCollection, ShouldAutoSize, WithColumnWidths, WithEvents, WithHeadings, WithTitle
+{
+    /** @var Collection<int, Registration> */
+    private Collection $registrations;
+
+    public function __construct(private readonly Race $race)
+    {
+        $this->registrations = $race->registrations()
+            ->with('member')
+            ->orderBy('submitted_at')
+            ->orderBy('id')
+            ->get();
+    }
+
+    public function title(): string
+    {
+        return __('报名汇总');
+    }
+
+    public function headings(): array
+    {
+        return [
+            __('报名号'),
+            __('会员'),
+            __('状态'),
+            __('金额'),
+            __('币种'),
+        ];
+    }
+
+    public function collection(): Collection
+    {
+        return $this->registrations->map(fn (Registration $registration): array => [
+            $registration->registration_no,
+            $registration->member?->participant_name ?? $registration->participant_name_snapshot ?? '',
+            Registration::statusLabel($registration->status),
+            ((int) $registration->total_amount_cent) / 100,
+            CurrencyCode::fromValue($registration->currency_code)->value,
+        ])->values();
+    }
+
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 20,
+            'B' => 20,
+            'C' => 14,
+            'D' => 16,
+            'E' => 10,
+        ];
+    }
+
+    public function registerEvents(): array
+    {
+        return [
+            AfterSheet::class => function (AfterSheet $event): void {
+                $sheet = $event->sheet->getDelegate();
+                $sheet->getStyle('A1:E1')->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => [
+                        'fillType' => Fill::FILL_SOLID,
+                        'startColor' => ['rgb' => '116B43'],
+                    ],
+                ]);
+
+                foreach ($this->registrations as $index => $registration) {
+                    $row = $index + 2;
+                    $sheet->getStyle('D'.$row)
+                        ->getNumberFormat()
+                        ->setFormatCode(CurrencyFormatter::excelFormat($registration->currency_code));
+                }
+            },
+        ];
     }
 }

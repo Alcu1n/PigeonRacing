@@ -29,35 +29,35 @@ class ListPigeons extends ListRecords
         return [
             CreateAction::make(),
             Action::make('importExcel')
-                ->label('导入 Excel')
+                ->label(__('导入 Excel'))
                 ->visible(fn (): bool => PigeonResource::hasModulePermission('create'))
                 ->url(PigeonResource::getUrl('import')),
             Action::make('downloadTemplate')
-                ->label('下载模板')
+                ->label(__('下载模板'))
                 ->visible(fn (): bool => PigeonResource::hasModulePermission('create'))
                 ->action(function () {
                     abort_unless(PigeonResource::hasModulePermission('create'), 403);
 
-                    return Excel::download(new PigeonImportTemplateExport, '足环导入模板.xlsx');
+                    return Excel::download(new PigeonImportTemplateExport, __('足环导入模板').'.xlsx');
                 }),
             Action::make('exportExcel')
-                ->label('导出 Excel')
+                ->label(__('导出 Excel'))
                 ->visible(fn (): bool => PigeonResource::hasModulePermission('view'))
                 ->icon('heroicon-o-arrow-down-tray')
                 ->action(function () {
                     abort_unless(PigeonResource::hasModulePermission('view'), 403);
 
-                    return Excel::download(new PigeonExport, '足环列表.xlsx');
+                    return Excel::download(new PigeonExport, __('足环列表').'.xlsx');
                 }),
             Action::make('deleteAllPigeons')
-                ->label('删除所有足环')
+                ->label(__('删除所有足环'))
                 ->visible(fn (): bool => PigeonResource::hasModulePermission('delete'))
                 ->color('danger')
                 ->icon('heroicon-o-trash')
                 ->requiresConfirmation()
-                ->modalHeading('删除所有足环')
-                ->modalDescription('此操作会删除全部未被报名记录引用的足环。若已有报名记录引用足环，系统会阻止删除以保护历史报名数据。')
-                ->modalSubmitActionLabel('确认删除')
+                ->modalHeading(__('删除所有足环'))
+                ->modalDescription(__('此操作会删除全部未被报名记录引用的足环。若已有报名记录引用足环，系统会阻止删除以保护历史报名数据。'))
+                ->modalSubmitActionLabel(__('确认删除'))
                 ->action(fn () => $this->deleteAllPigeons()),
         ];
     }
@@ -70,8 +70,8 @@ class ListPigeons extends ListRecords
 
         if ($referenced > 0) {
             Notification::make()
-                ->title('无法删除所有足环')
-                ->body("已有 {$referenced} 条报名明细引用足环。请先处理报名记录，再删除足环。")
+                ->title(__('无法删除所有足环'))
+                ->body(__('已有 :count 条报名明细引用足环。请先处理报名记录，再删除足环。', ['count' => $referenced]))
                 ->danger()
                 ->send();
 
@@ -89,7 +89,7 @@ class ListPigeons extends ListRecords
             ->each(fn (int $memberId) => app(RaceCacheService::class)->forgetMemberPigeonsById($memberId));
 
         Notification::make()
-            ->title("已删除 {$deleted} 个足环")
+            ->title(__('已删除 :count 个足环', ['count' => $deleted]))
             ->success()
             ->send();
     }

@@ -9,6 +9,7 @@
 namespace App\Http\Controllers\Api\Member;
 
 use App\Http\Requests\Member\SubmitRegistrationRequest;
+use App\Enums\CurrencyCode;
 use App\Models\Member;
 use App\Models\Race;
 use App\Models\Registration;
@@ -34,10 +35,11 @@ class RegistrationController extends Controller
             ->map(fn (Registration $registration): array => [
                 'registration_id' => $registration->id,
                 'race_id' => $registration->race_id,
-                'race_name' => $registration->race_name_snapshot ?: ($registration->race?->name ?? '未知赛事'),
+                'race_name' => $registration->race_name_snapshot ?: ($registration->race?->name ?? __('未知赛事')),
                 'registration_no' => $registration->registration_no,
                 'status' => $registration->status->value,
                 'total_amount_cent' => $registration->total_amount_cent,
+                'currency_code' => CurrencyCode::fromValue($registration->currency_code ?: $registration->race?->currency_code)->value,
                 'submitted_at' => optional($registration->submitted_at)->toDateTimeString(),
                 'single_count' => $registration->entries
                     ->where('group_size_snapshot', 1)
@@ -85,7 +87,7 @@ class RegistrationController extends Controller
         $member = auth('member')->user();
 
         if ($registration->member_id !== $member->id) {
-            return response()->json(['error_code' => 'registration_not_found', 'message' => '报名记录不存在。'], 404);
+            return response()->json(['error_code' => 'registration_not_found', 'message' => __('报名记录不存在。')], 404);
         }
 
         $registration->load(['race', 'member', 'entries.pigeons', 'progressiveStageEntries.category']);

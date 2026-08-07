@@ -5,11 +5,13 @@
 {{-- 协议:更新本文件时，同步更新此头注释及所属文件夹的 .folder.md --}}
 
 @php
+    use App\Enums\RegistrationStatus;
     use App\Models\Registration;
-    use App\Services\RegistrationSummaryService;
+    use App\Support\CurrencyFormatter;
 
     $statusLabel = Registration::statusLabel($registration->status);
-    $isConfirmed = $statusLabel === '已确认';
+    $isConfirmed = $registration->status === RegistrationStatus::Confirmed;
+    $amount = CurrencyFormatter::format((int) $registration->total_amount_cent, $registration->currency_code);
 @endphp
 
 <style>
@@ -167,46 +169,46 @@
 </style>
 
 <section class="registration-overview" aria-labelledby="registration-overview-heading">
-    <h2 id="registration-overview-heading" class="registration-overview-heading">报名概览</h2>
+    <h2 id="registration-overview-heading" class="registration-overview-heading">{{ __('报名概览') }}</h2>
 
     <div class="registration-overview-primary">
         <div class="registration-overview-key">
-            <div class="registration-overview-key-label">会员棚号</div>
+            <div class="registration-overview-key-label">{{ __('会员棚号') }}</div>
             <div class="registration-overview-key-value">{{ $registration->member?->loft_number ?: '-' }}</div>
         </div>
         <div class="registration-overview-key">
-            <div class="registration-overview-key-label">会员参赛名</div>
+            <div class="registration-overview-key-label">{{ __('会员参赛名') }}</div>
             <div class="registration-overview-key-value">{{ $registration->member?->participant_name ?: '-' }}</div>
         </div>
         <div class="registration-overview-key">
-            <div class="registration-overview-key-label">总金额</div>
-            <div class="registration-overview-key-value registration-overview-total"><span class="registration-overview-total-unit">￥</span>{{ RegistrationSummaryService::formatYuan((int) $registration->total_amount_cent) }}</div>
+            <div class="registration-overview-key-label">{{ __('总金额') }}</div>
+            <div class="registration-overview-key-value registration-overview-total">{{ $amount }}</div>
         </div>
     </div>
 
     <div class="registration-overview-details">
         <div class="registration-overview-detail">
-            <div class="registration-overview-detail-label">报名编号</div>
+            <div class="registration-overview-detail-label">{{ __('报名编号') }}</div>
             <div class="registration-overview-detail-value">{{ $registration->registration_no ?: '-' }}</div>
         </div>
         <div class="registration-overview-detail">
-            <div class="registration-overview-detail-label">赛事名称</div>
+            <div class="registration-overview-detail-label">{{ __('赛事名称') }}</div>
             <div class="registration-overview-detail-value">{{ $registration->race?->name ?: '-' }}</div>
         </div>
         <div class="registration-overview-detail">
-            <div class="registration-overview-detail-label">确认状态</div>
+            <div class="registration-overview-detail-label">{{ __('确认状态') }}</div>
             <div class="registration-overview-detail-value"><span class="registration-overview-status {{ $isConfirmed ? 'registration-overview-status-confirmed' : 'registration-overview-status-pending' }}">{{ $statusLabel }}</span></div>
         </div>
         <div class="registration-overview-detail">
-            <div class="registration-overview-detail-label">提交时间</div>
+            <div class="registration-overview-detail-label">{{ __('提交时间') }}</div>
             <div class="registration-overview-detail-value">{{ $registration->submitted_at?->format('Y年m月d日 H:i:s') ?: '-' }}</div>
         </div>
         <div class="registration-overview-detail">
-            <div class="registration-overview-detail-label">确认时间</div>
+            <div class="registration-overview-detail-label">{{ __('确认时间') }}</div>
             <div class="registration-overview-detail-value">{{ $registration->confirmed_at?->format('Y年m月d日 H:i:s') ?: '-' }}</div>
         </div>
         <div class="registration-overview-detail">
-            <div class="registration-overview-detail-label">备注</div>
+            <div class="registration-overview-detail-label">{{ __('备注') }}</div>
             <div class="registration-overview-detail-value">{{ $registration->remark ?: '-' }}</div>
         </div>
     </div>

@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRegistrationStore } from '../stores/registration'
-import { yuan } from '../utils/money'
+import { formatMoney } from '../utils/money'
+import { t } from '../i18n'
 
 const store = useRegistrationStore()
 
@@ -32,8 +33,8 @@ const multiGroups = computed(() => store.multiProjects.map((project) => {
       <div class="detail-block-head">
         <h3>{{ group.project.name }}</h3>
         <div class="detail-summary-row">
-          <span class="detail-count-chip">共 {{ group.entries.length }} 羽</span>
-          <span class="detail-amount-chip">小计 {{ yuan(group.entries.length * group.project.price_cent) }}</span>
+          <span class="detail-count-chip">{{ t('共 {count} 羽', { count: group.entries.length }) }}</span>
+          <span class="detail-amount-chip">{{ t('小计 {amount}', { amount: formatMoney(group.entries.length * group.project.price_cent, store.race?.currency_code ?? 'CNY') }) }}</span>
         </div>
       </div>
       <div class="detail-block-scroll">
@@ -49,13 +50,13 @@ const multiGroups = computed(() => store.multiProjects.map((project) => {
       <div class="detail-block-head">
         <h3>{{ group.project.name }}</h3>
         <div class="detail-summary-row">
-          <span class="detail-count-chip">共 {{ group.groups.length }} 组</span>
-          <span class="detail-amount-chip">小计 {{ yuan(group.groups.length * group.project.price_cent) }}</span>
+          <span class="detail-count-chip">{{ t('共 {count} 组', { count: group.groups.length }) }}</span>
+          <span class="detail-amount-chip">{{ t('小计 {amount}', { amount: formatMoney(group.groups.length * group.project.price_cent, store.race?.currency_code ?? 'CNY') }) }}</span>
         </div>
       </div>
       <div class="detail-block-scroll">
         <div v-for="(item, index) in group.groups" :key="item.id" class="mini-group">
-          <strong>第 {{ index + 1 }} 组</strong>
+          <strong>{{ index + 1 }} {{ t('组') }}</strong>
           <span>{{ item.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
         </div>
       </div>
@@ -65,18 +66,18 @@ const multiGroups = computed(() => store.multiProjects.map((project) => {
       <div class="detail-block-head">
         <h3>{{ group.category.name }} · {{ group.category.current_stage?.name }}</h3>
         <div class="detail-summary-row">
-          <span class="detail-count-chip">共 {{ group.groups.length }} 组</span>
-          <span class="detail-amount-chip">小计 {{ yuan(group.groups.length * (group.category.current_stage?.price_cent ?? 0)) }}</span>
+          <span class="detail-count-chip">{{ t('共 {count} 组', { count: group.groups.length }) }}</span>
+          <span class="detail-amount-chip">{{ t('小计 {amount}', { amount: formatMoney(group.groups.length * (group.category.current_stage?.price_cent ?? 0), store.race?.currency_code ?? 'CNY') }) }}</span>
         </div>
       </div>
       <div class="detail-block-scroll">
         <div v-for="(item, index) in group.groups" :key="group.category.id + '-' + item.group_key" class="mini-group">
-          <strong>第 {{ index + 1 }} 组</strong>
+          <strong>{{ index + 1 }} {{ t('组') }}</strong>
           <span>{{ item.pigeon_ids.map((id) => store.pigeonById(id).ring_number).join(' / ') }}</span>
         </div>
       </div>
     </article>
 
-    <p v-if="store.selectedCount === 0" class="empty-note">尚未选择报名项目</p>
+    <p v-if="store.selectedCount === 0" class="empty-note">{{ t('尚未选择报名项目') }}</p>
   </section>
 </template>

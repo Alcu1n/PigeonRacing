@@ -6,7 +6,8 @@
 <script setup lang="ts">
 import { registrationStatusText } from '../types/domain'
 import type { RegistrationReceiptData } from '../utils/registrationReceipt'
-import { yuan } from '../utils/money'
+import { formatMoney } from '../utils/money'
+import { t } from '../i18n'
 
 defineProps<{ receipt: RegistrationReceiptData }>()
 </script>
@@ -16,65 +17,65 @@ defineProps<{ receipt: RegistrationReceiptData }>()
     <header class="receipt-heading">
       <h1>{{ receipt.race_name }}</h1>
       <div class="receipt-total">
-        <span>总金额</span>
-        <strong>{{ yuan(receipt.total_amount_cent) }}</strong>
+        <span>{{ t('总金额') }}</span>
+        <strong>{{ formatMoney(receipt.total_amount_cent, receipt.currency_code) }}</strong>
       </div>
     </header>
 
     <table class="receipt-table receipt-meta-table">
       <tbody>
         <tr>
-          <th>棚号</th>
+          <th>{{ t('棚号') }}</th>
           <td>{{ receipt.loft_number }}</td>
-          <th>参赛名</th>
+          <th>{{ t('参赛名') }}</th>
           <td>{{ receipt.participant_name }}</td>
         </tr>
         <tr>
-          <th>报名编号</th>
+          <th>{{ t('报名编号') }}</th>
           <td>{{ receipt.registration_no }}</td>
-          <th>确认状态</th>
-          <td>{{ registrationStatusText(receipt.status) }}</td>
+          <th>{{ t('确认状态') }}</th>
+          <td>{{ t(registrationStatusText(receipt.status)) }}</td>
         </tr>
         <tr>
-          <th>报名时间</th>
+          <th>{{ t('报名时间') }}</th>
           <td colspan="3">{{ receipt.submitted_at }}</td>
         </tr>
       </tbody>
     </table>
 
     <section class="receipt-section">
-      <h2>项目汇总</h2>
+      <h2>{{ t('项目汇总') }}</h2>
       <table class="receipt-table receipt-summary-table">
         <thead>
           <tr>
-            <th>类别</th>
-            <th>项目</th>
-            <th>单价</th>
-            <th>数量</th>
-            <th>项目金额</th>
+            <th>{{ t('类别') }}</th>
+            <th>{{ t('项目') }}</th>
+            <th>{{ t('单价') }}</th>
+            <th>{{ t('数量') }}</th>
+            <th>{{ t('项目金额') }}</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="summary in receipt.project_summaries" :key="summary.category + '-' + summary.project_name">
             <td>{{ summary.category }}</td>
             <td>{{ summary.project_name }}</td>
-            <td class="receipt-number">{{ yuan(summary.unit_price_cent) }}</td>
+            <td class="receipt-number">{{ formatMoney(summary.unit_price_cent, receipt.currency_code) }}</td>
             <td class="receipt-number">{{ summary.quantity }} {{ summary.quantity_unit }}</td>
-            <td class="receipt-number receipt-strong">{{ yuan(summary.amount_cent) }}</td>
+            <td class="receipt-number receipt-strong">{{ formatMoney(summary.amount_cent, receipt.currency_code) }}</td>
           </tr>
         </tbody>
       </table>
     </section>
 
     <section v-if="receipt.single.rows.length > 0" class="receipt-section">
-      <h2>单羽组明细</h2>
+      <h2>{{ t('单羽组明细') }}</h2>
       <table class="receipt-table receipt-single-table">
         <thead>
           <tr>
-            <th class="receipt-ring-column">足环</th>
+            <th class="receipt-ring-column">{{ t('足环') }}</th>
             <th v-for="project in receipt.single.projects" :key="project.id">{{ project.name }}</th>
-            <th class="receipt-count-column">项数</th>
-            <th class="receipt-amount-column">行金额</th>
+            <th class="receipt-count-column">{{ t('项数') }}</th>
+            <th class="receipt-amount-column">{{ t('行金额') }}</th>
           </tr>
         </thead>
         <tbody>
@@ -84,30 +85,30 @@ defineProps<{ receipt: RegistrationReceiptData }>()
               {{ row.selected_project_ids[project.id] ? '✓' : '' }}
             </td>
             <td class="receipt-number">{{ row.count }}</td>
-            <td class="receipt-number receipt-strong">{{ yuan(row.amount_cent) }}</td>
+            <td class="receipt-number receipt-strong">{{ formatMoney(row.amount_cent, receipt.currency_code) }}</td>
           </tr>
         </tbody>
       </table>
     </section>
 
     <section v-if="receipt.multi.length > 0" class="receipt-section">
-      <h2>多羽组明细</h2>
+      <h2>{{ t('多羽组明细') }}</h2>
       <table class="receipt-table receipt-group-table">
         <thead>
           <tr>
-            <th class="receipt-project-column">项目</th>
-            <th class="receipt-group-column">组号</th>
-            <th>足环组合</th>
-            <th class="receipt-amount-column">组金额</th>
+            <th class="receipt-project-column">{{ t('项目') }}</th>
+            <th class="receipt-group-column">{{ t('组号') }}</th>
+            <th>{{ t('足环组合') }}</th>
+            <th class="receipt-amount-column">{{ t('组金额') }}</th>
           </tr>
         </thead>
         <tbody>
           <template v-for="project in receipt.multi" :key="project.project_id">
             <tr v-for="group in project.groups" :key="project.project_id + '-' + group.group_index">
               <td class="receipt-project-column">{{ project.project_name }}</td>
-              <td class="receipt-number">第 {{ group.group_index }} 组</td>
+              <td class="receipt-number">第 {{ group.group_index }} {{ t('组') }}</td>
               <td class="receipt-ring receipt-ring-list">{{ group.rings.join(' / ') }}</td>
-              <td class="receipt-number receipt-strong">{{ yuan(project.price_cent) }}</td>
+              <td class="receipt-number receipt-strong">{{ formatMoney(project.price_cent, receipt.currency_code) }}</td>
             </tr>
           </template>
         </tbody>
@@ -115,23 +116,23 @@ defineProps<{ receipt: RegistrationReceiptData }>()
     </section>
 
     <section v-if="receipt.progressive.length > 0" class="receipt-section">
-      <h2>递进阶段明细</h2>
+      <h2>{{ t('递进阶段明细') }}</h2>
       <table class="receipt-table receipt-group-table">
         <thead>
           <tr>
-            <th class="receipt-project-column">项目</th>
-            <th class="receipt-group-column">组号</th>
-            <th>足环组合</th>
-            <th class="receipt-amount-column">组金额</th>
+            <th class="receipt-project-column">{{ t('项目') }}</th>
+            <th class="receipt-group-column">{{ t('组号') }}</th>
+            <th>{{ t('足环组合') }}</th>
+            <th class="receipt-amount-column">{{ t('组金额') }}</th>
           </tr>
         </thead>
         <tbody>
           <template v-for="project in receipt.progressive" :key="project.category_id + '-' + project.stage_project_id">
             <tr v-for="group in project.groups" :key="project.stage_project_id + '-' + group.group_index">
               <td class="receipt-project-column">{{ project.category_name }} · {{ project.stage_project_name }}</td>
-              <td class="receipt-number">第 {{ group.group_index }} 组</td>
+              <td class="receipt-number">第 {{ group.group_index }} {{ t('组') }}</td>
               <td class="receipt-ring receipt-ring-list">{{ group.rings.join(' / ') }}</td>
-              <td class="receipt-number receipt-strong">{{ yuan(project.price_cent) }}</td>
+              <td class="receipt-number receipt-strong">{{ formatMoney(project.price_cent, receipt.currency_code) }}</td>
             </tr>
           </template>
         </tbody>
