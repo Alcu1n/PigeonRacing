@@ -143,6 +143,7 @@ build_member_h5_in_container() {
     if ! timeout "$FRONTEND_BUILD_TIMEOUT" docker run --rm --pull=never \
         --mount "type=bind,src=$FRONTEND_DIR,dst=/app" \
         --mount "type=volume,src=$NPM_CACHE_VOLUME,dst=/root/.npm" \
+        --mount "type=volume,dst=/app/node_modules" \
         -w /app \
         -e NPM_CONFIG_CACHE=/root/.npm \
         -e NPM_CONFIG_AUDIT=false \

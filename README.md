@@ -831,7 +831,7 @@ pigeon-front
 
 由于 Vite 资源文件名带 hash，正常发布不需要刷新整个 CDN 目录；确认入口 HTML 已引用新的 hash 文件即可。
 
-如果服务器主机没有 npm，脚本会自动使用 Docker 的 `node:22-alpine` 构建。脚本会先单独检查 Docker、明确显示镜像拉取和 `npm ci` / Vite 构建阶段，并将 npm 下载缓存保存在 `pigeon-member-h5-npm-cache` volume 中；镜像拉取默认 180 秒、前端容器构建流程默认 1200 秒，超时会失败并打印可定位的阶段。可按服务器网络情况覆盖，例如：
+如果服务器主机没有 npm，脚本会自动使用 Docker 的 `node:22-alpine` 构建。脚本会先单独检查 Docker、明确显示镜像拉取和 `npm ci` / Vite 构建阶段；依赖安装使用临时的独立 `node_modules` volume，npm 下载缓存保存在 `pigeon-member-h5-npm-cache` volume 中，避免项目目录中的残留依赖影响安装。镜像拉取默认 180 秒、前端容器构建流程默认 1200 秒，超时会失败并打印可定位的阶段。可按服务器网络情况覆盖，例如：
 
 ```bash
 ssh pigeon-prod 'NODE_IMAGE_PULL_TIMEOUT=600 NPM_FETCH_TIMEOUT=180000 bash /opt/pigeon-racing/scripts/production-update.sh frontend'
